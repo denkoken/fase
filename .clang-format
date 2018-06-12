@@ -11,3 +11,4 @@ BreakBeforeTernaryOperators: false
 AllowShortIfStatementsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
+PointerAlignment: Left
