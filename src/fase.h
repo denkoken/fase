@@ -81,20 +81,21 @@ public:
         for (int i = 0; i < int(sizeof...(Args)); i++) {
             args[i] = *in_args[i];
         }
-        binded = bind(func, args);
+        binded = bind(func);
     }
     void apply() { binded(); }
 
 private:
-    template <std::size_t N>
-    auto bind(std::function<void(Args...)>& f, std::array<Variable, N>& args) {
-        return bind(f, args, std::make_index_sequence<N>());
+    auto bind(std::function<void(Args...)> &f) {
+        return bind(f, std::make_index_sequence<sizeof...(Args)>());
     }
 
-    template<std::size_t N, std::size_t... Idx>
-    auto bind(std::function<void(Args...)>& f, std::array<Variable, N>& args,
-               std::index_sequence<Idx...>) {
-        return std::bind(f, *args[Idx].template getReader<Args>()...);
+    template <std::size_t... Idx>
+    auto bind(std::function<void(Args...)> &f, std::index_sequence<Idx...>) {
+        return std::bind(
+            f, *args[Idx]
+                    .template getReader<
+                        typename std::remove_reference<Args>::type>()...);
     }
 
     std::function<void(Args...)> func;
