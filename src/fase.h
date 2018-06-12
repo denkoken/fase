@@ -81,15 +81,12 @@ public:
         for (int i = 0; i < int(sizeof...(Args)); i++) {
             args[i] = *in_args[i];
         }
-        binded = bind(func);
+        binded = bind(func, std::make_index_sequence<sizeof...(Args)>());
     }
+
     void apply() { binded(); }
 
 private:
-    auto bind(std::function<void(Args...)> &f) {
-        return bind(f, std::make_index_sequence<sizeof...(Args)>());
-    }
-
     template <std::size_t... Idx>
     auto bind(std::function<void(Args...)> &f, std::index_sequence<Idx...>) {
         return std::bind(
