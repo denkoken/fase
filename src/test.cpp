@@ -17,6 +17,24 @@ public:
     void test() { printf("success!\n"); }
 };
 
+class Add : public FunctionNode {
+public:
+    void build(const std::vector<Variable *> &args) {
+        if (args.size() != 3) {
+            std::cerr << "Invalid arguments" << std::endl;
+            return;
+        }
+        a = args[0]->getReader<int>();
+        b = args[1]->getReader<int>();
+        c = args[2]->getWriter<int>();
+    }
+
+    void apply() { *c = *a + *b; }
+
+private:
+    std::shared_ptr<int> a, b, c;
+};
+
 int main() {
     Variable v3;
 
