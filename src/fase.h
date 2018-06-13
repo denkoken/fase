@@ -6,6 +6,8 @@
 #include <typeinfo>
 #include <vector>
 
+namespace fase {
+
 class Variable {
 public:
     Variable() = default;
@@ -99,3 +101,5 @@ private:
     std::function<void()> binded;
     std::array<Variable, sizeof...(Args)> args;
 };
+
+}  // namespace fase
