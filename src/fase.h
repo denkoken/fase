@@ -89,13 +89,47 @@ public:
     void apply() { binded(); }
 
 private:
-    template <std::size_t... Idx>
-    auto bind(std::function<void(Args...)> &f, std::index_sequence<Idx...>) {
-        return std::bind(
-            f, *args[Idx]
-                    .template getReader<
-                        typename std::remove_reference<Args>::type>()...);
+#if 1
+    template <typename Callable, typename Head, typename... Tail>
+    auto bind(const Callable &func) {
+        auto a = [func, &v = this->args[sizeof...(Args) - sizeof...(Tail) - 1]](
+                     Tail... arguments) {
+            func(*v.template getReader<
+                     typename std::remove_reference<Head>::type>(),
+                 std::forward<Tail>(arguments)...);
+        };
+        if constexpr (sizeof...(Tail) == 0) {
+            return a;
+        } else {
+            return bind<typename std::remove_reference<decltype(a)>::type,
+                        Tail...>(a);
+        }
     }
+#else  // more readable, with same process.
+    template <class Callable, class Head, class... Tail>
+    struct Wrapper {
+        Callable func;
+        Variable &arg1;
+        Wrapper(const Callable &func_, Variable &arg1_)
+            : func(func_), arg1(arg1_) {}
+
+        void operator()(Tail... arguments) {
+            using arg1_type = typename std::remove_reference<Head>::type;
+            func(*arg1.template getReader<arg1_type>(),
+                 std::forward<Tail>(arguments)...);
+        }
+    };
+    template <typename Callable, typename Head, typename... Tail>
+    auto bind(const Callable &func) {
+        Wrapper<Callable, Head, Tail...> a(
+            func, this->args[sizeof...(Args) - sizeof...(Tail) - 1]);
+        if constexpr (sizeof...(Tail) == 0) {
+            return a;
+        } else {
+            return bind<Wrapper<Callable, Head, Tail...>, Tail...>(a);
+        }
+    }
+#endif
 
     std::function<void(Args...)> func;
     std::function<void()> binded;
