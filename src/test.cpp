@@ -1,9 +1,9 @@
 
 #include "fase.h"
 
-using face::FunctionNode;
-using face::StandardFunction;
-using face::Variable;
+using fase::FunctionNode;
+using fase::StandardFunction;
+using fase::Variable;
 
 class TestClass {
 public:

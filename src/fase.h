@@ -6,7 +6,7 @@
 #include <typeinfo>
 #include <vector>
 
-namespace face {
+namespace fase {
 
 class Variable {
 public:
@@ -102,4 +102,4 @@ private:
     std::array<Variable, sizeof...(Args)> args;
 };
 
-}  // namespace face
+}  // namespace fase
