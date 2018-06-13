@@ -1,6 +1,10 @@
 
 #include "fase.h"
 
+using face::FunctionNode;
+using face::StandardFunction;
+using face::Variable;
+
 class TestClass {
 public:
     TestClass() { printf("new instance was made.\n"); }
