@@ -64,6 +64,7 @@ int main() {
         StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
             printf("a: %d, b: %d\n", a, b);
             b += c;
+            printf("a: %d, b: %d\n", a, b);
         };
         FunctionNode *pf = &func;
         Variable v1 = 1, v2 = 2, v3 = 3.f;
