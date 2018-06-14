@@ -83,7 +83,7 @@ public:
         for (int i = 0; i < int(sizeof...(Args)); i++) {
             args[i] = *in_args[i];
         }
-        binded = bind(func, std::make_index_sequence<sizeof...(Args)>());
+        binded = bind<decltype(func), Args...>(func);
     }
 
     void apply() { binded(); }

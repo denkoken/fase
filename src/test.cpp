@@ -1,6 +1,8 @@
 
 #include "fase.h"
 
+#include <cassert>
+
 using fase::FunctionNode;
 using fase::StandardFunction;
 using fase::Variable;
