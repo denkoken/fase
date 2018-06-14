@@ -1,6 +1,8 @@
 
 #include "fase.h"
 
+#include <cassert>
+
 using fase::FunctionNode;
 using fase::StandardFunction;
 using fase::Variable;
@@ -59,15 +61,16 @@ int main() {
     b.getReader<TestClass>()->test();
 
     {
-        StandardFunction<int, float &, int> func = [](int a, float &b, int c) {
-            printf("a: %d, b: %f\n", a, b);
+        StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
+            printf("a: %d, b: %d\n", a, b);
             b += c;
         };
         FunctionNode *pf = &func;
-        Variable v1 = 1, v2 = 2.f, v3 = 3;
+        Variable v1 = 1, v2 = 2, v3 = 3.f;
         pf->build({&v1, &v2, &v3});
         pf->apply();
         pf->apply();
+        assert(*v2.getReader<int>() == 8);
     }
 
     Add add;
