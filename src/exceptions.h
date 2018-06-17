@@ -15,7 +15,7 @@ public:
           cast_type(&cast_t),
           casted_type(&casted_t),
           err_message(
-              std::string("StandardFunction::build() failed : Invalid cast (") +
+              std::string("Variable::getReader() failed : Invalid cast (") +
               cast_type->name() + std::string(" vs ") + casted_type->name() +
               std::string(")")) {}
 
