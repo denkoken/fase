@@ -9,18 +9,29 @@ using fase::Variable;
 
 class TestClass {
 public:
-    TestClass() { printf("new instance was made.\n"); }
-    TestClass(const TestClass &) { printf("copy instance was made.\n"); }
-    TestClass(TestClass &&) { printf("moved instance was made.\n"); }
+    TestClass() : maked(true), copied(false), moved(false) {}
+    TestClass(const TestClass &) : maked(false), copied(true), moved(false) {}
+    TestClass(TestClass &&) : maked(false), copied(false), moved(true) {}
     TestClass &operator=(TestClass &&) {
-        printf("moved instance was made.\n");
+        this->copied = true;
+        this->maked = this->moved = false;
         return *this;
     }
     TestClass &operator=(const TestClass &) {
-        printf("copy instance was made.\n");
+        this->moved = true;
+        this->maked = this->copied = false;
         return *this;
     }
     void test() { printf("success!\n"); }
+
+    bool isMaked() { return maked; }
+    bool isCopied() { return copied; }
+    bool isMoved() { return moved; }
+
+private:
+    bool maked;
+    bool copied;
+    bool moved;
 };
 
 class Add : public FunctionNode {
@@ -45,9 +56,11 @@ int main() {
     Variable v3;
 
     Variable a = TestClass();
+    assert(a.getReader<TestClass>()->isMoved());
     TestClass buf;
 
     Variable b = buf;
+    assert(b.getReader<TestClass>()->isCopied());
 
     a = b;
 
@@ -58,6 +71,7 @@ int main() {
     a.getReader<TestClass>()->test();
 
     b = std::move(buf);
+    assert(b.getReader<TestClass>()->isMoved());
     b.getReader<TestClass>()->test();
 
     {
@@ -67,11 +81,40 @@ int main() {
             printf("a: %d, b: %d\n", a, b);
         };
         FunctionNode *pf = &func;
-        Variable v1 = 1, v2 = 2, v3 = 3.f;
+        Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
         pf->build({&v1, &v2, &v3});
         pf->apply();
         pf->apply();
         assert(*v2.getReader<int>() == 8);
+
+        try {
+            pf->build({&v1, &v2, &v3, &v4});
+            assert(false);
+        } catch (fase::InvalidArgN &e) {
+            assert(e.expectedN == 3 && e.inputN == 4);
+        }
+
+        Add add;
+        add.build({&v1, &v2, &v4});
+
+        std::vector<FunctionNode *> fs;
+        fs.push_back(&func);
+        fs.push_back(&add);
+
+        for (auto &f : fs) {
+            f->apply();
+        }
+    }
+
+    {
+        Variable test_class = TestClass();
+        try {
+            test_class.getReader<float>();
+            assert(false);
+        } catch (fase::WrongTypeCast &e) {
+            assert(*e.casted_type == typeid(TestClass) &&
+                   *e.cast_type == typeid(float));
+        }
     }
 
     Add add;
@@ -87,6 +130,7 @@ int main() {
         node->build({&v1, &v2, &v3});
     }
     node->apply();
+    assert(*(v3.getReader<int>()) == 579);
     std::cout << *(v3.getReader<int>()) << std::endl;
     return 0;
 }

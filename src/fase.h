@@ -6,6 +6,8 @@
 #include <typeinfo>
 #include <vector>
 
+#include "exceptions.h"
+
 namespace fase {
 
 class Variable {
@@ -49,9 +51,7 @@ public:
     std::shared_ptr<T> getReader() const {
         if (*type != typeid(T)) {
             // Invalid type cast
-            std::cerr << "Invalid cast (" << type->name() << " vs "
-                      << typeid(T).name() << ")" << std::endl;
-            return std::make_shared<T>();
+            throw(WrongTypeCast(typeid(T), *type));
         }
         return std::static_pointer_cast<T>(data);
     }
@@ -77,8 +77,7 @@ public:
 
     void build(const std::vector<Variable *> &in_args) {
         if (in_args.size() != sizeof...(Args)) {
-            std::cerr << "Invalid arguments" << std::endl;
-            return;
+            throw(InvalidArgN(sizeof...(Args), in_args.size()));
         }
         for (int i = 0; i < int(sizeof...(Args)); i++) {
             args[i] = *in_args[i];
