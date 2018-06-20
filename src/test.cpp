@@ -2,6 +2,7 @@
 #include "fase.h"
 
 #include <cassert>
+#include <vector>
 
 using fase::FunctionNode;
 using fase::StandardFunction;
@@ -34,9 +35,9 @@ private:
     bool moved;
 };
 
-class Add : public FunctionNode<3> {
+class Add : public FunctionNode {
 public:
-    FunctionNode<3> *build(const std::array<Variable *, 3> &args) {
+    FunctionNode *build(const std::vector<Variable *> &args) {
         a = args[0]->getReader<int>();
         b = args[1]->getReader<int>();
         c = args[2]->getWriter<int>();
@@ -72,7 +73,7 @@ int main() {
     b.getReader<TestClass>()->test();
 
     {
-        std::vector<fase::Func *> fs;
+        std::vector<FunctionNode *> fs;
         StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
             printf("a: %d, b: %d\n", a, b);
             b += c;
@@ -107,7 +108,7 @@ int main() {
     }
 
     Add add;
-    fase::Func *node = &add;
+    FunctionNode *node = &add;
     {
         // Create with variable creation
         Variable v1 = 123, v2 = 456;

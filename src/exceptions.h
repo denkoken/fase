@@ -28,6 +28,27 @@ private:
     std::string err_message;
 };
 
+class InvalidArgN : public std::logic_error {
+public:
+    InvalidArgN(const int& expect_n, const int& input_n)
+        : std::logic_error("InvalidArgN"),
+          inputN(input_n),
+          expectedN(expect_n),
+          err_message(std::string("StandardFunction::build() failed : Invalid "
+                                  "Number of Arguments ( expect ") +
+                      std::to_string(expectedN) +
+                      std::string(" , but # of arguments is ") +
+                      std::to_string(inputN) + std::string(")")) {}
+
+    const int inputN;
+    const int expectedN;
+
+    const char* what() const noexcept { return err_message.c_str(); }
+
+private:
+    std::string err_message;
+};
+
 }  // namespace fase
 
 #endif  // EXCEPTIONS_H_20180617

@@ -61,32 +61,39 @@ private:
     const std::type_info *type = &typeid(void);
 };
 
-class Func {
+class FunctionNode {
 public:
-    virtual void operator()() = 0;
+    virtual FunctionNode *build(const std::vector<Variable *> &in_args) = 0;
     virtual void apply() = 0;
-};
-
-template <int argN>
-class FunctionNode : public Func {
-public:
-    virtual Func *build(const std::array<Variable *, argN> &args) = 0;
     void operator()() { apply(); }
 };
 
 template <typename... Args>
-class StandardFunction : public FunctionNode<sizeof...(Args)> {
+class StandardFunction : public FunctionNode {
 public:
     template <class Callable>
     StandardFunction(Callable in_func) {
         func = std::function<void(Args...)>(in_func);
     }
 
-    Func *build(const std::array<Variable *, sizeof...(Args)> &in_args) {
+    FunctionNode *buildA(
+        const std::array<Variable *, sizeof...(Args)> &in_args) {
+        for (int i = 0; i < int(sizeof...(Args)); i++) {
+            args[i] = *(in_args[i]);
+        }
+        binded = bind(func, std::index_sequence_for<Args...>());
+
+        return this;
+    }
+
+    FunctionNode *build(const std::vector<Variable *> &in_args) {
+        if (in_args.size() != sizeof...(Args)) {
+            throw(InvalidArgN(sizeof...(Args), in_args.size()));
+        }
         for (int i = 0; i < int(sizeof...(Args)); i++) {
             args[i] = *in_args[i];
         }
-        binded = bind(func, std::make_index_sequence<sizeof...(Args)>());
+        binded = bind(func, std::index_sequence_for<Args...>());
 
         return this;
     }
