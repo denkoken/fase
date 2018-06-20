@@ -72,6 +72,8 @@ int main() {
     assert(b.getReader<TestClass>()->isMoved());
     b.getReader<TestClass>()->test();
 
+    Variable c = a;
+
     {
         std::vector<FunctionNode *> fs;
         StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
@@ -81,6 +83,7 @@ int main() {
         };
         Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
         fs.push_back(func.build({&v1, &v2, &v3}));
+        fs.push_back(func.build(v1, v2, v3));
         fs.back()->apply();
         fs.back()->apply();
         assert(*v2.getReader<int>() == 8);

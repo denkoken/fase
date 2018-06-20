@@ -20,6 +20,8 @@ public:
               std::forward<T>(value))),
           type(&typeid(typename std::remove_reference<T>::type)) {}
 
+    Variable(Variable &) = default;
+    Variable &operator=(Variable &) = default;
     Variable(const Variable &) = default;
     Variable &operator=(const Variable &) = default;
     Variable(Variable &&) = default;
@@ -76,13 +78,10 @@ public:
         func = std::function<void(Args...)>(in_func);
     }
 
-    FunctionNode *buildA(
-        const std::array<Variable *, sizeof...(Args)> &in_args) {
-        for (int i = 0; i < int(sizeof...(Args)); i++) {
-            args[i] = *(in_args[i]);
-        }
+    template <typename... VArgs>
+    FunctionNode *build(VArgs&... in_args) {
+        args = std::array<Variable, sizeof...(VArgs)>{(in_args)...};
         binded = bind(func, std::index_sequence_for<Args...>());
-
         return this;
     }
 
