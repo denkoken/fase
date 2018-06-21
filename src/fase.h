@@ -84,16 +84,17 @@ public:
 
     ///
     /// Build function with input arguments statically.
+    ///  TODO: Is there any method to replace template VArgs with Args?
     ///
     template <typename... VArgs>
-    FunctionNode *build(VArgs&... in_args) {
+    FunctionNode *build(VArgs&... in_args) noexcept {
         static_assert(sizeof...(VArgs) == sizeof...(Args),
                       "The number of arguments is not matched");
 
         // Copy to an array of variables
         args = std::array<Variable, sizeof...(Args)>{in_args...};
         // Bind arguments
-        binded = bind(func, std::index_sequence_for<Args...>());
+        binded = bind(std::index_sequence_for<Args...>());
 
         return this;
     }
@@ -111,7 +112,7 @@ public:
             args[i] = *in_args[i];
         }
         // Bind arguments
-        binded = bind(func, std::index_sequence_for<Args...>());
+        binded = bind(std::index_sequence_for<Args...>());
 
         return this;
     }
@@ -120,9 +121,9 @@ public:
 
 private:
     template <std::size_t... Idx>
-    auto bind(std::function<void(Args...)> &f, std::index_sequence<Idx...>) {
+    auto bind(std::index_sequence<Idx...>) {
         return [&]() {
-            f(*args[Idx]
+            func(*args[Idx]
                    .template getReader<
                        typename std::remove_reference<Args>::type>()...);
         };
