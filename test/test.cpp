@@ -1,4 +1,3 @@
-
 #include "fase.h"
 
 #include <cassert>

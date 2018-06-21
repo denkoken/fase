@@ -1,6 +1,5 @@
-
-#ifndef EXCEPTIONS_H_20180617
-#define EXCEPTIONS_H_20180617
+#ifndef FASE_EXCEPTIONS_H_20180617
+#define FASE_EXCEPTIONS_H_20180617
 
 #include <stdexcept>
 #include <string>
@@ -51,4 +50,4 @@ private:
 
 }  // namespace fase
 
-#endif  // EXCEPTIONS_H_20180617
+#endif  // FASE_EXCEPTIONS_H_20180617
