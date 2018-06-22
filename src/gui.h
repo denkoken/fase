@@ -10,7 +10,9 @@ namespace pe {
 
 class FaseGUI {
 public:
-    FaseGUI(const FaseCore& fase);
+    FaseGUI(FaseCore& fase);
+
+    void start();
 
 private:
     // TODO discuss whether to use raw pointer or std::weak_ptr.
