@@ -29,7 +29,7 @@ private:
 
 class InvalidArgN : public std::logic_error {
 public:
-    InvalidArgN(const int& expect_n, const int& input_n)
+    InvalidArgN(const size_t& expect_n, const size_t& input_n)
         : std::logic_error("InvalidArgN"),
           inputN(input_n),
           expectedN(expect_n),
@@ -39,8 +39,8 @@ public:
                       std::string(" , but # of arguments is ") +
                       std::to_string(inputN) + std::string(")")) {}
 
-    const int inputN;
-    const int expectedN;
+    const size_t inputN;
+    const size_t expectedN;
 
     const char* what() const noexcept { return err_message.c_str(); }
 

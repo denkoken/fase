@@ -58,7 +58,7 @@ public:
         }
 
         // Copy to an array of variables
-        for (int i = 0; i < int(sizeof...(Args)); i++) {
+        for (size_t i = 0; i < sizeof...(Args); i++) {
             args[i] = *in_args[i];
         }
         // Bind arguments
