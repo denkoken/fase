@@ -36,7 +36,7 @@ public:
     ///  TODO: Is there any method to replace template VArgs with Args?
     ///
     template <typename... VArgs>
-    FunctionNode *build(VArgs&... in_args) noexcept {
+    FunctionNode *build(VArgs &... in_args) noexcept {
         static_assert(sizeof...(VArgs) == sizeof...(Args),
                       "The number of arguments is not matched");
 
@@ -73,8 +73,8 @@ private:
     auto bind(std::index_sequence<Idx...>) {
         return [&]() {
             func(*args[Idx]
-                   .template getReader<
-                       typename std::remove_reference<Args>::type>()...);
+                      .template getReader<
+                          typename std::remove_reference<Args>::type>()...);
         };
     }
 
@@ -85,7 +85,8 @@ private:
 
 class FunctionBuilder {
 public:
-    virtual std::function<void()> build(const std::vector<Variable *> &in_args) = 0;
+    virtual std::function<void()> build(
+        const std::vector<Variable *> &in_args) = 0;
 };
 
 template <typename... Args>
@@ -104,7 +105,7 @@ public:
     ///  TODO: Is there any method to replace template VArgs with Args?
     ///
     template <typename... VArgs>
-    std::function<void()> build(VArgs&... in_args) noexcept {
+    std::function<void()> build(VArgs &... in_args) noexcept {
         static_assert(sizeof...(VArgs) == sizeof...(Args),
                       "The number of arguments is not matched");
 
@@ -137,8 +138,8 @@ private:
     auto bind(std::index_sequence<Idx...>) {
         return [&]() {
             func(*args[Idx]
-                   .template getReader<
-                       typename std::remove_reference<Args>::type>()...);
+                      .template getReader<
+                          typename std::remove_reference<Args>::type>()...);
         };
     }
 

@@ -19,8 +19,10 @@ public:
     void addInputVariable(const std::string& name, const Variable& val);
 
     template <typename... Args>
-    void addFunctionNode(const std::string& name,
-                         const StandardFunction<Args...>& f);
+    void addFunction(const std::string& name, const FunctionBinder<Args...>& f,
+                     const std::array<std::string, sizeof...(Args)>& argnames);
+
+    void setInitFunc(const std::function<void()>& init_func);
 
     void startEditing();
 
