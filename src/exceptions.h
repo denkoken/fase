@@ -39,8 +39,8 @@ public:
                       std::string(" , but # of arguments is ") +
                       std::to_string(inputN) + std::string(")")) {}
 
-    const int inputN;
-    const int expectedN;
+    const size_t inputN;
+    const size_t expectedN;
 
     const char* what() const noexcept { return err_message.c_str(); }
 

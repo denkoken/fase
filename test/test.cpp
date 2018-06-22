@@ -1,7 +1,7 @@
-#include "fase.h"
+#define CATCH_CONFIG_MAIN  // Define main()
+#include "catch.hpp"
 
-#include <cassert>
-#include <vector>
+#include "fase.h"
 
 using fase::FunctionNode;
 using fase::StandardFunction;
@@ -9,29 +9,29 @@ using fase::Variable;
 
 class TestClass {
 public:
-    TestClass() : maked(true), copied(false), moved(false) {}
-    TestClass(const TestClass &) : maked(false), copied(true), moved(false) {}
-    TestClass(TestClass &&) : maked(false), copied(false), moved(true) {}
-    TestClass &operator=(TestClass &&) {
-        this->copied = true;
-        this->maked = this->moved = false;
-        return *this;
-    }
-    TestClass &operator=(const TestClass &) {
-        this->moved = true;
-        this->maked = this->copied = false;
-        return *this;
-    }
-    void test() { printf("success!\n"); }
+    enum class Status { NONE, MAKED, COPIED, MOVED };
 
-    bool isMaked() { return maked; }
-    bool isCopied() { return copied; }
-    bool isMoved() { return moved; }
+    TestClass() : status(Status::MAKED) {}
+    TestClass(const TestClass &) : status(Status::COPIED) {}
+    TestClass(TestClass &&) : status(Status::MOVED) {}
+    TestClass &operator=(const TestClass &) {
+        status = Status::COPIED;
+        return *this;
+    }
+    TestClass &operator=(TestClass &&) {
+        status = Status::MOVED;
+        return *this;
+    }
+
+    bool isNone() { return status == Status::NONE; }
+    bool isMaked() { return status == Status::MAKED; }
+    bool isCopied() { return status == Status::COPIED; }
+    bool isMoved() { return status == Status::MOVED; }
+
+    void clear() { status = Status::NONE; }
 
 private:
-    bool maked;
-    bool copied;
-    bool moved;
+    Status status;
 };
 
 class Add : public FunctionNode {
@@ -49,102 +49,105 @@ private:
     std::shared_ptr<int> a, b, c;
 };
 
-int main() {
-    //
-    // Variable constructor test
-    //
-    {
-        Variable a = TestClass();
-        assert(a.getReader<TestClass>()->isMoved());
-        TestClass buf;
+TEST_CASE("Variable test") {
 
-        Variable b = buf;
-        assert(b.getReader<TestClass>()->isCopied());
-
-        a = b;
-
-        b.getReader<TestClass>()->test();
-        a.getReader<TestClass>()->test();
-
-        a = b;
-        a.getReader<TestClass>()->test();
-
-        b = std::move(buf);
-        assert(b.getReader<TestClass>()->isMoved());
-        b.getReader<TestClass>()->test();
-
-        Variable c = a;
-        assert(&(*c.getReader<TestClass>()) == &(*a.getReader<TestClass>()));
+    SECTION("Create") {
+        Variable v = TestClass();
+        REQUIRE(v.getReader<TestClass>()->isMoved());
     }
 
-    //
-    // StandardFunction test
-    //
-    {
-        std::vector<FunctionNode *> fs;
-        StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
-            printf("a: %d, b: %d\n", a, b);
-            b += c;
-            printf("a: %d, b: %d\n", a, b);
-        };
-        Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
+    SECTION("Create by copy") {
+        TestClass a;
+        Variable v = a;
+        REQUIRE(v.getReader<TestClass>()->isCopied());
+        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal because copied.
+    }
+
+    SECTION("Create by move") {
+        TestClass a;
+        Variable v = std::move(a);
+        REQUIRE(v.getReader<TestClass>()->isMoved());
+    }
+
+    SECTION("Copy") {
+        Variable a = TestClass();
+        Variable b = TestClass();
+        a.getReader<TestClass>()->clear();
+        b.getReader<TestClass>()->clear();
+        a = b;
+        REQUIRE(&(*a.getReader<TestClass>()) == &(*b.getReader<TestClass>()));
+        // No copy/move is happened because shared_ptr is copied.
+        REQUIRE(a.getReader<TestClass>()->isNone());
+        REQUIRE(b.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("Move") {
+        Variable a = TestClass();
+        Variable b = TestClass();
+        a.getReader<TestClass>()->clear();
+        b.getReader<TestClass>()->clear();
+        a = std::move(b);
+        REQUIRE(a.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("Clone") {
+        Variable a = TestClass();
+        Variable b = a.clone<TestClass>();
+        a.getReader<TestClass>()->clear();
+        b.getReader<TestClass>()->clear();
+        REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
+        REQUIRE(a.getReader<TestClass>()->isNone());
+        REQUIRE(b.getReader<TestClass>()->isNone());
+    }
+
+}
+
+TEST_CASE("FunctionNode test") {
+
+    std::vector<FunctionNode *> fs;
+    StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
+        (void)a;
+        b += c;
+    };
+    Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
+
+    SECTION("Dynamic build") {
         fs.push_back(func.build({&v1, &v2, &v3}));
+        fs.back()->apply();
+        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
+    }
+
+    SECTION("Static build") {
         fs.push_back(func.build(v1, v2, v3));
         fs.back()->apply();
-        fs.back()->apply();
-        assert(*v2.getReader<int>() == 8);
+        assert(*v2.getReader<int>() == 8);  // 5 + 3
+    }
 
+    SECTION("Inherited function") {
         Add add;
         add.build({&v1, &v2, &v4});
-
-        fs.push_back(&func);
         fs.push_back(&add);
-
-        for (auto &f : fs) {
-            f->apply();
-        }
+        fs.back()->apply();
+        assert(*v4.getReader<int>() == 9);  // 1 + 8
     }
 
-    //
-    // WrongTypeCast test
-    //
-    {
-        Variable test_class = TestClass();
-        try {
-            test_class.getReader<float>();
-            assert(false);
-        } catch (fase::WrongTypeCast &e) {
-            assert(*e.casted_type == typeid(TestClass) &&
-                   *e.cast_type == typeid(float));
-        }
+    SECTION("Call by loop") {
+        REQUIRE_NOTHROW([&](){
+            for (auto &f : fs) {
+                f->apply();
+            }
+        }());
     }
 
-    //
-    // Variable copy test
-    //
-    {
-        Variable a = 0;
-        Variable b = a.copy<int>();
-        *b.getReader<int>() = 1;
+}
 
-        assert(*a.getReader<int>() != *b.getReader<int>());
+TEST_CASE("WrongTypeCast test") {
+    Variable test_class = TestClass();
+    try {
+        test_class.getReader<float>();
+        REQUIRE(false);
+    } catch (fase::WrongTypeCast &e) {
+        REQUIRE(*e.casted_type == typeid(TestClass));
+        REQUIRE(*e.cast_type == typeid(float));
     }
-
-    Add add;
-    FunctionNode *node = &add;
-    Variable v3;
-    {
-        // Create with variable creation
-        Variable v1 = 123, v2 = 456;
-
-        // Correct cast
-        std::cout << *(v1.getReader<int>()) << std::endl;
-        std::cout << *(v2.getReader<int>()) << std::endl;
-
-        add.build({&v1, &v2, &v3});
-    }
-    node->apply();
-    assert(*(v3.getReader<int>()) == 579);
-    std::cout << *(v3.getReader<int>()) << std::endl;
-    return 0;
 }

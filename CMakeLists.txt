@@ -63,15 +63,20 @@ function(setup_target target includes libs)
 endfunction(setup_target)
 
 # ------------------------------------------------------------------------------
-# ----------------------------- External Libraries -----------------------------
+# --------------------------- Third Party Libraries ----------------------------
 # ------------------------------------------------------------------------------
 
+# Catch2
+if (BUILD_TEST)
+    list(APPEND FASE_INCLUDE
+                ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
+endif()
 
 # ------------------------------------------------------------------------------
 # ----------------------------- Internal Libraries -----------------------------
 # ------------------------------------------------------------------------------
 
-# ---------------------------------- fase.so -----------------------------------
+# fase.so
 add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
 )
@@ -90,5 +95,5 @@ if (BUILD_TEST)
     add_executable(test
         ${CMAKE_SOURCE_DIR}/test/test.cpp
     )
-    setup_target(test ${FASE_INCLUDE} ${FASE_LIBRARY})
+    setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()

@@ -58,7 +58,7 @@ public:
     }
 
     template <typename T>
-    Variable copy() const {
+    Variable clone() const {
         if (*type != typeid(T)) {
             // Invalid type cast
             throw(WrongTypeCast(typeid(T), *type));
