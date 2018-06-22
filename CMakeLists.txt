@@ -36,6 +36,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Warning options
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warning_options "-Wall -Wextra -Wconversion")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    set(warning_options "-Wall -Wextra -Wconversion")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
                          -Wctor-dtor-privacy -Wdisabled-optimization \
@@ -49,6 +51,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warning_options "/W4")
 else()
     message(WARNING "Unsupported compiler for warning options")
+    message ("CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 # Utility function to setup a target (include, link, warning, sanitizer)
