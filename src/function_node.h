@@ -23,7 +23,6 @@ public:
 template <typename... Args>
 class StandardFunction : public FunctionNode {
 public:
-
     ///
     /// Wrap a function which dose not return anything.
     ///
@@ -42,7 +41,7 @@ public:
                       "The number of arguments is not matched");
 
         // Copy to an array of variables
-        args = std::array<Variable, sizeof...(Args)>{in_args...};
+        args = std::array<Variable, sizeof...(Args)>{{in_args...}};
         // Bind arguments
         binded = bind(std::index_sequence_for<Args...>());
 
@@ -58,7 +57,7 @@ public:
         }
 
         // Copy to an array of variables
-        for (int i = 0; i < int(sizeof...(Args)); i++) {
+        for (size_t i = 0; i < sizeof...(Args); i++) {
             args[i] = *in_args[i];
         }
         // Bind arguments
