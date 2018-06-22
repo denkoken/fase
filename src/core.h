@@ -19,9 +19,17 @@ struct FNode;
 
 /// VNode has which parerent of this, and index in parerent's argument.
 struct VNode {
+    enum struct Type : char {
+        FUNCTION_DST,
+        INPUT_VARIABLE,
+        CONSTANT,
+    };
+
+    Type type;
     std::weak_ptr<FNode> parent;
     int arg_i;
-    VNode(std::weak_ptr<FNode> parent, int idx) : parent(parent), arg_i(idx) {}
+    VNode(std::weak_ptr<FNode> parent, int idx)
+        : type(Type::FUNCTION_DST), parent(parent), arg_i(idx) {}
 };
 
 struct FNode {
@@ -46,6 +54,21 @@ public:
 
     bool makeFunctionNode(const std::string& f_name);
 
+    bool outputJson(const std::string& dir);
+
+    int getNodesSize() { return fnodes.size(); }
+
+    template <template <class...> class ListClass>
+    auto getNodeDataList() {
+        using dataT = std::tuple<std::string, const std::vector<std::string>&>;
+        ListClass<dataT> dst;
+        for (auto& node : fnodes) {
+            std::string name = node->func_name;
+            dst.push_back(dataT(name, std::get<1>(functions[name])));
+        }
+        return dst;
+    }
+
     void build();
 
     std::vector<std::string> getFuncNames() {
@@ -58,11 +81,14 @@ public:
 
 private:
     // input data
-    std::map<std::string, const Variable> inputs;
-    std::map<std::string, const FuncInfo> functions;
+    std::vector<std::tuple<std::string, Variable>> inputs;
+    std::map<std::string, const FuncInfo> functions;  // TODO map or unsorted ?
+
+    // constant data
+    std::vector<std::tuple<std::string, Variable>> constants;
 
     // function node data (! Don't Copy shared_ptr !)
-    std::list<std::shared_ptr<FNode>> fnodes;
+    std::list<std::shared_ptr<FNode>> fnodes;  // TODO vector or list ?
 };
 
 }  // namespace pe
