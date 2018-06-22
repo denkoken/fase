@@ -57,6 +57,18 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
+    template <typename T>
+    Variable copy() const {
+        if (*type != typeid(T)) {
+            // Invalid type cast
+            throw(WrongTypeCast(typeid(T), *type));
+        }
+        Variable dst;
+        dst.create<T>(*std::static_pointer_cast<T>(data));
+
+        return dst;
+    }
+
 private:
     std::shared_ptr<void> data;
     const std::type_info *type = &typeid(void);

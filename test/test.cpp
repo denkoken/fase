@@ -50,29 +50,36 @@ private:
 };
 
 int main() {
-    Variable v3;
+    //
+    // Variable constructor test
+    //
+    {
+        Variable a = TestClass();
+        assert(a.getReader<TestClass>()->isMoved());
+        TestClass buf;
 
-    Variable a = TestClass();
-    assert(a.getReader<TestClass>()->isMoved());
-    TestClass buf;
+        Variable b = buf;
+        assert(b.getReader<TestClass>()->isCopied());
 
-    Variable b = buf;
-    assert(b.getReader<TestClass>()->isCopied());
+        a = b;
 
-    a = b;
+        b.getReader<TestClass>()->test();
+        a.getReader<TestClass>()->test();
 
-    b.getReader<TestClass>()->test();
-    a.getReader<TestClass>()->test();
+        a = b;
+        a.getReader<TestClass>()->test();
 
-    a = b;
-    a.getReader<TestClass>()->test();
+        b = std::move(buf);
+        assert(b.getReader<TestClass>()->isMoved());
+        b.getReader<TestClass>()->test();
 
-    b = std::move(buf);
-    assert(b.getReader<TestClass>()->isMoved());
-    b.getReader<TestClass>()->test();
+        Variable c = a;
+        assert(&(*c.getReader<TestClass>()) == &(*a.getReader<TestClass>()));
+    }
 
-    Variable c = a;
-
+    //
+    // StandardFunction test
+    //
     {
         std::vector<FunctionNode *> fs;
         StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
@@ -98,6 +105,9 @@ int main() {
         }
     }
 
+    //
+    // WrongTypeCast test
+    //
     {
         Variable test_class = TestClass();
         try {
@@ -109,8 +119,20 @@ int main() {
         }
     }
 
+    //
+    // Variable copy test
+    //
+    {
+        Variable a = 0;
+        Variable b = a.copy<int>();
+        *b.getReader<int>() = 1;
+
+        assert(*a.getReader<int>() != *b.getReader<int>());
+    }
+
     Add add;
     FunctionNode *node = &add;
+    Variable v3;
     {
         // Create with variable creation
         Variable v1 = 123, v2 = 456;
