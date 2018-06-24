@@ -6,7 +6,19 @@
 namespace fase {
 
 inline namespace ui {
-PipelineEditor::PipelineEditor() : core(), gui(core) {}
+
+template <class EditorClass>
+PipelineEditor::PipelineEditor() : core() {
+    auto use_extension = [this](const std::string& name, Variable arg) -> Variable {
+        for (auto& ext : extensions) {
+            if (ext->getName() == name) {
+                return ext->start(arg);
+            }
+        }
+    };
+    editor = std::make_unique<EditorClass>(core, use_extension);
+    editor->addExtensions(&extensions);
+}
 
 void PipelineEditor::addInputVariable(const std::string& name,
                                       const Variable& val) {
@@ -22,7 +34,7 @@ void PipelineEditor::addFunction(
         std::vector<std::string>(std::begin(argnames), std::end(argnames)));
 }
 
-void PipelineEditor::startEditing() { gui.start(); }
+void PipelineEditor::startEditing() { editor->start(true); }
 
 }  // namespace ui
 
