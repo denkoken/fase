@@ -1,12 +1,7 @@
 
 #include "core.h"
 
-namespace {
-
-constexpr int kMAX_ID = 1073741824;
-constexpr int kMIN_ID = 2;
-
-}  // namespace
+#include <algorithm>
 
 namespace fase {
 
@@ -28,14 +23,17 @@ bool FaseCore::makeFunctionNode(const std::string& f_name) {
     // undefined function name
     if (functions.find(f_name) == std::end(functions)) return false;
     // too many FNode
-    if (fnodes.size() >= kMAX_ID - kMIN_ID) return false;
+    if (fnodes.size() >= kMAX_FNODE_ID - 10) return false;
 
-    static int idCounter = kMIN_ID;
+    static int idCounter = kNULL_FNODE_ID + 1;
 
     int next_id = idCounter;
 
-    for (; fnodes.find(next_id) != std::end(fnodes); next_id++) {
-        if (next_id > kMAX_ID) next_id = kMIN_ID;
+    for (; fnodes.find(next_id) != std::end(fnodes) or next_id == kINPUT_ID or
+            next_id == kCONST_ID; next_id++) {
+        if (next_id > kMAX_FNODE_ID) {
+            next_id = kNULL_FNODE_ID + 1;
+        }
     }
     idCounter = next_id + 1;
 
@@ -50,6 +48,20 @@ bool FaseCore::makeFunctionNode(const std::string& f_name) {
     fnodes.emplace(next_id, std::move(node));
 
     return true;
+}
+
+void FaseCore::linkNode(int linked_id, int linked_arg_idx,
+                        int link_id, int link_arg_idx) {
+    auto& linked = fnodes.at(linked_id);
+    auto& linking = fnodes.at(link_id);
+
+    auto& linking_arg = linking.args.at(link_arg_idx);
+
+    if (!linking_arg.expired()) {
+        linking_arg.lock()->referenced_c--;
+    }
+    linking_arg = linked.dsts.at(linked_arg_idx);
+    linking_arg.lock()->referenced_c++;
 }
 
 FaseCore::NdataT FaseCore::getNodeData(const int& index) {
@@ -74,7 +86,7 @@ auto FaseCore::getFNodeArgLink(const int& index) noexcept {
     ListClass<std::tuple<int, int>> dst;
     for (const auto& v : node.args) {
         if (v.expired()) {
-            dst.emplace_back(kNULL_ID, 0);
+            dst.emplace_back(kNULL_FNODE_ID, 0);
         } else {
             dst.emplace_back(v.lock()->parentID, v.lock()->arg_i);
         }
@@ -88,7 +100,7 @@ auto FaseCore::getFNodeArgLinkList() noexcept {
         LC2<std::tuple<int, int>> list;
         for (const auto& v : node.second.args) {
             if (v.expired()) {
-                list.emplace_back(kNULL_ID, 0);
+                list.emplace_back(kNULL_FNODE_ID, 0);
             } else {
                 list.emplace_back(v.lock()->parentID, v.lock()->arg_i);
             }
@@ -96,6 +108,56 @@ auto FaseCore::getFNodeArgLinkList() noexcept {
         dst.emplace_back(std::move(list));
     }
     return dst;
+}
+
+bool FaseCore::build() {
+
+    std::vector<int> binded{kINPUT_ID, kCONST_ID};
+
+    pipeline.clear();
+    variables.clear();
+
+    variables.resize(inputs.size() + constants.size());
+
+    pipeline.emplace_back([this]() {
+        for (size_t i = 0; i < inputs.size(); i++) {
+            std::get<1>(inputs[i]).copy(variables[i]);
+        }
+    });
+
+    pipeline.emplace_back([this]() {
+        for (size_t i = 0; i < constants.size(); i++) {
+            std::get<1>(constants[i]).copy(variables[i + constants.size()]);
+        }
+    });
+
+    for(size_t prev_size = binded.size(); true;) {
+        for ( auto& fnode : fnodes ) {
+            // check dependency of function node.
+            if (!std::any_of(std::begin(fnode.second.args),
+                             std::end(fnode.second.args),
+                             [&binded](std::weak_ptr<VNode>& vnode) {
+                                return std::any_of(std::begin(binded), std::end(binded),
+                                        [id = vnode.lock()->parentID] (int i) {
+                                            return i == id;
+                                        });
+                             })) {
+                continue;
+            }
+            // TODO bind function node, and add it to pipeline.
+
+            binded.emplace_back(fnode.first);
+        }
+
+        if (binded.size() == fnodes.size() + 2) {
+            return true;
+        }
+
+        if (prev_size == binded.size()) {
+            // there may be a circular reference or function node having unset argument.
+            return false;
+        }
+    }
 }
 
 bool FaseCore::run() {

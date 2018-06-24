@@ -57,15 +57,21 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
+    // TODO must be remove template !
     template <typename T>
-    Variable clone() const {
+    void copy(Variable& v) const {
         if (*type != typeid(T)) {
             // Invalid type cast
             throw(WrongTypeCast(typeid(T), *type));
         }
-        Variable dst;
-        dst.create<T>(*std::static_pointer_cast<T>(data));
+        v.create<T>(*std::static_pointer_cast<T>(data));
+    }
 
+    // TODO must be remove template !
+    template <typename T>
+    Variable clone() const {
+        Variable dst;
+        copy<T>(dst);
         return dst;
     }
 

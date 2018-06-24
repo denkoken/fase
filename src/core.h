@@ -18,22 +18,28 @@ namespace pe {
 
 struct FNode;
 
+/// for VNode::parentID
+constexpr int kINPUT_ID = 0;
+constexpr int kCONST_ID = 1;
+constexpr int kMAX_FNODE_ID = 1073741824;
+constexpr int kNULL_FNODE_ID = -1;
+
 /// VNode has which parerent of this, and index in parerent's argument.
 struct VNode {
     int parentID;
     int arg_i;
+    int referenced_c = 0;
     VNode(const int& parent, int idx) : parentID(parent), arg_i(idx) {}
+
 };
 
 struct FNode {
     std::string func_name;
-    std::vector<std::shared_ptr<const VNode>> dsts;
+    std::vector<std::shared_ptr<VNode>> dsts;
 
-    std::vector<std::weak_ptr<const VNode>> args;
+    std::vector<std::weak_ptr<VNode>> args;
 };
 
-/// for FNode ID.
-constexpr int kNULL_ID = -1;
 
 class FaseCore {
 public:
@@ -51,6 +57,9 @@ public:
     bool makeFunctionNode(const std::string& f_name);
 
     void deleteFunctionNode(const int& index) noexcept { fnodes.erase(index); }
+
+    void linkNode(int linked_id, int linked_arg_idx,
+                  int link_id, int link_arg_idx);
 
     int getNodesSize() noexcept { return fnodes.size(); }  // necessary ?
 
@@ -97,18 +106,26 @@ public:
         return keys;
     }
 
+    bool build();
     bool run();
 
 private:
     // input data
     std::vector<std::tuple<std::string, Variable>> inputs;
-    std::map<std::string, const FuncInfo> functions;  // TODO map or unsorted ?
+    std::map<std::string, const FuncInfo> functions;  // TODO map or unordered ?
 
     // constant data
     std::vector<std::tuple<std::string, Variable>> constants;
 
     // function node data
     std::unordered_map<int, FNode> fnodes;
+
+    std::vector<std::shared_ptr<VNode>> input_vnodes;
+    std::vector<std::shared_ptr<VNode>> const_vnodes;
+
+    // built pipeline
+    std::vector<std::function<void()>> pipeline;
+    std::vector<Variable> variables;
 };
 
 }  // namespace pe
