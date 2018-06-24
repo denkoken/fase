@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 
 #include "function_node.h"
 #include "variable.h"
@@ -19,17 +20,9 @@ struct FNode;
 
 /// VNode has which parerent of this, and index in parerent's argument.
 struct VNode {
-    enum struct Type : char {
-        FUNCTION_DST,
-        INPUT_VARIABLE,
-        CONSTANT,
-    };
-
-    Type type;
-    std::weak_ptr<FNode> parent;
+    int parentID;
     int arg_i;
-    VNode(std::weak_ptr<FNode> parent, int idx)
-        : type(Type::FUNCTION_DST), parent(parent), arg_i(idx) {}
+    VNode(const int& parent, int idx) : parentID(parent), arg_i(idx) {}
 };
 
 struct FNode {
@@ -38,6 +31,9 @@ struct FNode {
 
     std::vector<std::weak_ptr<const VNode>> args;
 };
+
+/// for FNode ID.
+constexpr int kNULL_ID = -1;
 
 class FaseCore {
 public:
@@ -54,30 +50,54 @@ public:
 
     bool makeFunctionNode(const std::string& f_name);
 
-    bool outputJson(const std::string& dir);
+    void deleteFunctionNode(const int& index) noexcept { fnodes.erase(index); }
 
-    int getNodesSize() { return fnodes.size(); }
+    int getNodesSize() noexcept { return fnodes.size(); }  // necessary ?
+
+    using NdataT =
+        std::tuple<int, std::string, const std::vector<std::string>&>;
+    ///
+    /// return NdataT a.k.a tuple(index (int), function name (string),
+    ///                           ref of argument names (const vector<string>&)
+    /// If input undefined index, throw std::out_of_range.
+    ///
+    NdataT getNodeData(const int& index);  // necessary ?
+
+    ///
+    /// return ListClass<NdataT a.k.a
+    /// tuple<int (index), string (function name),
+    ///       const vector<string>& (ref of argument names)>.
+    /// ListClass<T> must have emplace_back(Args&&...).
+    ///
+    template <template <class...> class ListClass>
+    auto getNodeDataList() noexcept;
+
+    ///
+    /// return ListClass<tuple<int (function node ID), int (argument index)>.
+    /// ListClass<T> must have emplace_back(Args&&...).
+    /// If frist of tuple is kNULL_ID, it means that argument is unset.
+    ///
+    template <template <class...> class ListClass>
+    auto getFNodeArgLink(const int& index) noexcept;  // necessary ?
+
+    ///
+    /// return LC1<LC2<tuple<int (function node ID), int (argument index)>>.
+    /// LC1 and LC2 must have emplace_back(Args&&...).
+    /// If frist of tuple is kNULL_ID, it means that argument is unset.
+    ///
+    template <template <class...> class LC1, template <class...> class LC2>
+    auto getFNodeArgLinkList() noexcept;
 
     template <template <class...> class ListClass>
-    auto getNodeDataList() {
-        using dataT = std::tuple<std::string, const std::vector<std::string>&>;
-        ListClass<dataT> dst;
-        for (auto& node : fnodes) {
-            std::string name = node->func_name;
-            dst.push_back(dataT(name, std::get<1>(functions[name])));
-        }
-        return dst;
-    }
-
-    void build();
-
-    std::vector<std::string> getFuncNames() {
-        std::vector<std::string> keys;
+    auto getFuncNames() noexcept {
+        ListClass<std::string> keys;
         for (auto& item : functions) {
             keys.push_back(item.first);
         }
         return keys;
     }
+
+    bool run();
 
 private:
     // input data
@@ -87,8 +107,8 @@ private:
     // constant data
     std::vector<std::tuple<std::string, Variable>> constants;
 
-    // function node data (! Don't Copy shared_ptr !)
-    std::list<std::shared_ptr<FNode>> fnodes;  // TODO vector or list ?
+    // function node data
+    std::unordered_map<int, FNode> fnodes;
 };
 
 }  // namespace pe
