@@ -6,18 +6,25 @@
 namespace fase {
 
 inline namespace ui {
-
 template <class EditorClass>
 PipelineEditor::PipelineEditor() : core() {
-    auto use_extension = [this](const std::string& name, Variable arg) -> Variable {
+    auto use_extension = [this](const std::string& name,
+                                Variable arg) -> Variable {
         for (auto& ext : extensions) {
             if (ext->getName() == name) {
                 return ext->start(arg);
             }
         }
     };
-    editor = std::make_unique<EditorClass>(core, use_extension);
-    editor->addExtensions(&extensions);
+    auto add_extension = [this](std::unique_ptr<develop::Extension>&& ext) {
+        auto extension = std::forward<std::unique_ptr<develop::Extension>>(ext);
+        std::string name = extension->getName();
+        for (auto& ext_ : extensions) {
+            if (ext_->getName() == name) return;
+        }
+        extensions.emplace_back(std::move(extension));
+    };
+    editor = std::make_unique<EditorClass>(core, use_extension, add_extension);
 }
 
 void PipelineEditor::addInputVariable(const std::string& name,
