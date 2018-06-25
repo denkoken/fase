@@ -48,9 +48,9 @@ public:
     using FuncInfo =
         std::tuple<std::unique_ptr<FunctionBuilder>, std::vector<std::string>>;
 
-    void addVariable(const std::string& name, const Variable& val);
+    void addVariableBuilder(const std::string& name, std::function<Variable()>&& vb);
 
-    void addFunction(const std::string& name,
+    void addFunctionBuilder(const std::string& name,
                      std::unique_ptr<FunctionBuilder>&& f,
                      const std::vector<std::string>& argnames);
 
@@ -111,7 +111,7 @@ public:
 
 private:
     // input data
-    std::vector<std::tuple<std::string, Variable>> inputs;
+    std::map<std::string, std::function<Variable()>> variable_builders;
     std::map<std::string, const FuncInfo> functions;  // TODO map or unordered ?
 
     // constant data
