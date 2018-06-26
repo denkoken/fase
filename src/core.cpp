@@ -113,7 +113,7 @@ bool FaseCore::build() {
                 size_t j = std::find(begin(binded), end(binded), link_node) -
                            begin(binded);
                 bind_val.push_back(
-                    binded_infos[j][fnode.second.links[i].linking_idx]);
+                    binded_infos[j][std::min(fnode.second.links[i].linking_idx, binded_infos[j].size() - 1)]);
             }
 
             pipeline.emplace_back(info.builder->build(bind_val));
