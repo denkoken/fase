@@ -2,6 +2,7 @@
 #define FASE_VARIABLE_H_20180617
 
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <typeinfo>
 
@@ -17,7 +18,12 @@ public:
     Variable(T &&value)
         : data(std::make_shared<typename std::remove_reference<T>::type>(
               std::forward<T>(value))),
-          type(&typeid(typename std::remove_reference<T>::type)) {}
+          type(&typeid(typename std::remove_reference<T>::type)) {
+        cloner = [this]() {
+            return std::make_shared<typename std::remove_reference<T>>(
+                *getReader<T>());
+        };
+    }
 
     Variable(Variable &) = default;
     Variable &operator=(Variable &) = default;
@@ -57,26 +63,20 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
-    // TODO must be remove template !
-    template <typename T>
-    void copy(Variable& v) const {
-        if (*type != typeid(T)) {
-            // Invalid type cast
-            throw(WrongTypeCast(typeid(T), *type));
-        }
-        v.create<T>(*std::static_pointer_cast<T>(data));
+    void copy(Variable &v) const {
+        v.data = cloner();
+        v.type = type;
     }
 
-    // TODO must be remove template !
-    template <typename T>
     Variable clone() const {
-        Variable dst;
-        copy<T>(dst);
-        return dst;
+        Variable v;
+        copy(v);
+        return v;
     }
 
 private:
     std::shared_ptr<void> data;
+    std::function<std::shared_ptr<void>()> cloner;
     const std::type_info *type = &typeid(void);
 };
 

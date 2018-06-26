@@ -42,27 +42,31 @@ struct FunctionInfo {
     std::vector<std::string> arg_types;
 };
 
-
 class FaseCore {
 public:
     FaseCore();
 
     /// for unset argument
     template <typename T>
-    void addVariableBuilder(std::function<Variable()>&& builder){
+    void addVariableBuilder(std::function<Variable()>&& builder) {
         variable_builders[typeid(T).name()] = builder;
     }
 
+    template <typename T>
+    void addVariableBuilder() {
+        variable_builders[typeid(T).name()] = []() -> Variable { return T(); };
+    }
+
     template <typename Callable, typename... Args>
-    void addFunctionBuilder(const std::string& name, Callable func,
-                            const std::array<std::string, sizeof...(Args)>& argnames);
+    void addFunctionBuilder(
+        const std::string& name, Callable func,
+        const std::array<std::string, sizeof...(Args)>& argnames);
 
     bool makeFunctionNode(const std::string& node_name,
                           const std::string& func_name);
 
     template <typename T>
-    bool makeVariableNode(const std::string& name,
-                          const bool& is_constant,
+    bool makeVariableNode(const std::string& name, const bool& is_constant,
                           T&& value);
 
     void delFunctionNode(const std::string& name) noexcept {
@@ -74,14 +78,21 @@ public:
     }
 
     void linkNode(const std::string& linking_node, const int& link_idx,
-                  const std::string& linked_node, const int& linked_idx){ 
-        function_nodes[linking_node].links[link_idx] = {linked_node, linked_idx};
+                  const std::string& linked_node, const int& linked_idx) {
+        function_nodes[linking_node].links[link_idx] = {linked_node,
+                                                        linked_idx};
     };
 
-    const std::map<std::string, VariableNode>& getVariableNodes(){ return variable_nodes; };
-    const std::map<std::string, FunctionNode>& getFunctionNodes(){ return function_nodes; };
+    const std::map<std::string, VariableNode>& getVariableNodes() {
+        return variable_nodes;
+    };
+    const std::map<std::string, FunctionNode>& getFunctionNodes() {
+        return function_nodes;
+    };
 
-    const std::map<std::string, FunctionInfo>& getFunctionInfos() { return func_infos; }
+    const std::map<std::string, FunctionInfo>& getFunctionInfos() {
+        return func_infos;
+    }
 
     bool build();
     bool run();
@@ -97,7 +108,7 @@ private:
 
     // built pipeline
     std::vector<std::function<void()>> pipeline;
-    std::vector<Variable> variables;  // for running.
+    std::list<Variable> variables;  // for running.
 };
 
 }  // namespace pe
