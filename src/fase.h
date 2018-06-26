@@ -24,13 +24,11 @@ public:
     template <class EditorClass>
     Fase();
 
-    void addInputVariable(const std::string& name, const Variable& val);
-
     template<typename T, typename... Args>
     void addVariableBuilder(const std::string& name, const Args&... args);
 
-    template <typename... Args>
-    void addFunctionBuilder(const std::string& name, const FunctionBinder<Args...>& f,
+    template <typename... Args, class Callable>
+    void addFunctionBuilder(const std::string& name, Callable f,
                             const std::array<std::string, sizeof...(Args)>& argnames);
 
     void setInitFunc(const std::function<void()>& init_func);

@@ -16,28 +16,30 @@ namespace fase {
 
 namespace pe {
 
-struct FNode;
-
-/// for VNode::parentID
-constexpr int kINPUT_ID = 0;
-constexpr int kCONST_ID = 1;
-constexpr int kMAX_FNODE_ID = 1073741824;
-constexpr int kNULL_FNODE_ID = -1;
-
 /// VNode has which parerent of this, and index in parerent's argument.
-struct VNode {
-    int parentID;
-    int arg_i;
-    int referenced_c = 0;
-    VNode(const int& parent, int idx) : parentID(parent), arg_i(idx) {}
-
+struct VariableNode {
+    std::string name;
+    Variable val;
+    bool constant;
 };
 
-struct FNode {
-    std::string func_name;
-    std::vector<std::shared_ptr<VNode>> dsts;
+struct LinkInfo {
+    std::string linking_node;
+    int linking_idx;
+};
 
-    std::vector<std::weak_ptr<VNode>> args;
+struct FunctionNode {
+    std::string name;
+    std::string type;  // function name (not a node name)
+
+    std::vector<LinkInfo> links;
+};
+
+struct FunctionInfo {
+    std::unique_ptr<FunctionBuilder> builder;
+    std::vector<std::string> arg_names;
+
+    std::vector<std::string> arg_types;
 };
 
 
@@ -45,66 +47,41 @@ class FaseCore {
 public:
     FaseCore();
 
-    using FuncInfo =
-        std::tuple<std::unique_ptr<FunctionBuilder>, std::vector<std::string>>;
-
-    void addVariableBuilder(const std::string& name, std::function<Variable()>&& vb);
-
-    void addFunctionBuilder(const std::string& name,
-                     std::unique_ptr<FunctionBuilder>&& f,
-                     const std::vector<std::string>& argnames);
-
-    bool makeFunctionNode(const std::string& f_name);
-
-    void deleteFunctionNode(const int& index) noexcept { fnodes.erase(index); }
-
-    void linkNode(int linked_id, int linked_arg_idx,
-                  int link_id, int link_arg_idx);
-
-    int getNodesSize() noexcept { return fnodes.size(); }  // necessary ?
-
-    using NdataT =
-        std::tuple<int, std::string, const std::vector<std::string>&>;
-    ///
-    /// return NdataT a.k.a tuple(index (int), function name (string),
-    ///                           ref of argument names (const vector<string>&)
-    /// If input undefined index, throw std::out_of_range.
-    ///
-    NdataT getNodeData(const int& index);  // necessary ?
-
-    ///
-    /// return ListClass<NdataT a.k.a
-    /// tuple<int (index), string (function name),
-    ///       const vector<string>& (ref of argument names)>.
-    /// ListClass<T> must have emplace_back(Args&&...).
-    ///
-    template <template <class...> class ListClass>
-    auto getNodeDataList() noexcept;
-
-    ///
-    /// return ListClass<tuple<int (function node ID), int (argument index)>.
-    /// ListClass<T> must have emplace_back(Args&&...).
-    /// If frist of tuple is kNULL_ID, it means that argument is unset.
-    ///
-    template <template <class...> class ListClass>
-    auto getFNodeArgLink(const int& index) noexcept;  // necessary ?
-
-    ///
-    /// return LC1<LC2<tuple<int (function node ID), int (argument index)>>.
-    /// LC1 and LC2 must have emplace_back(Args&&...).
-    /// If frist of tuple is kNULL_ID, it means that argument is unset.
-    ///
-    template <template <class...> class LC1, template <class...> class LC2>
-    auto getFNodeArgLinkList() noexcept;
-
-    template <template <class...> class ListClass>
-    auto getFuncNames() noexcept {
-        ListClass<std::string> keys;
-        for (auto& item : functions) {
-            keys.push_back(item.first);
-        }
-        return keys;
+    /// for unset argument
+    template <typename T>
+    void addVariableBuilder(std::function<Variable()>&& builder){
+        variable_builders[typeid(T).name()] = builder;
     }
+
+    template <typename Callable, typename... Args>
+    void addFunctionBuilder(const std::string& name, Callable func,
+                            const std::array<std::string, sizeof...(Args)>& argnames);
+
+    bool makeFunctionNode(const std::string& node_name,
+                          const std::string& func_name);
+
+    template <typename T>
+    bool makeVariableNode(const std::string& name,
+                          const bool& is_constant,
+                          T&& value);
+
+    void delFunctionNode(const std::string& name) noexcept {
+        function_nodes.erase(name);
+    }
+
+    void delVariableNode(const std::string& name) noexcept {
+        variable_nodes.erase(name);
+    }
+
+    void linkNode(const std::string& linking_node, const int& link_idx,
+                  const std::string& linked_node, const int& linked_idx){ 
+        function_nodes[linking_node].links[link_idx] = {linked_node, linked_idx};
+    };
+
+    const std::map<std::string, VariableNode>& getVariableNodes(){ return variable_nodes; };
+    const std::map<std::string, FunctionNode>& getFunctionNodes(){ return function_nodes; };
+
+    const std::map<std::string, FunctionInfo>& getFunctionInfos() { return func_infos; }
 
     bool build();
     bool run();
@@ -112,20 +89,15 @@ public:
 private:
     // input data
     std::map<std::string, std::function<Variable()>> variable_builders;
-    std::map<std::string, const FuncInfo> functions;  // TODO map or unordered ?
-
-    // constant data
-    std::vector<std::tuple<std::string, Variable>> constants;
+    std::map<std::string, FunctionInfo> func_infos;
 
     // function node data
-    std::unordered_map<int, FNode> fnodes;
-
-    std::vector<std::shared_ptr<VNode>> input_vnodes;
-    std::vector<std::shared_ptr<VNode>> const_vnodes;
+    std::map<std::string, FunctionNode> function_nodes;
+    std::map<std::string, VariableNode> variable_nodes;
 
     // built pipeline
     std::vector<std::function<void()>> pipeline;
-    std::vector<Variable> variables;
+    std::vector<Variable> variables;  // for running.
 };
 
 }  // namespace pe
