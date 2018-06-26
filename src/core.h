@@ -16,7 +16,6 @@ namespace fase {
 
 namespace pe {
 
-/// VNode has which parerent of this, and index in parerent's argument.
 struct VariableNode {
     std::string name;
     Variable val;
