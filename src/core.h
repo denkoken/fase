@@ -43,7 +43,7 @@ struct FunctionInfo {
 
 class FaseCore {
 public:
-    FaseCore();
+    FaseCore() {}
 
     /// for unset argument
     template <typename T>
@@ -56,15 +56,16 @@ public:
         variable_builders[typeid(T).name()] = []() -> Variable { return T(); };
     }
 
-    template <typename Callable, typename... Args>
+    template <typename... Args>
     void addFunctionBuilder(
-        const std::string& name, Callable func,
+        const std::string& name, std::function<void(Args...)>&& func,
         const std::array<std::string, sizeof...(Args)>& argnames) {
         FunctionInfo info;
         info.builder = std::make_unique<FunctionBinder<Args...>>(func);
         info.arg_names =
             std::vector<std::string>(std::begin(argnames), std::end(argnames));
-        info.arg_types = {typeid(Args).name()...};
+        info.arg_types = {
+            typeid(typename std::remove_reference<Args>::type).name()...};
         func_infos[name] = std::move(info);
     }
 

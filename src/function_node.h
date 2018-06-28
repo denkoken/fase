@@ -59,8 +59,6 @@ public:
         }
         // Bind arguments
         return bind(std::index_sequence_for<Args...>());
-
-        return this;
     }
 
 private:

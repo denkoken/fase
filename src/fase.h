@@ -2,40 +2,38 @@
 #define FASE_H_20180617
 
 #include "core.h"
+#include "editor.h"
 #include "exceptions.h"
 #include "function_node.h"
 #include "variable.h"
 
 namespace fase {
 
-namespace develop {
-
-class Editor {
-public:
-    virtual Variable start(pe::FaseCore*, Variable) = 0;
-
-protected:
-    std::function<Variable(const std::string&, Variable)> useExtension;
-};
-
-}  // namespace develop
-
 class Fase {
 public:
+    Fase() : core() {}
+
     template <class EditorClass>
-    Fase();
+    void setEditor() {
+        editor = std::make_unique<EditorClass>();
+    }
 
     template <typename T, typename... Args>
-    void addVariableBuilder(const std::string& name, const Args&... args);
+    void addVariableBuilder(const std::string& name, const Args&... args) {
+        core.addVariableBuilder<T>(
+            name, [args...]() -> Variable { return T(args...); });
+    }
 
-    template <typename... Args, class Callable>
+    template <typename... Args>
     void addFunctionBuilder(
-        const std::string& name, Callable f,
-        const std::array<std::string, sizeof...(Args)>& argnames);
+        const std::string& name, std::function<void(Args...)>&& f,
+        const std::array<std::string, sizeof...(Args)>& argnames) {
+        core.addFunctionBuilder<Args...>(name, std::move(f), argnames);
+    };
 
     void setInitFunc(const std::function<void()>& init_func);
 
-    void startEditing();
+    void startEditing() { editor->start(&core, true); }
 
 private:
     pe::FaseCore core;

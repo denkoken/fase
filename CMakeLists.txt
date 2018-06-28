@@ -87,6 +87,10 @@ list(APPEND FASE_LIBRARY fase)
 
 # ---------------------------------- examples ----------------------------------
 if (BUILD_EXAMPLE)
+    add_executable(clieditor
+        ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
+    )
+    setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
 
 
