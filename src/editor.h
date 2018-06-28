@@ -12,6 +12,7 @@ namespace develop {
 class Editor {
 public:
     virtual void start(pe::FaseCore*, Variable) = 0;
+    virtual ~Editor() {}
 };
 
 }  // namespace develop

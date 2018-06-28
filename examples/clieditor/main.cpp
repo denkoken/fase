@@ -9,9 +9,11 @@ int main() {
     fase::Fase fase;
     fase.setEditor<fase::editor::CLIEditor>();
 
-    std::function<void(const int&, const int&, int&)> add = Add;
-    fase.addFunctionBuilder("Add", std::move(add), {{"a", "b", "dst"}});
-    // fase.addFunctionBuilder("Square", Square, {"in", "dst"});
+    std::array<std::string, 3> add_arg{{"a", "b", "dst"}};
+    faseAddFunctionBuilder(fase, Add, add_arg, const int&, const int&, int&);
+
+    std::array<std::string, 2> sq_arg{{"in", "dst"}};
+    faseAddFunctionBuilder(fase, Square, sq_arg, const int&, int&);
 
     fase.startEditing();
 }

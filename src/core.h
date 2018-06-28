@@ -86,7 +86,7 @@ public:
         variable_nodes.erase(name);
     }
 
-    void linkNode(const std::string& linking_node, const int& link_idx,
+    void linkNode(const std::string& linking_node, const size_t& link_idx,
                   const std::string& linked_node, const int& linked_idx) {
         function_nodes[linking_node].links[link_idx] = {linked_node,
                                                         linked_idx};

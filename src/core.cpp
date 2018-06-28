@@ -39,7 +39,9 @@ bool FaseCore::makeFunctionNode(const std::string& name,
         return false;
     }
 
-    FunctionNode node = {name, f_name};
+    FunctionNode node;
+    node.name = name;
+    node.type = f_name;
     node.links.resize(func_infos[f_name].arg_names.size());
 
     function_nodes[name] = std::move(node);
@@ -91,11 +93,12 @@ bool FaseCore::build() {
                     bind_val.push_back(&variables.back());
                     continue;
                 }
-                size_t j = std::find(begin(binded), end(binded), link_node) -
-                           begin(binded);
+                size_t j =
+                    size_t(std::find(begin(binded), end(binded), link_node) -
+                           begin(binded));
                 bind_val.push_back(binded_infos[j][std::min(
-                    int(fnode.second.links[i].linking_idx),
-                    int(binded_infos[j].size() - 1))]);
+                    size_t(fnode.second.links[i].linking_idx),
+                    size_t(binded_infos[j].size() - 1))]);
             }
 
             pipeline.emplace_back(info.builder->build(bind_val));

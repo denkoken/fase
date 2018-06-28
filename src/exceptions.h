@@ -31,8 +31,8 @@ class InvalidArgN : public std::logic_error {
 public:
     InvalidArgN(const size_t& expect_n, const size_t& input_n)
         : std::logic_error("InvalidArgN"),
-          inputN(int(input_n)),
-          expectedN(int(expect_n)),
+          inputN(input_n),
+          expectedN(expect_n),
           err_message(std::string("StandardFunction::build() failed : Invalid "
                                   "Number of Arguments ( expect ") +
                       std::to_string(expectedN) +
