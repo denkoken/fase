@@ -29,18 +29,6 @@ namespace fase {
 
 namespace pe {
 
-template <typename Callable, typename... Args>
-void FaseCore::addFunctionBuilder(
-    const std::string& name, Callable func,
-    const std::array<std::string, sizeof...(Args)>& argnames) {
-    FunctionInfo info;
-    info.builder = std::make_unique<FunctionBinder<Args...>>(func);
-    info.arg_names =
-        std::vector<std::string>(std::begin(argnames), std::end(argnames));
-    info.arg_types = {typeid(Args).name()...};
-    func_infos[name] = std::move(info);
-}
-
 bool FaseCore::makeFunctionNode(const std::string& name,
                                 const std::string& f_name) {
     // check defined function name.
@@ -57,12 +45,6 @@ bool FaseCore::makeFunctionNode(const std::string& name,
     function_nodes[name] = std::move(node);
 
     return true;
-}
-
-template <typename T>
-bool FaseCore::makeVariableNode(const std::string& name,
-                                const bool& is_constant, T&& value) {
-    variable_nodes[name] = {name, Variable(value), is_constant};
 }
 
 bool FaseCore::build() {
@@ -97,7 +79,6 @@ bool FaseCore::build() {
         for (auto& fnode : function_nodes) {
             // check dependency of function node.
             if (!checkDepends(fnode.second, binded)) continue;
-            // TODO bind function node, and add it to pipeline.
 
             FunctionInfo& info = func_infos[fnode.second.type];
 
@@ -112,8 +93,9 @@ bool FaseCore::build() {
                 }
                 size_t j = std::find(begin(binded), end(binded), link_node) -
                            begin(binded);
-                bind_val.push_back(
-                    binded_infos[j][std::min(fnode.second.links[i].linking_idx, binded_infos[j].size() - 1)]);
+                bind_val.push_back(binded_infos[j][std::min(
+                    int(fnode.second.links[i].linking_idx),
+                    int(binded_infos[j].size() - 1))]);
             }
 
             pipeline.emplace_back(info.builder->build(bind_val));
@@ -135,7 +117,7 @@ bool FaseCore::build() {
 }
 
 bool FaseCore::run() {
-    // TODO
+    // TODO throw catch
     for (auto& f : pipeline) {
         f();
     }

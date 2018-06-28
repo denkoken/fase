@@ -19,9 +19,9 @@ public:
         : data(std::make_shared<typename std::remove_reference<T>::type>(
               std::forward<T>(value))),
           type(&typeid(typename std::remove_reference<T>::type)) {
+        using Type = typename std::remove_reference<T>::type;
         cloner = [this]() {
-            return std::make_shared<typename std::remove_reference<T>>(
-                *getReader<T>());
+            return std::make_shared<Type>(*getReader<Type>());
         };
     }
 

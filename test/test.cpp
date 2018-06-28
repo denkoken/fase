@@ -3,8 +3,6 @@
 
 #include "fase.h"
 
-using fase::FunctionNode;
-using fase::StandardFunction;
 using fase::Variable;
 
 class TestClass {
@@ -34,23 +32,22 @@ private:
     Status status;
 };
 
-class Add : public FunctionNode {
-public:
-    FunctionNode *build(const std::vector<Variable *> &args) {
-        a = args[0]->getReader<int>();
-        b = args[1]->getReader<int>();
-        c = args[2]->getWriter<int>();
-        return this;
-    }
-
-    void apply() { *c = *a + *b; }
-
-private:
-    std::shared_ptr<int> a, b, c;
-};
+// class Add : public FunctionNode {
+// public:
+//     FunctionNode *build(const std::vector<Variable *> &args) {
+//         a = args[0]->getReader<int>();
+//         b = args[1]->getReader<int>();
+//         c = args[2]->getWriter<int>();
+//         return this;
+//     }
+//
+//     void apply() { *c = *a + *b; }
+//
+// private:
+//     std::shared_ptr<int> a, b, c;
+// };
 
 TEST_CASE("Variable test") {
-
     SECTION("Create") {
         Variable v = TestClass();
         REQUIRE(v.getReader<TestClass>()->isMoved());
@@ -92,54 +89,51 @@ TEST_CASE("Variable test") {
 
     SECTION("Clone") {
         Variable a = TestClass();
-        Variable b = a.clone<TestClass>();
+        Variable b = a.clone();
         a.getReader<TestClass>()->clear();
         b.getReader<TestClass>()->clear();
         REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
         REQUIRE(a.getReader<TestClass>()->isNone());
         REQUIRE(b.getReader<TestClass>()->isNone());
     }
-
 }
 
-TEST_CASE("FunctionNode test") {
-
-    std::vector<FunctionNode *> fs;
-    StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
-        (void)a;
-        b += c;
-    };
-    Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
-
-    SECTION("Dynamic build") {
-        fs.push_back(func.build({&v1, &v2, &v3}));
-        fs.back()->apply();
-        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
-    }
-
-    SECTION("Static build") {
-        fs.push_back(func.build(v1, v2, v3));
-        fs.back()->apply();
-        assert(*v2.getReader<int>() == 8);  // 5 + 3
-    }
-
-    SECTION("Inherited function") {
-        Add add;
-        add.build({&v1, &v2, &v4});
-        fs.push_back(&add);
-        fs.back()->apply();
-        assert(*v4.getReader<int>() == 9);  // 1 + 8
-    }
-
-    SECTION("Call by loop") {
-        REQUIRE_NOTHROW([&](){
-            for (auto &f : fs) {
-                f->apply();
-            }
-        }());
-    }
-
-}
+// TEST_CASE("FunctionNode test") {
+//     std::vector<FunctionNode *> fs;
+//     StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
+//         (void)a;
+//         b += c;
+//     };
+//     Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
+//
+//     SECTION("Dynamic build") {
+//         fs.push_back(func.build({&v1, &v2, &v3}));
+//         fs.back()->apply();
+//         REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
+//     }
+//
+//     SECTION("Static build") {
+//         fs.push_back(func.build(v1, v2, v3));
+//         fs.back()->apply();
+//         assert(*v2.getReader<int>() == 8);  // 5 + 3
+//     }
+//
+//     SECTION("Inherited function") {
+//         Add add;
+//         add.build({&v1, &v2, &v4});
+//         fs.push_back(&add);
+//         fs.back()->apply();
+//         assert(*v4.getReader<int>() == 9);  // 1 + 8
+//     }
+//
+//     SECTION("Call by loop") {
+//         REQUIRE_NOTHROW([&]() {
+//             for (auto &f : fs) {
+//                 f->apply();
+//             }
+//         }());
+//     }
+// }
 
 TEST_CASE("WrongTypeCast test") {
     Variable test_class = TestClass();

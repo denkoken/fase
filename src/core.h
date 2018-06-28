@@ -59,14 +59,23 @@ public:
     template <typename Callable, typename... Args>
     void addFunctionBuilder(
         const std::string& name, Callable func,
-        const std::array<std::string, sizeof...(Args)>& argnames);
+        const std::array<std::string, sizeof...(Args)>& argnames) {
+        FunctionInfo info;
+        info.builder = std::make_unique<FunctionBinder<Args...>>(func);
+        info.arg_names =
+            std::vector<std::string>(std::begin(argnames), std::end(argnames));
+        info.arg_types = {typeid(Args).name()...};
+        func_infos[name] = std::move(info);
+    }
 
     bool makeFunctionNode(const std::string& node_name,
                           const std::string& func_name);
 
     template <typename T>
     bool makeVariableNode(const std::string& name, const bool& is_constant,
-                          T&& value);
+                          T&& value) {
+        variable_nodes[name] = {name, Variable(value), is_constant};
+    }
 
     void delFunctionNode(const std::string& name) noexcept {
         function_nodes.erase(name);
