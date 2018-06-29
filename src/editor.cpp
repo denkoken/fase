@@ -8,7 +8,7 @@
 namespace {
 
 template <typename T, typename S>
-inline bool exists(const std::map<T, S>& map, const T& key) {
+inline bool exists_map(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);
 }
 
@@ -182,7 +182,7 @@ void CLIEditor::start(pe::FaseCore* core, Variable variable) {
             break;
         }
 
-        if (!exists(commands, input[0])) {
+        if (!exists_map(commands, input[0])) {
             std::cout << "Undefined Command : " << input[0] << std::endl;
             continue;
         }
