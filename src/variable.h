@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <typeinfo>
 
@@ -20,8 +21,8 @@ public:
               std::forward<T>(value))),
           type(&typeid(typename std::remove_reference<T>::type)) {
         using Type = typename std::remove_reference<T>::type;
-        cloner = [this]() {
-            return std::make_shared<Type>(*getReader<Type>());
+        cloner = [](const Variable &v) {
+            return std::make_shared<Type>(*v.getReader<Type>());
         };
     }
 
@@ -43,6 +44,11 @@ public:
     void set(std::shared_ptr<T> v) {
         data = v;
         type = &typeid(T);  // The lifetime extends to the end of the program.
+
+        using Type = typename std::remove_reference<T>::type;
+        cloner = [](const Variable &v) {
+            return std::make_shared<Type>(*v.getReader<Type>());
+        };
     }
 
     template <typename T>
@@ -64,8 +70,9 @@ public:
     }
 
     void copy(Variable &v) const {
-        v.data = cloner();
+        v.data = cloner(*this);
         v.type = type;
+        v.cloner = cloner;
     }
 
     Variable clone() const {
@@ -76,7 +83,7 @@ public:
 
 private:
     std::shared_ptr<void> data;
-    std::function<std::shared_ptr<void>()> cloner;
+    std::function<std::shared_ptr<void>(const Variable &)> cloner;
     const std::type_info *type = &typeid(void);
 };
 

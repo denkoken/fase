@@ -68,14 +68,16 @@ bool FaseCore::build() {
         binded_infos.push_back({&variable});
     }
 
-    // bind init function
-    pipeline.emplace_back([this]() {
-        auto vnode_i = begin(variable_nodes);
-        auto variable_i = begin(variables);
-        for (; vnode_i == end(variable_nodes); vnode_i++, variable_i++) {
-            vnode_i->second.val.copy(*variable_i);
-        }
-    });
+    if (variable_nodes.size() != 0) {
+        // bind init function
+        pipeline.emplace_back([this]() {
+            auto vnode_i = begin(variable_nodes);
+            auto variable_i = begin(variables);
+            for (; vnode_i != end(variable_nodes); vnode_i++, variable_i++) {
+                vnode_i->second.val.copy(*variable_i);
+            }
+        });
+    }
 
     for (size_t prev_size = binded.size(); true;) {
         for (auto& fnode : function_nodes) {
@@ -86,19 +88,20 @@ bool FaseCore::build() {
 
             std::vector<Variable*> bind_val;
             for (size_t i = 0; i < fnode.second.links.size(); i++) {
-                auto& link_node = fnode.second.links[i].linking_node;
+                auto& link_node = fnode.second.links.at(i).linking_node;
+
                 if (link_node == std::string("")) {  // make variable
                     variables.emplace_back(
-                        variable_builders[info.arg_types[i]]());
+                        variable_builders.at(info.arg_types.at(i))());
                     bind_val.push_back(&variables.back());
                     continue;
                 }
                 size_t j =
                     size_t(std::find(begin(binded), end(binded), link_node) -
                            begin(binded));
-                bind_val.push_back(binded_infos[j][std::min(
-                    size_t(fnode.second.links[i].linking_idx),
-                    size_t(binded_infos[j].size() - 1))]);
+                bind_val.push_back(binded_infos.at(j).at(
+                    std::min(size_t(fnode.second.links.at(i).linking_idx),
+                             size_t(binded_infos.at(j).size() - 1))));
             }
 
             pipeline.emplace_back(info.builder->build(bind_val));
@@ -117,6 +120,7 @@ bool FaseCore::build() {
             return false;
         }
     }
+    return false;
 }
 
 bool FaseCore::run() {

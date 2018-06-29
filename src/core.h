@@ -53,7 +53,11 @@ public:
 
     template <typename T>
     void addVariableBuilder() {
-        variable_builders[typeid(T).name()] = []() -> Variable { return T(); };
+        variable_builders[typeid(T).name()] = []() -> Variable {
+            Variable v;
+            v.create<T>();
+            return v;
+        };
     }
 
     template <typename... Args>
@@ -75,7 +79,7 @@ public:
     template <typename T>
     bool makeVariableNode(const std::string& name, const bool& is_constant,
                           T&& value) {
-        variable_nodes[name] = {name, Variable(value), is_constant};
+        variable_nodes[name] = {name, Variable(std::move(value)), is_constant};
         return true;
     }
 
