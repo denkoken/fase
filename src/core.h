@@ -24,7 +24,7 @@ struct VariableNode {
 
 struct LinkInfo {
     std::string linking_node;
-    int linking_idx;
+    size_t linking_idx;
 };
 
 struct FunctionNode {
@@ -76,6 +76,7 @@ public:
     bool makeVariableNode(const std::string& name, const bool& is_constant,
                           T&& value) {
         variable_nodes[name] = {name, Variable(value), is_constant};
+        return true;
     }
 
     void delFunctionNode(const std::string& name) noexcept {
@@ -87,7 +88,7 @@ public:
     }
 
     void linkNode(const std::string& linking_node, const size_t& link_idx,
-                  const std::string& linked_node, const int& linked_idx) {
+                  const std::string& linked_node, const size_t& linked_idx) {
         function_nodes[linking_node].links[link_idx] = {linked_node,
                                                         linked_idx};
     };
