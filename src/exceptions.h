@@ -31,16 +31,16 @@ class InvalidArgN : public std::logic_error {
 public:
     InvalidArgN(const size_t& expect_n, const size_t& input_n)
         : std::logic_error("InvalidArgN"),
-          inputN(input_n),
-          expectedN(expect_n),
+          input_n(input_n),
+          expected_n(expect_n),
           err_message(std::string("StandardFunction::build() failed : Invalid "
                                   "Number of Arguments ( expect ") +
-                      std::to_string(expectedN) +
+                      std::to_string(expected_n) +
                       std::string(" , but # of arguments is ") +
-                      std::to_string(inputN) + std::string(")")) {}
+                      std::to_string(input_n) + std::string(")")) {}
 
-    const size_t inputN;
-    const size_t expectedN;
+    const size_t input_n;
+    const size_t expected_n;
 
     const char* what() const noexcept { return err_message.c_str(); }
 
