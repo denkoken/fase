@@ -31,7 +31,6 @@ private:
 };
 
 TEST_CASE("Variable test") {
-
     SECTION("Create directly") {
         Variable v;
         v.create<TestClass>();
@@ -112,5 +111,4 @@ TEST_CASE("Variable test") {
             REQUIRE(*e.cast_type == typeid(float));
         }
     }
-
 }

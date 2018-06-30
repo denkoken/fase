@@ -4,7 +4,6 @@
 using namespace fase;
 
 TEST_CASE("FunctionBuilder test") {
-
     FunctionBuilder<int, int &, float> builder = [](int a, int &b, float c) {
         (void)a;
         b += c;
@@ -33,9 +32,9 @@ TEST_CASE("FunctionBuilder test") {
     }
 
     SECTION("Call by loop") {
-        REQUIRE_NOTHROW([&](){
-            std::vector<FunctionBuilderBase *> builders =
-                { &builder, &builder2, &builder };
+        REQUIRE_NOTHROW([&]() {
+            std::vector<FunctionBuilderBase *> builders = {&builder, &builder2,
+                                                           &builder};
             REQUIRE(*v2.getReader<int>() == 2);  // 2
             for (auto &b : builders) {
                 std::function<void()> f = b->build({&v1, &v2, &v3});
@@ -54,6 +53,4 @@ TEST_CASE("FunctionBuilder test") {
             REQUIRE(e.expected_n == 3);
         }
     }
-
 }
-
