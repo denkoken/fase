@@ -100,6 +100,8 @@ endif()
 if (BUILD_TEST)
     add_executable(test
         ${CMAKE_SOURCE_DIR}/test/test.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_function.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_variable.cpp
     )
     setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
