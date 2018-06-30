@@ -14,9 +14,9 @@ public:
           cast_type(&cast_t),
           casted_type(&casted_t),
           err_message(
-              std::string("Variable::getReader() failed : Invalid cast (") +
-              cast_type->name() + std::string(" vs ") + casted_type->name() +
-              std::string(")")) {}
+                  std::string("Variable::getReader() failed : Invalid cast (") +
+                  cast_type->name() + std::string(" vs ") +
+                  casted_type->name() + std::string(")")) {}
 
     const std::type_info* cast_type;
     const std::type_info* casted_type;

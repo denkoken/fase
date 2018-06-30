@@ -36,7 +36,7 @@ public:
     ~Variable() = default;
 
     template <typename T, typename... Args>
-    void create(Args&&... args) {
+    void create(Args &&... args) {
         set(std::make_shared<T>(std::forward<T>(args)...));
     }
 
@@ -44,7 +44,7 @@ public:
     void set(std::shared_ptr<T> v) {
         data = v;
         type = &typeid(T);  // The lifetime extends to the end of the program.
-        cloner = [](Variable& d, const Variable &s) {
+        cloner = [](Variable &d, const Variable &s) {
             d.create<T>(*s.getReader<T>());
         };
     }
@@ -54,9 +54,7 @@ public:
         return *type == typeid(T);
     }
 
-    bool isSameType(const Variable& v) const {
-        return *type == *v.type;
-    }
+    bool isSameType(const Variable &v) const { return *type == *v.type; }
 
     template <typename T>
     std::shared_ptr<T> getWriter() {
@@ -76,9 +74,7 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
-    void copy(Variable &v) const {
-        cloner(v, *this);
-    }
+    void copy(Variable &v) const { cloner(v, *this); }
 
     Variable clone() const {
         Variable v;

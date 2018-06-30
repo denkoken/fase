@@ -16,7 +16,7 @@ namespace fase {
 class FunctionBuilderBase {
 public:
     virtual std::function<void()> build(
-        const std::vector<Variable *> &in_args) = 0;
+            const std::vector<Variable *> &in_args) = 0;
     virtual ~FunctionBuilderBase() {}
 };
 
@@ -66,8 +66,8 @@ private:
     auto bind(std::index_sequence<Idx...>) {
         return [&]() {
             func(*(*args[Idx])
-                      .template getReader<
-                          typename std::remove_reference<Args>::type>()...);
+                          .template getReader<typename std::remove_reference<
+                                  Args>::type>()...);
         };
     }
 

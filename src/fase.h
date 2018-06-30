@@ -25,17 +25,15 @@ public:
     template <typename T, typename... Args>
     void addVariableBuilder(const std::string& name, const Args&... args) {
         core.addVariableBuilder<T>(
-            name, [args...]() -> Variable { return T(args...); });
+                name, [args...]() -> Variable { return T(args...); });
     }
 
     template <typename... Args>
     void addFunctionBuilder(
-        const std::string& name, std::function<void(Args...)>&& f,
-        const std::array<std::string, sizeof...(Args)>& argnames) {
+            const std::string& name, std::function<void(Args...)>&& f,
+            const std::array<std::string, sizeof...(Args)>& argnames) {
         core.addFunctionBuilder<Args...>(name, std::move(f), argnames);
     };
-
-    void setInitFunc(const std::function<void()>& init_func);
 
     void startEditing() { editor->start(&core); }
 

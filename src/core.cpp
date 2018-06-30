@@ -88,16 +88,16 @@ bool FaseCore::build() {
 
                 if (link_node == std::string("")) {  // make variable
                     variables.emplace_back(
-                        variable_builders.at(info.arg_types.at(i))());
+                            variable_builders.at(info.arg_types.at(i))());
                     bind_val.push_back(&variables.back());
                     continue;
                 }
-                size_t j =
-                    size_t(std::find(begin(binded), end(binded), link_node) -
-                           begin(binded));
+                size_t j = size_t(
+                        std::find(begin(binded), end(binded), link_node) -
+                        begin(binded));
                 bind_val.push_back(binded_infos.at(j).at(
-                    std::min(size_t(node.second.links.at(i).linking_idx),
-                             size_t(binded_infos.at(j).size() - 1))));
+                        std::min(size_t(node.second.links.at(i).linking_idx),
+                                 size_t(binded_infos.at(j).size() - 1))));
             }
 
             pipeline.emplace_back(info.builder->build(bind_val));
