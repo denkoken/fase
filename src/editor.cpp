@@ -79,20 +79,22 @@ void del(fase::FaseCore* core, std::vector<std::string> input) {
     core->delArgument(input[1]);
 }
 
-void showNodes(fase::FaseCore* core) {
+void showState(fase::FaseCore* core) {
     const auto& arguments = core->getArguments();
     const auto& nodes = core->getNodes();
 
+    std::cout << "Arguments : " << std::endl;
     for (const auto& node : arguments) {
         if (node.second.constant) {
-            std::cout << "c: " << node.first << std::endl;
+            std::cout << "  " << node.first << " (Constant)" << std::endl;
         } else {
-            std::cout << "v: " << node.first << std::endl;
+            std::cout << "  " << node.first << std::endl;
         }
     }
 
+    std::cout << "Nodes : " << std::endl;
     for (const auto& node : nodes) {
-        std::cout << "f: " << node.first << " (" << node.second.function << ")"
+        std::cout << "  " << node.first << " (" << node.second.function << ")"
                   << std::endl;
     }
 }
@@ -129,8 +131,8 @@ void showLinks(fase::FaseCore* core) {
 }
 
 void show(fase::FaseCore* core, std::vector<std::string> input) {
-    if (input[1] == std::string("node") or input[1] == std::string("n")) {
-        showNodes(core);
+    if (input[1] == std::string("state") or input[1] == std::string("s")) {
+        showState(core);
     } else if (input[1] == std::string("function") or
                input[1] == std::string("f")) {
         showFunctions(core);
@@ -178,6 +180,8 @@ void CLIEditor::start(FaseCore* core) {
 
     while (true) {
         std::vector<string> input = clInput();
+
+        if (input.empty()) continue;
 
         if (exists(exit_commands, input[0])) {
             break;
