@@ -59,7 +59,7 @@ function(setup_target target includes libs)
     target_include_directories(${target} PUBLIC ${includes})
     target_link_libraries(${target} ${libs})
     set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${warning_options})
-    add_sanitizers(target)
+    add_sanitizers(${target})
 endfunction(setup_target)
 
 # ------------------------------------------------------------------------------
