@@ -14,28 +14,26 @@
 
 namespace fase {
 
-namespace pe {
-
-struct VariableNode {
+struct Argument {
     std::string name;
     Variable val;
     bool constant;
 };
 
-struct LinkInfo {
+struct Link {
     std::string linking_node;
     size_t linking_idx;
 };
 
-struct FunctionNode {
+struct Node {
     std::string name;
-    std::string type;  // function name (not a node name)
+    std::string function;  // function name (not a node name)
 
-    std::vector<LinkInfo> links;
+    std::vector<Link> links;
 };
 
-struct FunctionInfo {
-    std::unique_ptr<FunctionBuilder> builder;
+struct Function {
+    std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_names;
 
     std::vector<std::string> arg_types;
@@ -62,51 +60,42 @@ public:
 
     template <typename... Args>
     void addFunctionBuilder(
-        const std::string& name, std::function<void(Args...)>&& func,
+        const std::string& name, std::function<void(Args...)>&& callable,
         const std::array<std::string, sizeof...(Args)>& argnames) {
-        FunctionInfo info;
-        info.builder = std::make_unique<FunctionBinder<Args...>>(func);
-        info.arg_names =
+        Function func;
+        func.builder = std::make_unique<FunctionBinder<Args...>>(callable);
+        func.arg_names =
             std::vector<std::string>(std::begin(argnames), std::end(argnames));
-        info.arg_types = {
+        func.arg_types = {
             typeid(typename std::remove_reference<Args>::type).name()...};
-        func_infos[name] = std::move(info);
+        functions[name] = std::move(func);
     }
 
-    bool makeFunctionNode(const std::string& node_name,
-                          const std::string& func_name);
+    bool makeNode(const std::string& node_name,
+                  const std::string& function_name);
 
     template <typename T>
-    bool makeVariableNode(const std::string& name, const bool& is_constant,
-                          T&& value) {
-        variable_nodes[name] = {name, Variable(std::move(value)), is_constant};
+    bool setArgument(const std::string& name, const bool& is_constant,
+                     T&& value) {
+        arguments[name] = {name, Variable(std::move(value)), is_constant};
         return true;
     }
 
-    void delFunctionNode(const std::string& name) noexcept {
-        function_nodes.erase(name);
-    }
+    void delNode(const std::string& name) noexcept { nodes.erase(name); }
 
-    void delVariableNode(const std::string& name) noexcept {
-        variable_nodes.erase(name);
+    void delArgument(const std::string& name) noexcept {
+        arguments.erase(name);
     }
 
     void linkNode(const std::string& linking_node, const size_t& link_idx,
                   const std::string& linked_node, const size_t& linked_idx) {
-        function_nodes[linking_node].links[link_idx] = {linked_node,
-                                                        linked_idx};
+        nodes[linking_node].links[link_idx] = {linked_node, linked_idx};
     };
 
-    const std::map<std::string, VariableNode>& getVariableNodes() {
-        return variable_nodes;
-    };
-    const std::map<std::string, FunctionNode>& getFunctionNodes() {
-        return function_nodes;
-    };
+    const std::map<std::string, Argument>& getArguments() { return arguments; };
+    const std::map<std::string, Node>& getNodes() { return nodes; };
 
-    const std::map<std::string, FunctionInfo>& getFunctionInfos() {
-        return func_infos;
-    }
+    const std::map<std::string, Function>& getFunctions() { return functions; }
 
     bool build();
     bool run();
@@ -114,18 +103,16 @@ public:
 private:
     // input data
     std::map<std::string, std::function<Variable()>> variable_builders;
-    std::map<std::string, FunctionInfo> func_infos;
+    std::map<std::string, Function> functions;
 
     // function node data
-    std::map<std::string, FunctionNode> function_nodes;
-    std::map<std::string, VariableNode> variable_nodes;
+    std::map<std::string, Node> nodes;
+    std::map<std::string, Argument> arguments;
 
     // built pipeline
     std::vector<std::function<void()>> pipeline;
     std::list<Variable> variables;  // for running.
 };
-
-}  // namespace pe
 
 }  // namespace fase
 

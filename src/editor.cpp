@@ -35,9 +35,9 @@ std::vector<std::string> clInput() {
     return split(input_str, ' ');
 }
 
-void add(fase::pe::FaseCore* core, std::vector<std::string> input) {
+void add(fase::FaseCore* core, std::vector<std::string> input) {
     if (input[1] == std::string("f")) {
-        core->makeFunctionNode(input[3], input[2]);
+        core->makeNode(input[3], input[2]);
         return;
     } else if (input[1] != std::string("v") && input[1] != std::string("c")) {
         std::cout << "Undefined Argument : " << input[1] << std::endl;
@@ -50,39 +50,39 @@ void add(fase::pe::FaseCore* core, std::vector<std::string> input) {
         if (input.size() >= 5) {
             val = std::stoi(input[4]);
         }
-        core->makeVariableNode(input[3], is_c, val);
+        core->setArgument(input[3], is_c, val);
     } else if (input[2] == std::string("float")) {
         float val = 0.f;
         if (input.size() >= 5) {
             val = float(std::stod(input[4]));
         }
-        core->makeVariableNode(input[3], is_c, val);
+        core->setArgument(input[3], is_c, val);
     } else if (input[2] == std::string("double")) {
         double val = 0.f;
         if (input.size() >= 5) {
             val = std::stod(input[4]);
         }
-        core->makeVariableNode(input[3], is_c, val);
+        core->setArgument(input[3], is_c, val);
     } else {
         std::cout << "Undefined Type : " << input[2] << std::endl;
     }
 }
 
-void link(fase::pe::FaseCore* core, std::vector<std::string> input) {
+void link(fase::FaseCore* core, std::vector<std::string> input) {
     core->linkNode(input[1], std::stoull(input[2]), input[3],
                    std::stoull(input[4]));
 }
 
-void del(fase::pe::FaseCore* core, std::vector<std::string> input) {
-    core->delFunctionNode(input[1]);
-    core->delVariableNode(input[1]);
+void del(fase::FaseCore* core, std::vector<std::string> input) {
+    core->delNode(input[1]);
+    core->delArgument(input[1]);
 }
 
-void showNodes(fase::pe::FaseCore* core) {
-    const auto& vnodes = core->getVariableNodes();
-    const auto& fnodes = core->getFunctionNodes();
+void showNodes(fase::FaseCore* core) {
+    const auto& arguments = core->getArguments();
+    const auto& nodes = core->getNodes();
 
-    for (const auto& node : vnodes) {
+    for (const auto& node : arguments) {
         if (node.second.constant) {
             std::cout << "c: " << node.first << std::endl;
         } else {
@@ -90,14 +90,14 @@ void showNodes(fase::pe::FaseCore* core) {
         }
     }
 
-    for (const auto& node : fnodes) {
-        std::cout << "f: " << node.first << " (" << node.second.type << ")"
+    for (const auto& node : nodes) {
+        std::cout << "f: " << node.first << " (" << node.second.function << ")"
                   << std::endl;
     }
 }
 
-void showFunctions(fase::pe::FaseCore* core) {
-    const auto& func_infos = core->getFunctionInfos();
+void showFunctions(fase::FaseCore* core) {
+    const auto& func_infos = core->getFunctions();
 
     for (const auto& func : func_infos) {
         std::cout << func.first << ":" << std::endl;
@@ -109,13 +109,13 @@ void showFunctions(fase::pe::FaseCore* core) {
     }
 }
 
-void showLinks(fase::pe::FaseCore* core) {
-    const auto& fnodes = core->getFunctionNodes();
+void showLinks(fase::FaseCore* core) {
+    const auto& nodes = core->getNodes();
 
-    for (const auto& fnode : fnodes) {
-        std::cout << fnode.first << ":" << std::endl;
+    for (const auto& node : nodes) {
+        std::cout << node.first << ":" << std::endl;
         int i = 0;
-        for (const auto& link : fnode.second.links) {
+        for (const auto& link : node.second.links) {
             std::cout << "  " << i++ << " : ";
             if (link.linking_node == std::string("")) {
                 std::cout << "Unset" << std::endl;
@@ -127,7 +127,7 @@ void showLinks(fase::pe::FaseCore* core) {
     }
 }
 
-void show(fase::pe::FaseCore* core, std::vector<std::string> input) {
+void show(fase::FaseCore* core, std::vector<std::string> input) {
     if (input[1] == std::string("node") or input[1] == std::string("n")) {
         showNodes(core);
     } else if (input[1] == std::string("function") or
@@ -139,7 +139,7 @@ void show(fase::pe::FaseCore* core, std::vector<std::string> input) {
     }
 }
 
-void run(fase::pe::FaseCore* core, std::vector<std::string> input) {
+void run(fase::FaseCore* core, std::vector<std::string> input) {
     try {
         if (input.size() == 1 || input[1] != std::string("nobuild")) {
             core->build();
@@ -156,14 +156,14 @@ namespace fase {
 
 namespace editor {
 
-void CLIEditor::start(pe::FaseCore* core, Variable variable) {
+void CLIEditor::start(FaseCore* core) {
     core->addVariableBuilder<int>();
     core->addVariableBuilder<float>();
     core->addVariableBuilder<double>();
     core->addVariableBuilder<std::string>();
 
     using std::string;
-    using Command = std::function<void(pe::FaseCore*, std::vector<string>)>;
+    using Command = std::function<void(FaseCore*, std::vector<string>)>;
 
     const string exit_commands[] = {"quit", "exit", "logout"};
 

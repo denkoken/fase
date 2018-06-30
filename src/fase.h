@@ -37,11 +37,11 @@ public:
 
     void setInitFunc(const std::function<void()>& init_func);
 
-    void startEditing() { editor->start(&core, true); }
+    void startEditing() { editor->start(&core); }
 
 private:
-    pe::FaseCore core;
-    std::unique_ptr<develop::Editor> editor;
+    FaseCore core;
+    std::unique_ptr<Editor> editor;
 };
 
 }  // namespace fase

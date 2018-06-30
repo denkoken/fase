@@ -13,20 +13,20 @@
 
 namespace fase {
 
-class FunctionBuilder {
+class FunctionBuilderBase {
 public:
     virtual std::function<void()> build(
         const std::vector<Variable *> &in_args) = 0;
 };
 
 template <typename... Args>
-class FunctionBinder : public FunctionBuilder {
+class FunctionBuilder : public FunctionBuilderBase {
 public:
     ///
     /// Wrap a function which dose not return anything.
     ///
     template <class Callable>
-    FunctionBinder(Callable in_func) {
+    FunctionBuilder(Callable in_func) {
         func = std::function<void(Args...)>(in_func);
     }
 

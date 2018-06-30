@@ -7,23 +7,19 @@
 
 namespace fase {
 
-namespace develop {
-
 class Editor {
 public:
-    virtual void start(pe::FaseCore*, Variable) = 0;
+    virtual void start(FaseCore*) = 0;
     virtual ~Editor() {}
 };
 
-}  // namespace develop
-
 namespace editor {
 
-class CLIEditor : public develop::Editor {
+class CLIEditor : public Editor {
 public:
     CLIEditor() : Editor() {}
 
-    void start(pe::FaseCore* core, Variable variable);
+    void start(FaseCore* core);
 };
 
 }  // namespace editor
