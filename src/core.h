@@ -63,7 +63,7 @@ public:
         const std::string& name, std::function<void(Args...)>&& callable,
         const std::array<std::string, sizeof...(Args)>& argnames) {
         Function func;
-        func.builder = std::make_unique<FunctionBinder<Args...>>(callable);
+        func.builder = std::make_unique<FunctionBuilder<Args...>>(callable);
         func.arg_names =
             std::vector<std::string>(std::begin(argnames), std::end(argnames));
         func.arg_types = {
