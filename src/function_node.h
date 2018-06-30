@@ -17,6 +17,7 @@ class FunctionBuilderBase {
 public:
     virtual std::function<void()> build(
         const std::vector<Variable *> &in_args) = 0;
+    virtual ~FunctionBuilderBase() {}
 };
 
 template <typename... Args>
