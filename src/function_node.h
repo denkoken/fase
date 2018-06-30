@@ -36,7 +36,7 @@ public:
     ///  TODO: Is there any method to replace template VArgs with Args?
     ///
     template <typename... VArgs>
-    std::function<void()> build(VArgs &... in_args) noexcept {
+    std::function<void()> build(VArgs *... in_args) noexcept {
         static_assert(sizeof...(VArgs) == sizeof...(Args),
                       "The number of arguments is not matched");
 

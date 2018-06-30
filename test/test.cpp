@@ -2,8 +2,7 @@
 #include "catch.hpp"
 
 #include "fase.h"
-
-using fase::Variable;
+using namespace fase;
 
 class TestClass {
 public:
@@ -31,21 +30,6 @@ public:
 private:
     Status status;
 };
-
-// class Add : public FunctionNode {
-// public:
-//     FunctionNode *build(const std::vector<Variable *> &args) {
-//         a = args[0]->getReader<int>();
-//         b = args[1]->getReader<int>();
-//         c = args[2]->getWriter<int>();
-//         return this;
-//     }
-//
-//     void apply() { *c = *a + *b; }
-//
-// private:
-//     std::shared_ptr<int> a, b, c;
-// };
 
 TEST_CASE("Variable test") {
     SECTION("Create") {
@@ -96,52 +80,70 @@ TEST_CASE("Variable test") {
         REQUIRE(a.getReader<TestClass>()->isNone());
         REQUIRE(b.getReader<TestClass>()->isNone());
     }
+
+    SECTION("WrongTypeCast") {
+        Variable test_class = TestClass();
+        try {
+            test_class.getReader<float>();
+            REQUIRE(false);
+        } catch (WrongTypeCast &e) {
+            REQUIRE(*e.casted_type == typeid(TestClass));
+            REQUIRE(*e.cast_type == typeid(float));
+        }
+    }
+
 }
 
-// TEST_CASE("FunctionNode test") {
-//     std::vector<FunctionNode *> fs;
-//     StandardFunction<int, int &, float> func = [](int a, int &b, float c) {
-//         (void)a;
-//         b += c;
-//     };
-//     Variable v1 = 1, v2 = 2, v3 = 3.f, v4;
-//
-//     SECTION("Dynamic build") {
-//         fs.push_back(func.build({&v1, &v2, &v3}));
-//         fs.back()->apply();
-//         REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
-//     }
-//
-//     SECTION("Static build") {
-//         fs.push_back(func.build(v1, v2, v3));
-//         fs.back()->apply();
-//         assert(*v2.getReader<int>() == 8);  // 5 + 3
-//     }
-//
-//     SECTION("Inherited function") {
-//         Add add;
-//         add.build({&v1, &v2, &v4});
-//         fs.push_back(&add);
-//         fs.back()->apply();
-//         assert(*v4.getReader<int>() == 9);  // 1 + 8
-//     }
-//
-//     SECTION("Call by loop") {
-//         REQUIRE_NOTHROW([&]() {
-//             for (auto &f : fs) {
-//                 f->apply();
-//             }
-//         }());
-//     }
-// }
+TEST_CASE("FunctionBuilder test") {
 
-TEST_CASE("WrongTypeCast test") {
-    Variable test_class = TestClass();
-    try {
-        test_class.getReader<float>();
-        REQUIRE(false);
-    } catch (fase::WrongTypeCast &e) {
-        REQUIRE(*e.casted_type == typeid(TestClass));
-        REQUIRE(*e.cast_type == typeid(float));
+    FunctionBuilder<int, int &, float> builder = [](int a, int &b, float c) {
+        (void)a;
+        b += c;
+    };
+    FunctionBuilder<int, int &, float> builder2 = [](int a, int &b, float c) {
+        b += (a + c);
+    };
+    Variable v1 = 1, v2 = 2, v3 = 3.f;
+
+    SECTION("Dynamic build") {
+        std::function<void()> f = builder.build({&v1, &v2, &v3});
+        REQUIRE(*v2.getReader<int>() == 2);  // 2
+        f();
+        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
+        f();
+        REQUIRE(*v2.getReader<int>() == 8);  // 5 + 3
     }
+
+    SECTION("Static build") {
+        std::function<void()> f = builder.build(&v1, &v2, &v3);
+        REQUIRE(*v2.getReader<int>() == 2);  // 2
+        f();
+        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
+        f();
+        REQUIRE(*v2.getReader<int>() == 8);  // 5 + 3
+    }
+
+    SECTION("Call by loop") {
+        REQUIRE_NOTHROW([&](){
+            std::vector<FunctionBuilderBase *> builders =
+                { &builder, &builder2, &builder };
+            REQUIRE(*v2.getReader<int>() == 2);  // 2
+            for (auto &b : builders) {
+                std::function<void()> f = b->build({&v1, &v2, &v3});
+                f();
+            }
+            REQUIRE(*v2.getReader<int>() == 12);  // 2 + 3 + (1 + 3) + 3
+        }());
+    }
+
+    SECTION("InvalidArgN") {
+        try {
+            builder.build({&v1, &v2});
+            REQUIRE(false);
+        } catch (InvalidArgN &e) {
+            REQUIRE(e.input_n == 2);
+            REQUIRE(e.expected_n == 3);
+        }
+    }
+
 }
