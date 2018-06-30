@@ -17,7 +17,8 @@ public:
 
     template <typename T>
     Variable(T &&value) {
-        create<typename std::remove_reference<T>::type>(std::forward<T>(value));
+        using Type = typename std::remove_reference<T>::type;
+        create<Type>(std::forward<T>(value));
     }
 
     template <typename T>
@@ -49,8 +50,17 @@ public:
     }
 
     template <typename T>
+    bool isSameType() const {
+        return *type == typeid(T);
+    }
+
+    bool isSameType(const Variable& v) const {
+        return *type == *v.type;
+    }
+
+    template <typename T>
     std::shared_ptr<T> getWriter() {
-        if (*type != typeid(T)) {
+        if (!isSameType<T>()) {
             // Create by force
             create<T>();
         }
@@ -59,7 +69,7 @@ public:
 
     template <typename T>
     std::shared_ptr<T> getReader() const {
-        if (*type != typeid(T)) {
+        if (!isSameType<T>()) {
             // Invalid type cast
             throw(WrongTypeCast(typeid(T), *type));
         }
