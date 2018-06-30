@@ -1,4 +1,3 @@
-
 #ifndef EDITOR_H_20180628
 #define EDITOR_H_20180628
 

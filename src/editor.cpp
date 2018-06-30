@@ -1,4 +1,3 @@
-
 #include "editor.h"
 
 #include <algorithm>

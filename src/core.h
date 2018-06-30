@@ -1,4 +1,3 @@
-
 #ifndef FASE_CORE_H_20180622
 #define FASE_CORE_H_20180622
 

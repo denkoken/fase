@@ -12,3 +12,5 @@ AllowShortIfStatementsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 PointerAlignment: Left
+AlignAfterOpenBracket: Align
+ColumnLimit: 80
