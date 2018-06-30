@@ -33,7 +33,7 @@ public:
         : std::logic_error("InvalidArgN"),
           input_n(input_n),
           expected_n(expect_n),
-          err_message(std::string("StandardFunction::build() failed : Invalid "
+          err_message(std::string("FunctionBuilder::build() failed : Invalid "
                                   "Number of Arguments ( expect ") +
                       std::to_string(expected_n) +
                       std::string(" , but # of arguments is ") +
