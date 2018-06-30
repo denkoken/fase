@@ -32,22 +32,38 @@ private:
 };
 
 TEST_CASE("Variable test") {
-    SECTION("Create") {
+
+    SECTION("Create directly") {
+        Variable v;
+        v.create<TestClass>();
+        REQUIRE(v.getReader<TestClass>()->isMaked());
+    }
+
+    SECTION("Create by temporary value") {
         Variable v = TestClass();
         REQUIRE(v.getReader<TestClass>()->isMoved());
     }
 
-    SECTION("Create by copy") {
+    SECTION("Create by instance copy") {
         TestClass a;
         Variable v = a;
-        REQUIRE(v.getReader<TestClass>()->isCopied());
-        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal because copied.
+        REQUIRE(a.isMaked());
+        REQUIRE(v.getReader<TestClass>()->isMoved());
+        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal (copied)
     }
 
-    SECTION("Create by move") {
+    SECTION("Create by instance move") {
         TestClass a;
         Variable v = std::move(a);
         REQUIRE(v.getReader<TestClass>()->isMoved());
+        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal (copied)
+    }
+
+    SECTION("Create by set") {
+        std::shared_ptr<TestClass> a = std::make_shared<TestClass>();
+        Variable v = a;
+        REQUIRE(v.getReader<TestClass>()->isMaked());  // Not copied
+        REQUIRE(&*v.getReader<TestClass>() == &*a);    // Equal (pointer copied)
     }
 
     SECTION("Copy") {

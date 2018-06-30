@@ -16,14 +16,13 @@ public:
     Variable() = default;
 
     template <typename T>
-    Variable(T &&value)
-        : data(std::make_shared<typename std::remove_reference<T>::type>(
-              std::forward<T>(value))),
-          type(&typeid(typename std::remove_reference<T>::type)) {
-        using Type = typename std::remove_reference<T>::type;
-        cloner = [](const Variable &v) {
-            return std::make_shared<Type>(*v.getReader<Type>());
-        };
+    Variable(T &&value) {
+        create<typename std::remove_reference<T>::type>(std::forward<T>(value));
+    }
+
+    template <typename T>
+    Variable(std::shared_ptr<T> &v) {
+        set<T>(v);
     }
 
     Variable(Variable &) = default;
@@ -36,18 +35,16 @@ public:
     ~Variable() = default;
 
     template <typename T, typename... Args>
-    void create(Args... args) {
-        set(std::make_shared<T>(args...));
+    void create(Args&&... args) {
+        set(std::make_shared<T>(std::forward<T>(args)...));
     }
 
     template <typename T>
     void set(std::shared_ptr<T> v) {
         data = v;
         type = &typeid(T);  // The lifetime extends to the end of the program.
-
-        using Type = typename std::remove_reference<T>::type;
-        cloner = [](const Variable &v) {
-            return std::make_shared<Type>(*v.getReader<Type>());
+        cloner = [](Variable& d, const Variable &s) {
+            d.create<T>(*s.getReader<T>());
         };
     }
 
@@ -70,21 +67,19 @@ public:
     }
 
     void copy(Variable &v) const {
-        v.data = cloner(*this);
-        v.type = type;
-        v.cloner = cloner;
+        cloner(v, *this);
     }
 
     Variable clone() const {
         Variable v;
-        copy(v);
+        cloner(v, *this);
         return v;
     }
 
 private:
     std::shared_ptr<void> data;
-    std::function<std::shared_ptr<void>(const Variable &)> cloner;
     const std::type_info *type = &typeid(void);
+    std::function<void(Variable &, const Variable &)> cloner;
 };
 
 }  // namespace fase
