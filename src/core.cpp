@@ -88,6 +88,8 @@ bool FaseCore::build() {
             if (exists(binded, node.first)) continue;
 
             Function& info = functions[node.second.function];
+            std::unique_ptr<FunctionBuilderBase>& builder = info.builder;
+            const std::vector<std::string> arg_types = builder->getArgTypes();
 
             std::vector<Variable*> bind_val;
             for (size_t i = 0; i < node.second.links.size(); i++) {
@@ -95,7 +97,7 @@ bool FaseCore::build() {
 
                 if (link_node == std::string("")) {  // make variable
                     variables.emplace_back(
-                            variable_builders.at(info.arg_types.at(i))());
+                            variable_builders.at(arg_types.at(i))());
                     bind_val.push_back(&variables.back());
                     continue;
                 }
@@ -107,7 +109,7 @@ bool FaseCore::build() {
                                  size_t(binded_infos.at(j).size() - 1))));
             }
 
-            pipeline.emplace_back(info.builder->build(bind_val));
+            pipeline.emplace_back(builder->build(bind_val));
 
             binded.emplace_back(node.first);
             binded_infos.push_back(bind_val);

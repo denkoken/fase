@@ -34,8 +34,6 @@ struct Node {
 struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_names;
-
-    std::vector<std::string> arg_types;
 };
 
 class FaseCore {
@@ -65,8 +63,6 @@ public:
         func.builder = std::make_unique<FunctionBuilder<Args...>>(callable);
         func.arg_names = std::vector<std::string>(std::begin(argnames),
                                                   std::end(argnames));
-        func.arg_types = {
-                typeid(typename std::remove_reference<Args>::type).name()...};
         functions[name] = std::move(func);
     }
 
