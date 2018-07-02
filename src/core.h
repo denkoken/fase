@@ -60,10 +60,9 @@ public:
             const std::string& name, std::function<void(Args...)>&& callable,
             const std::array<std::string, sizeof...(Args)>& argnames) {
         func_builders[name] = {
-            .builder = std::make_unique<FunctionBuilder<Args...>>(callable),
-            .arg_names = std::vector<std::string>(std::begin(argnames),
-                                                  std::end(argnames))
-        };
+                .builder = std::make_unique<FunctionBuilder<Args...>>(callable),
+                .arg_names = std::vector<std::string>(std::begin(argnames),
+                                                      std::end(argnames))};
     }
 
     bool makeNode(const std::string& node_name,

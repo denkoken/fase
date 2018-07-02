@@ -19,8 +19,8 @@ bool checkDepends(const fase::Node& node,
     for (auto& link : node.links) {
         if (link.node_name == std::string("")) continue;  // unset arg
 
-        if (std::find(std::begin(binded), std::begin(binded),
-                      link.node_name) != std::begin(binded)) {
+        if (std::find(std::begin(binded), std::begin(binded), link.node_name) !=
+            std::begin(binded)) {
             return false;
         }
     }
@@ -40,11 +40,10 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_name) {
         return false;
     }
 
-    nodes[name] = {
-        .name = name,
-        .func_name = func_name,
-        .links = std::vector<Link>(func_builders[func_name].arg_names.size())
-    };
+    nodes[name] = {.name = name,
+                   .func_name = func_name,
+                   .links = std::vector<Link>(
+                           func_builders[func_name].arg_names.size())};
 
     return true;
 }
