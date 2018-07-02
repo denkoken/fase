@@ -9,6 +9,11 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);
 }
 
+template <typename T>
+inline bool exists(const std::vector<T>& vec, const T& key) {
+    return std::find(std::begin(vec), std::end(vec), key) != std::end(vec);
+}
+
 bool checkDepends(const fase::Node& node,
                   const std::vector<std::string> binded) {
     for (auto& link : node.links) {
@@ -80,6 +85,8 @@ bool FaseCore::build() {
             // check dependency of function node.
             if (!checkDepends(node.second, binded)) continue;
 
+            if (exists(binded, node.first)) continue;
+
             Function& info = functions[node.second.function];
 
             std::vector<Variable*> bind_val;
@@ -106,7 +113,7 @@ bool FaseCore::build() {
             binded_infos.push_back(bind_val);
         }
 
-        if (binded.size() == nodes.size() + 2) {
+        if (binded.size() == nodes.size() + 1) {
             return true;
         }
 
