@@ -17,10 +17,10 @@ inline bool exists(const std::vector<T>& vec, const T& key) {
 bool checkDepends(const fase::Node& node,
                   const std::vector<std::string> binded) {
     for (auto& link : node.links) {
-        if (link.linking_node == std::string("")) continue;  // unset arg
+        if (link.node_name == std::string("")) continue;  // unset arg
 
         if (std::find(std::begin(binded), std::begin(binded),
-                      link.linking_node) != std::begin(binded)) {
+                      link.node_name) != std::begin(binded)) {
             return false;
         }
     }
@@ -92,7 +92,7 @@ bool FaseCore::build() {
 
             std::vector<Variable*> bind_val;
             for (size_t i = 0; i < node.second.links.size(); i++) {
-                auto& link_node = node.second.links.at(i).linking_node;
+                auto& link_node = node.second.links.at(i).node_name;
 
                 if (link_node == std::string("")) {  // make variable
                     variables.emplace_back(
@@ -104,7 +104,7 @@ bool FaseCore::build() {
                         std::find(begin(binded), end(binded), link_node) -
                         begin(binded));
                 bind_val.push_back(binded_infos.at(j).at(
-                        std::min(size_t(node.second.links.at(i).linking_idx),
+                        std::min(size_t(node.second.links.at(i).arg_idx),
                                  size_t(binded_infos.at(j).size() - 1))));
             }
 

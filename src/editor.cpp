@@ -121,10 +121,10 @@ void showLinks(fase::FaseCore* core) {
         int i = 0;
         for (const auto& link : node.second.links) {
             std::cout << "  " << i++ << " : ";
-            if (link.linking_node == std::string("")) {
+            if (link.node_name == std::string("")) {
                 std::cout << "Unset" << std::endl;
             } else {
-                std::cout << link.linking_node << " : " << link.linking_idx
+                std::cout << link.node_name << " : " << link.arg_idx
                           << std::endl;
             }
         }

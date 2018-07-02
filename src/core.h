@@ -20,8 +20,8 @@ struct Argument {
 };
 
 struct Link {
-    std::string linking_node;
-    size_t linking_idx;
+    std::string node_name;
+    size_t arg_idx;
 };
 
 struct Node {
@@ -82,9 +82,9 @@ public:
         arguments.erase(name);
     }
 
-    void linkNode(const std::string& linking_node, const size_t& link_idx,
-                  const std::string& linked_node, const size_t& linked_idx) {
-        nodes[linking_node].links[link_idx] = {linked_node, linked_idx};
+    void linkNode(const std::string& src_node_name, const size_t& src_arg_idx,
+                  const std::string& dst_node_name, const size_t& dst_arg_idx) {
+        nodes[src_node_name].links[src_arg_idx] = {dst_node_name, dst_arg_idx};
     };
 
     const std::map<std::string, Argument>& getArguments() { return arguments; };
