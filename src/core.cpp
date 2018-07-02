@@ -95,8 +95,8 @@ bool FaseCore::build() {
                 auto& link_node = node.second.links.at(i).node_name;
 
                 if (link_node == std::string("")) {  // make variable
-                    variables.emplace_back(
-                            variable_builders.at(arg_types.at(i))());
+                    const std::string& type_name = type_table[arg_types.at(i)];
+                    variables.emplace_back(constructors.at(type_name)());
                     bind_val.push_back(&variables.back());
                     continue;
                 }

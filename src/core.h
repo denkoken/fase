@@ -39,7 +39,8 @@ public:
     void addDefaultConstructor(
             const std::string& name,
             std::function<Variable()>&& builder = []()->Variable{return T();}) {
-        variable_builders[name] = builder;
+        type_table[typeid(T).name()] = name;
+        constructors[name] = builder;
     }
 
     template <typename... Args>
@@ -83,7 +84,8 @@ public:
 
 private:
     // input data
-    std::map<std::string, std::function<Variable()>> variable_builders;
+    std::map<std::string, std::string> type_table;
+    std::map<std::string, std::function<Variable()>> constructors;
     std::map<std::string, std::unique_ptr<FunctionBuilderBase>> func_builders;
 
     // function node data
