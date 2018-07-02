@@ -40,12 +40,6 @@ class FaseCore {
 public:
     FaseCore() {}
 
-    /// for unset argument
-    template <typename T>
-    void addVariableBuilder(std::function<Variable()>&& builder) {
-        variable_builders[typeid(T).name()] = builder;
-    }
-
     template <typename T>
     void addVariableBuilder() {
         variable_builders[typeid(T).name()] = []() -> Variable {
@@ -58,11 +52,11 @@ public:
     template <typename... Args>
     void addFunctionBuilder(
             const std::string& name, std::function<void(Args...)>&& callable,
-            const std::array<std::string, sizeof...(Args)>& argnames) {
+            const std::array<std::string, sizeof...(Args)>& arg_names) {
         func_builders[name] = {
                 .builder = std::make_unique<FunctionBuilder<Args...>>(callable),
-                .arg_names = std::vector<std::string>(std::begin(argnames),
-                                                      std::end(argnames))};
+                .arg_names = std::vector<std::string>(std::begin(arg_names),
+                                                      std::end(arg_names))};
     }
 
     bool makeNode(const std::string& node_name,
