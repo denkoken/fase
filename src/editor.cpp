@@ -99,15 +99,15 @@ void showState(fase::FaseCore* core) {
 }
 
 void showFunctions(fase::FaseCore* core) {
-    const auto& func_infos = core->getFunctions();
+    const auto& func_builders = core->getFunctions();
 
-    for (const auto& func : func_infos) {
-        std::cout << func.first << ":" << std::endl;
+    for (const auto& func_builder : func_builders) {
+        std::cout << func_builder.first << ":" << std::endl;
         const std::vector<std::string>& arg_types =
-                func.second.builder->getArgTypes();
+                func_builder.second->getArgTypes();
 
-        for (size_t i = 0; i < func.second.arg_names.size(); i++) {
-            std::cout << "  " << i << " : " << func.second.arg_names[i] << " ("
+        for (size_t i = 0; i < arg_types.size(); i++) {
+            std::cout << "  " << i << " : " << "(ArgName)" << " ("
                       << arg_types[i] << ")" << std::endl;
         }
     }
@@ -161,10 +161,10 @@ namespace fase {
 namespace editor {
 
 void CLIEditor::start(FaseCore* core) {
-    core->addVariableBuilder<int>();
-    core->addVariableBuilder<float>();
-    core->addVariableBuilder<double>();
-    core->addVariableBuilder<std::string>();
+    core->addDefaultConstructor<int>("int");
+    core->addDefaultConstructor<float>("float");
+    core->addDefaultConstructor<double>("double");
+    core->addDefaultConstructor<std::string>("std::string");
 
     using std::string;
     using Command = std::function<void(FaseCore*, std::vector<string>)>;

@@ -40,10 +40,11 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_name) {
         return false;
     }
 
+    size_t n_args = func_builders[func_name]->getArgTypes().size();
+
     nodes[name] = {.name = name,
                    .func_name = func_name,
-                   .links = std::vector<Link>(
-                           func_builders[func_name].arg_names.size())};
+                   .links = std::vector<Link>(n_args)};
 
     return true;
 }
@@ -86,7 +87,7 @@ bool FaseCore::build() {
             if (exists(binded, node.first)) continue;
 
             std::unique_ptr<FunctionBuilderBase>& builder =
-                    func_builders[node.second.func_name].builder;
+                    func_builders[node.second.func_name];
             const std::vector<std::string> arg_types = builder->getArgTypes();
 
             std::vector<Variable*> bind_val;

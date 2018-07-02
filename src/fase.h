@@ -7,9 +7,9 @@
 #include "function_node.h"
 #include "variable.h"
 
-#define faseAddFunctionBuilder(fase, func, argnames, ...)                  \
+#define faseAddFunctionBuilder(fase, func, arg_names, ...)                 \
     fase.addFunctionBuilder(#func, std::function<void(__VA_ARGS__)>(func), \
-                            argnames)
+                            arg_names)
 
 namespace fase {
 
@@ -23,16 +23,25 @@ public:
     }
 
     template <typename T, typename... Args>
-    void addVariableBuilder(const std::string& name, const Args&... args) {
-        core.addVariableBuilder<T>(
+    void addDefaultConstructor(
+            const std::string& name,
+            const std::array<std::string, sizeof...(Args)>& arg_names,
+            const Args&... args) {
+        core.addDefaultConstructor<T>(
                 name, [args...]() -> Variable { return T(args...); });
+
+        (void)arg_names;
+        // editor->addDefaultConstructor();
     }
 
     template <typename... Args>
     void addFunctionBuilder(
             const std::string& name, std::function<void(Args...)>&& f,
-            const std::array<std::string, sizeof...(Args)>& argnames) {
-        core.addFunctionBuilder<Args...>(name, std::move(f), argnames);
+            const std::array<std::string, sizeof...(Args)>& arg_names) {
+        core.addFunctionBuilder<Args...>(name, std::move(f));
+
+        (void)arg_names;
+        // editor->addFunctionBuilder();
     };
 
     void startEditing() { editor->start(&core); }

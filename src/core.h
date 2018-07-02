@@ -31,32 +31,22 @@ struct Node {
     std::vector<Link> links;
 };
 
-struct Function {
-    std::unique_ptr<FunctionBuilderBase> builder;
-    std::vector<std::string> arg_names;
-};
-
 class FaseCore {
 public:
     FaseCore() {}
 
     template <typename T>
-    void addVariableBuilder() {
-        variable_builders[typeid(T).name()] = []() -> Variable {
-            Variable v;
-            v.create<T>();
-            return v;
-        };
+    void addDefaultConstructor(
+            const std::string& name,
+            std::function<Variable()>&& builder = []()->Variable{return T();}) {
+        variable_builders[name] = builder;
     }
 
     template <typename... Args>
-    void addFunctionBuilder(
-            const std::string& name, std::function<void(Args...)>&& callable,
-            const std::array<std::string, sizeof...(Args)>& arg_names) {
-        func_builders[name] = {
-                .builder = std::make_unique<FunctionBuilder<Args...>>(callable),
-                .arg_names = std::vector<std::string>(std::begin(arg_names),
-                                                      std::end(arg_names))};
+    void addFunctionBuilder(const std::string& name,
+                            std::function<void(Args...)>&& callable) {
+        func_builders[name] =
+                std::make_unique<FunctionBuilder<Args...>>(callable);
     }
 
     bool makeNode(const std::string& node_name,
@@ -83,7 +73,8 @@ public:
     const std::map<std::string, Argument>& getArguments() { return arguments; };
     const std::map<std::string, Node>& getNodes() { return nodes; };
 
-    const std::map<std::string, Function>& getFunctions() {
+    const std::map<std::string, std::unique_ptr<FunctionBuilderBase>>&
+            getFunctions() {
         return func_builders;
     }
 
@@ -93,7 +84,7 @@ public:
 private:
     // input data
     std::map<std::string, std::function<Variable()>> variable_builders;
-    std::map<std::string, Function> func_builders;
+    std::map<std::string, std::unique_ptr<FunctionBuilderBase>> func_builders;
 
     // function node data
     std::map<std::string, Node> nodes;
