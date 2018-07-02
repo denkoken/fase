@@ -1,6 +1,10 @@
 #include "core.h"
 
 #include <algorithm>
+#include <cassert>
+#include <set>
+
+namespace fase {
 
 namespace {
 
@@ -14,117 +18,131 @@ inline bool exists(const std::vector<T>& vec, const T& key) {
     return std::find(std::begin(vec), std::end(vec), key) != std::end(vec);
 }
 
-bool checkDepends(const fase::Node& node,
-                  const std::vector<std::string> binded) {
-    for (auto& link : node.links) {
-        if (link.node_name == std::string("")) continue;  // unset arg
-
-        if (std::find(std::begin(binded), std::begin(binded), link.node_name) !=
-            std::begin(binded)) {
-            return false;
-        }
+template <typename T>
+void extractKeys(const std::map<std::string, T>& src_map,
+                 std::set<std::string>& dst_set) {
+    for (auto it = src_map.begin(); it != src_map.end() ; it++) {
+        dst_set.emplace(it->first);
     }
-    return true;
 }
 
-}  // namespace
+std::string FindRunnableNode(
+        const std::set<std::string>& unused_node_names,
+        const std::map<std::string, Function> &functions,
+        const std::map<std::string, Node>& nodes,
+        const std::map<std::string, std::vector<Variable>>& output_variables) {
+    // Find runnable function node
+    for (auto& node_name : unused_node_names) {
+        const Node& node = nodes.at(node_name);
+        const Function& func = functions.at(node.func_repr);
 
-namespace fase {
+        bool runnable = true;
+        size_t arg_idx = 0;
+        for (auto& link: node.links) {
+            if (link.node_name.empty()) {
+                // Case 1: Create default argument
+                // Is default argument given?
+                if (func.default_arg_values.size() <= arg_idx) {
+                    runnable = false;
+                    break;
+                }
+            } else {
+                // Case 2: Use output variable
+                // Is linked node created?
+                if (!exists(output_variables, link.node_name)) {
+                    runnable = false;
+                    break;
+                }
+                // Is argument index valid?
+                const size_t n_args = output_variables.at(link.node_name).size();
+                if (link.arg_idx < 0 || n_args <= link.arg_idx) {
+                    runnable = false;
+                    break;
+                }
+            }
+            arg_idx++;
+        }
 
-bool FaseCore::makeNode(const std::string& name, const std::string& func_name) {
+        if (runnable) {
+            return node_name;
+        }
+    }
+
+    return std::string();
+}
+
+}  // anonymous namespace
+
+bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
     // check defined function name.
-    if (!exists(func_builders, func_name)) return false;
-
-    // check uniqueness of name.
-    if (exists(nodes, name) or exists(arguments, name)) {
+    if (!exists(functions, func_repr)) {
         return false;
     }
 
-    size_t n_args = func_builders[func_name]->getArgTypes().size();
+    // check uniqueness of name.
+    if (exists(nodes, name)) {
+        return false;
+    }
 
-    nodes[name] = {.name = name,
-                   .func_name = func_name,
+    // Register node
+    const size_t n_args = functions[func_repr].arg_reprs.size();
+    nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args)};
 
     return true;
 }
 
 bool FaseCore::build() {
-    using std::begin;
-    using std::end;
-
-    std::vector<std::string> binded;
-    std::vector<std::vector<Variable*>> binded_infos;
-
     pipeline.clear();
-    variables.clear();
+    output_variables.clear();
 
-    variables.resize(arguments.size());
+    // Mark all node names as unused
+    std::set<std::string> unused_node_names;
+    extractKeys(nodes, unused_node_names);
 
-    for (auto& v : arguments) {
-        binded.push_back(v.first);
-    }
-    for (auto& variable : variables) {
-        binded_infos.push_back({&variable});
-    }
-
-    if (arguments.size() != 0) {
-        // bind init function
-        pipeline.emplace_back([this]() {
-            auto vnode_i = begin(arguments);
-            auto variable_i = begin(variables);
-            for (; vnode_i != end(arguments); vnode_i++, variable_i++) {
-                vnode_i->second.val.copy(*variable_i);
-            }
-        });
-    }
-
-    for (size_t prev_size = binded.size(); true;) {
-        for (auto& node : nodes) {
-            // check dependency of function node.
-            if (!checkDepends(node.second, binded)) continue;
-
-            if (exists(binded, node.first)) continue;
-
-            std::unique_ptr<FunctionBuilderBase>& builder =
-                    func_builders[node.second.func_name];
-            const std::vector<std::string> arg_types = builder->getArgTypes();
-
-            std::vector<Variable*> bind_val;
-            for (size_t i = 0; i < node.second.links.size(); i++) {
-                auto& link_node = node.second.links.at(i).node_name;
-
-                if (link_node == std::string("")) {  // make variable
-                    const std::string& type_name = type_table[arg_types.at(i)];
-                    variables.emplace_back(constructors.at(type_name)());
-                    bind_val.push_back(&variables.back());
-                    continue;
-                }
-                size_t j = size_t(
-                        std::find(begin(binded), end(binded), link_node) -
-                        begin(binded));
-                bind_val.push_back(binded_infos.at(j).at(
-                        std::min(size_t(node.second.links.at(i).arg_idx),
-                                 size_t(binded_infos.at(j).size() - 1))));
-            }
-
-            pipeline.emplace_back(builder->build(bind_val));
-
-            binded.emplace_back(node.first);
-            binded_infos.push_back(bind_val);
-        }
-
-        if (binded.size() == nodes.size() + 1) {
+    while (true) {
+        // Find runnable node by checking link dependency
+        const std::string &node_name = FindRunnableNode(unused_node_names,
+                                                        functions, nodes,
+                                                        output_variables);
+        if (node_name.empty()) {
+            // No runnable node
             return true;
         }
+        unused_node_names.erase(node_name);
 
-        if (prev_size == binded.size()) {
-            // there may be a circular reference or function node having unset
-            // argument.
-            return false;
+        Node& node = nodes[node_name];
+        Function& func = functions[node.func_repr];
+        size_t n_args = node.links.size();
+
+        // Set output variable
+        assert(output_variables[node_name].size() == 0);
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            auto& link = node.links[arg_idx];
+            if (link.node_name.empty()) {
+                // Case 1: Create default argument
+                const Variable& v = func.default_arg_values[arg_idx];
+                output_variables[node_name].push_back(v.clone());
+            } else {
+                // Case 2: Use output variable
+                Variable &v = output_variables.at(link.node_name)[link.arg_idx];
+                output_variables[node_name].push_back(v);
+            }
         }
+
+        // Collect or create binding variables
+        std::vector<Variable*> bound_variables;
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            bound_variables.push_back(&output_variables[node_name][arg_idx]);
+        }
+
+        // TODO: Type check
+
+        // Build
+        pipeline.emplace_back(func.builder->build(bound_variables));
     }
-    return false;
+
+    return true;
 }
 
 bool FaseCore::run() {

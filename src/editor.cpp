@@ -161,10 +161,10 @@ namespace fase {
 namespace editor {
 
 void CLIEditor::start(FaseCore* core) {
-    core->addDefaultConstructor<int>("int");
-    core->addDefaultConstructor<float>("float");
-    core->addDefaultConstructor<double>("double");
-    core->addDefaultConstructor<std::string>("std::string");
+    core->addVariableConstructor<int>("int");
+    core->addVariableConstructor<float>("float");
+    core->addVariableConstructor<double>("double");
+    core->addVariableConstructor<std::string>("std::string");
 
     using std::string;
     using Command = std::function<void(FaseCore*, std::vector<string>)>;

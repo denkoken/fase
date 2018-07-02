@@ -18,7 +18,6 @@ public:
     virtual ~FunctionBuilderBase() {}
     virtual std::function<void()> build(
             const std::vector<Variable *> &in_args) = 0;
-    virtual std::vector<std::string> getArgTypes() const = 0;
 };
 
 template <typename... Args>
@@ -60,13 +59,6 @@ public:
         }
         // Bind arguments
         return bind(std::index_sequence_for<Args...>());
-    }
-
-    ///
-    /// Get argument types for dynamic build.
-    ///
-    std::vector<std::string> getArgTypes() const {
-        return {typeid(Args).name()...};
     }
 
 private:

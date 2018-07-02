@@ -22,23 +22,11 @@ public:
         editor = std::make_unique<EditorClass>();
     }
 
-    template <typename T, typename... Args>
-    void addDefaultConstructor(
-            const std::string& name,
-            const std::array<std::string, sizeof...(Args)>& arg_names,
-            const Args&... args) {
-        core.addDefaultConstructor<T>(
-                name, [args...]() -> Variable { return T(args...); });
-
-        (void)arg_names;
-        // editor->addDefaultConstructor();
-    }
-
     template <typename... Args>
     void addFunctionBuilder(
             const std::string& name, std::function<void(Args...)>&& f,
             const std::array<std::string, sizeof...(Args)>& arg_names) {
-        core.addFunctionBuilder<Args...>(name, std::move(f));
+        // core.addFunctionBuilder<Args...>(name, std::move(f));
 
         (void)arg_names;
         // editor->addFunctionBuilder();

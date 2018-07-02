@@ -79,8 +79,8 @@ endif()
 # fase.so
 add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor.cpp
     ${CMAKE_SOURCE_DIR}/src/core.cpp
+#     ${CMAKE_SOURCE_DIR}/src/editor.cpp
 )
 setup_target(fase "" "")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
@@ -89,10 +89,10 @@ list(APPEND FASE_LIBRARY fase)
 
 # ---------------------------------- examples ----------------------------------
 if (BUILD_EXAMPLE)
-    add_executable(clieditor
-        ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
-    )
-    setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+#     add_executable(clieditor
+#         ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
+#     )
+#     setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
 
 
@@ -100,8 +100,9 @@ endif()
 if (BUILD_TEST)
     add_executable(test
         ${CMAKE_SOURCE_DIR}/test/test.cpp
-        ${CMAKE_SOURCE_DIR}/test/test_function.cpp
         ${CMAKE_SOURCE_DIR}/test/test_variable.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_function.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_core.cpp
     )
     setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
