@@ -93,7 +93,7 @@ void showState(fase::FaseCore* core) {
 
     std::cout << "Nodes : " << std::endl;
     for (const auto& node : nodes) {
-        std::cout << "  " << node.first << " (" << node.second.function << ")"
+        std::cout << "  " << node.first << " (" << node.second.func_name << ")"
                   << std::endl;
     }
 }

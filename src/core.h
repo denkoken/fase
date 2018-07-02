@@ -26,7 +26,7 @@ struct Link {
 
 struct Node {
     std::string name;
-    std::string function;  // function name (not a node name)
+    std::string func_name;  // function name (not a node name)
 
     std::vector<Link> links;
 };
@@ -59,11 +59,11 @@ public:
     void addFunctionBuilder(
             const std::string& name, std::function<void(Args...)>&& callable,
             const std::array<std::string, sizeof...(Args)>& argnames) {
-        Function func;
-        func.builder = std::make_unique<FunctionBuilder<Args...>>(callable);
-        func.arg_names = std::vector<std::string>(std::begin(argnames),
-                                                  std::end(argnames));
-        functions[name] = std::move(func);
+        func_builders[name] = {
+            .builder = std::make_unique<FunctionBuilder<Args...>>(callable),
+            .arg_names = std::vector<std::string>(std::begin(argnames),
+                                                  std::end(argnames))
+        };
     }
 
     bool makeNode(const std::string& node_name,
@@ -90,7 +90,9 @@ public:
     const std::map<std::string, Argument>& getArguments() { return arguments; };
     const std::map<std::string, Node>& getNodes() { return nodes; };
 
-    const std::map<std::string, Function>& getFunctions() { return functions; }
+    const std::map<std::string, Function>& getFunctions() {
+        return func_builders;
+    }
 
     bool build();
     bool run();
@@ -98,7 +100,7 @@ public:
 private:
     // input data
     std::map<std::string, std::function<Variable()>> variable_builders;
-    std::map<std::string, Function> functions;
+    std::map<std::string, Function> func_builders;
 
     // function node data
     std::map<std::string, Node> nodes;

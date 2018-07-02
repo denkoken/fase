@@ -31,21 +31,20 @@ bool checkDepends(const fase::Node& node,
 
 namespace fase {
 
-bool FaseCore::makeNode(const std::string& name, const std::string& function) {
+bool FaseCore::makeNode(const std::string& name, const std::string& func_name) {
     // check defined function name.
-    if (!exists(functions, function)) return false;
+    if (!exists(func_builders, func_name)) return false;
 
     // check uniqueness of name.
     if (exists(nodes, name) or exists(arguments, name)) {
         return false;
     }
 
-    Node node;
-    node.name = name;
-    node.function = function;
-    node.links.resize(functions[function].arg_names.size());
-
-    nodes[name] = std::move(node);
+    nodes[name] = {
+        .name = name,
+        .func_name = func_name,
+        .links = std::vector<Link>(func_builders[func_name].arg_names.size())
+    };
 
     return true;
 }
@@ -87,8 +86,8 @@ bool FaseCore::build() {
 
             if (exists(binded, node.first)) continue;
 
-            Function& info = functions[node.second.function];
-            std::unique_ptr<FunctionBuilderBase>& builder = info.builder;
+            std::unique_ptr<FunctionBuilderBase>& builder =
+                    func_builders[node.second.func_name].builder;
             const std::vector<std::string> arg_types = builder->getArgTypes();
 
             std::vector<Variable*> bind_val;
