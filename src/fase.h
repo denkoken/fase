@@ -32,7 +32,9 @@ public:
         // editor->addFunctionBuilder();
     };
 
-    void startEditing() { editor->start(&core); }
+    void startEditing() {
+        editor->start(&core);
+    }
 
 private:
     FaseCore core;

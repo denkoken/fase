@@ -16,7 +16,7 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
 template <typename T>
 void extractKeys(const std::map<std::string, T>& src_map,
                  std::set<std::string>& dst_set) {
-    for (auto it = src_map.begin(); it != src_map.end() ; it++) {
+    for (auto it = src_map.begin(); it != src_map.end(); it++) {
         dst_set.emplace(it->first);
     }
 }
@@ -31,7 +31,7 @@ std::string FindRunnableNode(
 
         bool runnable = true;
         size_t arg_idx = 0;
-        for (auto& link: node.links) {
+        for (auto& link : node.links) {
             if (link.node_name.empty()) {
                 // Case 1: Create default argument
             } else {
@@ -42,7 +42,8 @@ std::string FindRunnableNode(
                     break;
                 }
                 // Is argument index valid?
-                const size_t n_args = output_variables.at(link.node_name).size();
+                const size_t n_args =
+                        output_variables.at(link.node_name).size();
                 if (link.arg_idx < 0 || n_args <= link.arg_idx) {
                     runnable = false;
                     break;
@@ -74,10 +75,28 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
 
     // Register node
     const size_t n_args = functions[func_repr].arg_reprs.size();
-    nodes[name] = {.func_repr = func_repr,
-                   .links = std::vector<Link>(n_args)};
+    nodes[name] = {.func_repr = func_repr, .links = std::vector<Link>(n_args)};
 
     return true;
+}
+
+void FaseCore::delNode(const std::string& name) noexcept {
+    nodes.erase(name);
+}
+
+void FaseCore::linkNode(const std::string& src_node_name,
+                        const size_t& src_arg_idx,
+                        const std::string& dst_node_name,
+                        const size_t& dst_arg_idx) {
+    nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
+};
+
+const std::map<std::string, Node>& FaseCore::getNodes() {
+    return nodes;
+}
+
+const std::map<std::string, Function>& FaseCore::getFunctions() {
+    return functions;
 }
 
 bool FaseCore::build() {
@@ -90,9 +109,8 @@ bool FaseCore::build() {
 
     while (true) {
         // Find runnable node by checking link dependency
-        const std::string &node_name = FindRunnableNode(unused_node_names,
-                                                        nodes,
-                                                        output_variables);
+        const std::string& node_name =
+                FindRunnableNode(unused_node_names, nodes, output_variables);
         if (node_name.empty()) {
             // No runnable node
             return true;
@@ -113,7 +131,7 @@ bool FaseCore::build() {
                 output_variables[node_name].push_back(v.clone());
             } else {
                 // Case 2: Use output variable
-                Variable &v = output_variables.at(link.node_name)[link.arg_idx];
+                Variable& v = output_variables.at(link.node_name)[link.arg_idx];
                 output_variables[node_name].push_back(v);
             }
         }

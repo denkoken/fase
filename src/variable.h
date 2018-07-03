@@ -76,7 +76,9 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
-    void copy(Variable &v) const { cloner(v, *this); }
+    void copy(Variable &v) const {
+        cloner(v, *this);
+    }
 
     Variable clone() const {
         Variable v;

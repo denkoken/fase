@@ -107,8 +107,9 @@ void showFunctions(fase::FaseCore* core) {
                 func_builder.second->getArgTypes();
 
         for (size_t i = 0; i < arg_types.size(); i++) {
-            std::cout << "  " << i << " : " << "(ArgName)" << " ("
-                      << arg_types[i] << ")" << std::endl;
+            std::cout << "  " << i << " : "
+                      << "(ArgName)"
+                      << " (" << arg_types[i] << ")" << std::endl;
         }
     }
 }

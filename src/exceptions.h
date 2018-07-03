@@ -21,7 +21,9 @@ public:
     const std::type_info* cast_type;
     const std::type_info* casted_type;
 
-    const char* what() const noexcept { return err_message.c_str(); }
+    const char* what() const noexcept {
+        return err_message.c_str();
+    }
 
 private:
     std::string err_message;
@@ -42,7 +44,9 @@ public:
     const size_t input_n;
     const size_t expected_n;
 
-    const char* what() const noexcept { return err_message.c_str(); }
+    const char* what() const noexcept {
+        return err_message.c_str();
+    }
 
 private:
     std::string err_message;
