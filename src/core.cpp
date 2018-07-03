@@ -75,7 +75,9 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
 
     // Register node
     const size_t n_args = functions[func_repr].arg_reprs.size();
-    nodes[name] = {.func_repr = func_repr, .links = std::vector<Link>(n_args)};
+    nodes[name] = {.func_repr = func_repr,
+                   .links = std::vector<Link>(n_args),
+                   .arg_values = functions[func_repr].default_arg_values};
 
     return true;
 }
@@ -84,12 +86,42 @@ void FaseCore::delNode(const std::string& name) noexcept {
     nodes.erase(name);
 }
 
-void FaseCore::linkNode(const std::string& src_node_name,
+bool FaseCore::linkNode(const std::string& src_node_name,
                         const size_t& src_arg_idx,
                         const std::string& dst_node_name,
                         const size_t& dst_arg_idx) {
+    if (!exists(nodes, src_node_name) || exists(nodes, dst_node_name)) {
+        return false;
+    }
+    if (nodes[dst_node_name].links.size() <= dst_arg_idx ||
+        nodes[src_node_name].links.size() <= src_arg_idx) {
+        return false;
+    }
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
+    return true;
 };
+
+bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
+                          Variable arg) {
+    if (!exists(nodes, node_name)) {
+        return false;
+    }
+    if (nodes[node_name].links.size() <= arg_idx) {
+        return false;
+    }
+    assert(nodes[node_name].arg_values.size() == nodes[node_name].links.size());
+
+    // Check input type
+    auto& arg_value = nodes[node_name].arg_values[arg_idx];
+    if (!arg_value.isSameType(arg)) {
+        std::cerr << "Invalid input type to set node argument" << std::endl;
+        return false;
+    }
+
+    // Register
+    arg_value = arg;
+    return true;
+}
 
 const std::map<std::string, Node>& FaseCore::getNodes() {
     return nodes;
@@ -118,7 +150,6 @@ bool FaseCore::build() {
         unused_node_names.erase(node_name);
 
         Node& node = nodes[node_name];
-        Function& func = functions[node.func_repr];
         size_t n_args = node.links.size();
 
         // Set output variable
@@ -127,7 +158,7 @@ bool FaseCore::build() {
             auto& link = node.links[arg_idx];
             if (link.node_name.empty()) {
                 // Case 1: Create default argument
-                const Variable& v = func.default_arg_values[arg_idx];
+                const Variable& v = node.arg_values[arg_idx];
                 output_variables[node_name].push_back(v.clone());
             } else {
                 // Case 2: Use output variable
@@ -145,6 +176,7 @@ bool FaseCore::build() {
         // TODO: Type check
 
         // Build
+        Function& func = functions[node.func_repr];
         pipeline.push_back(func.builder->build(bound_variables));
     }
 

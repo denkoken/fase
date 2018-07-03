@@ -32,10 +32,13 @@ TEST_CASE("Core test") {
         core.makeNode("add2", "Add");
         core.makeNode("add3", "Add");
         core.makeNode("print1", "Print");
+        core.makeNode("print2", "Print");
 
         core.linkNode("add1", 2, "add2", 0);
         core.linkNode("add2", 2, "add3", 0);
         core.linkNode("add3", 2, "print1", 0);
+
+        core.setNodeArg("print2", 0, 100);
 
         REQUIRE(core.build());
         REQUIRE(core.run());

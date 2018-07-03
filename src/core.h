@@ -21,13 +21,13 @@ struct Link {
 struct Node {
     std::string func_repr;    // Corresponding to function representation
     std::vector<Link> links;  // size == |function arguments|
-    std::vector<Variable> default_arg_values;  // size <= |function arguments|
+    std::vector<Variable> arg_values;  // size == |function arguments|
 };
 
 struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_reprs;        // size == |function arguments|
-    std::vector<Variable> default_arg_values;  // size <= |function arguments|
+    std::vector<Variable> default_arg_values;  // size == |function arguments|
 };
 
 class FaseCore {
@@ -45,12 +45,11 @@ public:
 
     void delNode(const std::string& name) noexcept;
 
-    void linkNode(const std::string& src_node_name, const size_t& src_arg_idx,
+    bool linkNode(const std::string& src_node_name, const size_t& src_arg_idx,
                   const std::string& dst_node_name, const size_t& dst_arg_idx);
 
-    template <typename... DefaultArgs>
-    bool setDefaultArgs(const std::string& node_name,
-                        DefaultArgs&&... default_args);
+    bool setNodeArg(const std::string& node_name, const size_t arg_idx,
+                    Variable arg);
 
     const std::map<std::string, Node>& getNodes();
 
@@ -60,13 +59,13 @@ public:
     bool run();
 
 private:
-    // input data
+    // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 
-    // function node data
+    // Function nodes
     std::map<std::string, Node> nodes;  // [name, Node]
 
-    // built pipeline
+    // Built pipeline
     std::vector<std::function<void()>> pipeline;
     std::map<std::string, std::vector<Variable>> output_variables;
 };
