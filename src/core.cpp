@@ -73,7 +73,7 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
         return false;
     }
 
-    // Register node
+    // Register node (arg_values are copied from function's default_arg_values)
     const size_t n_args = functions[func_repr].arg_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
@@ -97,6 +97,15 @@ bool FaseCore::linkNode(const std::string& src_node_name,
         nodes[src_node_name].links.size() <= src_arg_idx) {
         return false;
     }
+
+    // Check types
+    if (nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
+            nodes[src_node_name].arg_values[src_arg_idx])) {
+        std::cerr << "Invalid types to create link" << std::endl;
+        return false;
+    }
+
+    // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
     return true;
 };
@@ -172,8 +181,6 @@ bool FaseCore::build() {
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
             bound_variables.push_back(&output_variables[node_name][arg_idx]);
         }
-
-        // TODO: Type check
 
         // Build
         Function& func = functions[node.func_repr];
