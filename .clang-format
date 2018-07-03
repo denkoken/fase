@@ -15,3 +15,4 @@ AllowShortLoopsOnASingleLine: true
 PointerAlignment: Left
 AlignAfterOpenBracket: Align
 ColumnLimit: 80
+ShortFunctionStyle: SFS_Empty

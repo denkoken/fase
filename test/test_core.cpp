@@ -25,12 +25,17 @@ TEST_CASE("Core test") {
 
     SECTION("1") {
         core.addFunctionBuilder("Add", add, {"const int&", "const int", "int&"},
-                                1, 2, 0);  // TODO: remove latest 0
-        core.addFunctionBuilder("Print", print, {"const int&"});
+                                {1, 2});
+        core.addFunctionBuilder("Print", print, {"const int&"}, {1});
 
         core.makeNode("add1", "Add");
+        core.makeNode("add2", "Add");
+        core.makeNode("add3", "Add");
         core.makeNode("print1", "Print");
-        core.linkNode("add1", 2, "print1", 0);
+
+        core.linkNode("add1", 2, "add2", 0);
+        core.linkNode("add2", 2, "add3", 0);
+        core.linkNode("add3", 2, "print1", 0);
 
         REQUIRE(core.build());
         REQUIRE(core.run());

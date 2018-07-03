@@ -54,7 +54,9 @@ public:
         return *type == typeid(T);
     }
 
-    bool isSameType(const Variable &v) const { return *type == *v.type; }
+    bool isSameType(const Variable &v) const {
+        return *type == *v.type;
+    }
 
     template <typename T>
     std::shared_ptr<T> getWriter() {

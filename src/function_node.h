@@ -40,9 +40,9 @@ public:
                       "The number of arguments is not matched");
 
         // Copy to an array of variables
-        args = std::array<Variable *, sizeof...(Args)>{{in_args...}};
+        std::array<Variable *, sizeof...(Args)> args = {in_args...};
         // Bind arguments
-        return bind(std::index_sequence_for<Args...>());
+        return bind(args, std::index_sequence_for<Args...>());
     }
 
     ///
@@ -54,17 +54,19 @@ public:
         }
 
         // Copy to an array of variables
+        std::array<Variable *, sizeof...(Args)> args;
         for (size_t i = 0; i < sizeof...(Args); i++) {
             args[i] = in_args[i];
         }
         // Bind arguments
-        return bind(std::index_sequence_for<Args...>());
+        return bind(args, std::index_sequence_for<Args...>());
     }
 
 private:
     template <std::size_t... Idx>
-    auto bind(std::index_sequence<Idx...>) {
-        return [&]() {
+    auto bind(std::array<Variable *, sizeof...(Args)> &args,
+              std::index_sequence<Idx...>) {
+        return [=]() {
             func(*(*args[Idx])
                           .template getReader<typename std::remove_reference<
                                   Args>::type>()...);
@@ -72,7 +74,6 @@ private:
     }
 
     std::function<void(Args...)> func;
-    std::array<Variable *, sizeof...(Args)> args;
 };
 
 }  // namespace fase

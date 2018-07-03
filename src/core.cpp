@@ -14,11 +14,6 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
 }
 
 template <typename T>
-inline bool exists(const std::vector<T>& vec, const T& key) {
-    return std::find(std::begin(vec), std::end(vec), key) != std::end(vec);
-}
-
-template <typename T>
 void extractKeys(const std::map<std::string, T>& src_map,
                  std::set<std::string>& dst_set) {
     for (auto it = src_map.begin(); it != src_map.end() ; it++) {
@@ -28,24 +23,17 @@ void extractKeys(const std::map<std::string, T>& src_map,
 
 std::string FindRunnableNode(
         const std::set<std::string>& unused_node_names,
-        const std::map<std::string, Function> &functions,
         const std::map<std::string, Node>& nodes,
         const std::map<std::string, std::vector<Variable>>& output_variables) {
     // Find runnable function node
     for (auto& node_name : unused_node_names) {
         const Node& node = nodes.at(node_name);
-        const Function& func = functions.at(node.func_repr);
 
         bool runnable = true;
         size_t arg_idx = 0;
         for (auto& link: node.links) {
             if (link.node_name.empty()) {
                 // Case 1: Create default argument
-                // Is default argument given?
-                if (func.default_arg_values.size() <= arg_idx) {
-                    runnable = false;
-                    break;
-                }
             } else {
                 // Case 2: Use output variable
                 // Is linked node created?
@@ -103,7 +91,7 @@ bool FaseCore::build() {
     while (true) {
         // Find runnable node by checking link dependency
         const std::string &node_name = FindRunnableNode(unused_node_names,
-                                                        functions, nodes,
+                                                        nodes,
                                                         output_variables);
         if (node_name.empty()) {
             // No runnable node
@@ -139,7 +127,7 @@ bool FaseCore::build() {
         // TODO: Type check
 
         // Build
-        pipeline.emplace_back(func.builder->build(bound_variables));
+        pipeline.push_back(func.builder->build(bound_variables));
     }
 
     return true;
