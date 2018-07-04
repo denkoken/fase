@@ -3,6 +3,44 @@
 #include "fase.h"
 using namespace fase;
 
+#include <sstream>
+
+
+template <typename... Args>
+struct NArgs {
+    size_t N = sizeof...(Args);
+};
+
+template <typename... Args>
+struct NArgs<void(Args...)> {
+    size_t N = sizeof...(Args);
+};
+
+template <std::size_t N>
+void extractArgExprs(const std::string &raw_types,
+                     std::array<std::string, N>& reprs) {
+    const char delim = ',';
+    std::stringstream ss(raw_types);
+    std::string item;
+    size_t idx = 0;
+    while (std::getline(ss, item, delim)) {
+        if (!item.empty()) {
+            reprs[idx] = item;
+            idx += 1;
+            assert(idx <= N);
+        }
+    }
+}
+
+#define FaseCoreAddFunctionBuilder(core, func, arg_types, ...) [&](){   \
+    std::array<std::string, NArgs<void arg_types>{}.N>  arg_reprs;      \
+    extractArgExprs(#arg_types, arg_reprs);                             \
+    return core.addFunctionBuilder(#func,                               \
+                                   std::function<void arg_types>(func), \
+                                   arg_reprs, {__VA_ARGS__});           \
+}()
+
+
 void Add(const int& a, const int& b, int& dst) {
     std::cout << "Add" << std::endl;
     dst = a + b;
@@ -19,26 +57,23 @@ void Print(const int& in) {
 
 TEST_CASE("Core test") {
     FaseCore core;
-    std::function<void(const int&, const int&, int&)> add = Add;
-    std::function<void(const int&, int&)> square = Square;
-    std::function<void(const int&)> print = Print;
 
     SECTION("1") {
-        core.addFunctionBuilder("Add", add, {"const int&", "const int", "int&"},
-                                {1, 2});
-        core.addFunctionBuilder("Print", print, {"const int&"}, {1});
+        FaseCoreAddFunctionBuilder(core, Add, (const int&, const int&, int&),
+                                   1, 2);
+        FaseCoreAddFunctionBuilder(core, Print, (const int&), 111);
 
-        core.makeNode("add1", "Add");
-        core.makeNode("add2", "Add");
-        core.makeNode("add3", "Add");
-        core.makeNode("print1", "Print");
-        core.makeNode("print2", "Print");
+        REQUIRE(core.makeNode("add1", "Add"));
+        REQUIRE(core.makeNode("add2", "Add"));
+        REQUIRE(core.makeNode("add3", "Add"));
+        REQUIRE(core.makeNode("print1", "Print"));
+        REQUIRE(core.makeNode("print2", "Print"));
 
-        core.linkNode("add1", 2, "add2", 0);
-        core.linkNode("add2", 2, "add3", 0);
-        core.linkNode("add3", 2, "print1", 0);
+        REQUIRE(core.linkNode("add1", 2, "add2", 0));
+        REQUIRE(core.linkNode("add2", 2, "add3", 0));
+        REQUIRE(core.linkNode("add3", 2, "print1", 0));
 
-        core.setNodeArg("print2", 0, 100);
+        REQUIRE(core.setNodeArg("print2", 0, 100));
 
         REQUIRE(core.build());
         REQUIRE(core.run());

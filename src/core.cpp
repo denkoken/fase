@@ -90,7 +90,7 @@ bool FaseCore::linkNode(const std::string& src_node_name,
                         const size_t& src_arg_idx,
                         const std::string& dst_node_name,
                         const size_t& dst_arg_idx) {
-    if (!exists(nodes, src_node_name) || exists(nodes, dst_node_name)) {
+    if (!exists(nodes, src_node_name) || !exists(nodes, dst_node_name)) {
         return false;
     }
     if (nodes[dst_node_name].links.size() <= dst_arg_idx ||
@@ -99,7 +99,7 @@ bool FaseCore::linkNode(const std::string& src_node_name,
     }
 
     // Check types
-    if (nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
+    if (!nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
             nodes[src_node_name].arg_values[src_arg_idx])) {
         std::cerr << "Invalid types to create link" << std::endl;
         return false;
@@ -162,7 +162,7 @@ bool FaseCore::build() {
         size_t n_args = node.links.size();
 
         // Set output variable
-        assert(output_variables[node_name].size() == 0);
+        assert(output_variables[node_name].empty());
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
             auto& link = node.links[arg_idx];
             if (link.node_name.empty()) {
@@ -191,7 +191,6 @@ bool FaseCore::build() {
 }
 
 bool FaseCore::run() {
-    // TODO throw catch
     for (auto& f : pipeline) {
         f();
     }

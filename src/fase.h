@@ -7,9 +7,9 @@
 #include "function_node.h"
 #include "variable.h"
 
-#define faseAddFunctionBuilder(fase, func, arg_names, ...)                 \
-    fase.addFunctionBuilder(#func, std::function<void(__VA_ARGS__)>(func), \
-                            arg_names)
+// #define faseAddFunctionBuilder(fase, func, arg_names, ...)                 \
+//     fase.addFunctionBuilder(#func, std::function<void(__VA_ARGS__)>(func), \
+//                             arg_names)
 
 namespace fase {
 

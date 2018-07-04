@@ -39,7 +39,7 @@ public:
             const std::string& func_repr,
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_reprs,
-            const std::array<Variable, sizeof...(Args)>& default_args);
+            const std::array<Variable, sizeof...(Args)>& default_args = {});
 
     bool makeNode(const std::string& node_name, const std::string& func_repr);
 
