@@ -58,9 +58,10 @@ std::string FindRunnableNode(
 
 class RunnableNodeStack {
 public:
-    explicit RunnableNodeStack(const std::map<std::string, Node> *nodes_p,
-                const std::map<std::string, std::vector<Variable>> *vars_p)
-            : nodes(nodes_p), output_variables(vars_p) {
+    explicit RunnableNodeStack(
+            const std::map<std::string, Node>* nodes_p,
+            const std::map<std::string, std::vector<Variable>>* vars_p)
+        : nodes(nodes_p), output_variables(vars_p) {
         // Mark all node names as unused
         extractKeys(*nodes, unused_node_names);
     }
@@ -77,8 +78,8 @@ public:
 
 private:
     std::set<std::string> unused_node_names;
-    const std::map<std::string, Node> *nodes;
-    const std::map<std::string, std::vector<Variable>> *output_variables;
+    const std::map<std::string, Node>* nodes;
+    const std::map<std::string, std::vector<Variable>>* output_variables;
 };
 
 std::string genVarName(const std::string& node_name, const size_t arg_idx) {
@@ -111,7 +112,7 @@ std::string genVarDeclaration(const std::string& type_repr,
 }
 
 std::string genFunctionCall(const std::string& func_repr,
-                            const std::vector<std::string> &var_names) {
+                            const std::vector<std::string>& var_names) {
     // Add declaration code (Remove reference for declaration)
     std::stringstream ss;
     ss << func_repr << "(";
@@ -172,7 +173,7 @@ bool FaseCore::linkNode(const std::string& src_node_name,
 
     // Check types
     if (!nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
-            nodes[src_node_name].arg_values[src_arg_idx])) {
+                nodes[src_node_name].arg_values[src_arg_idx])) {
         std::cerr << "Invalid types to create link" << std::endl;
         return false;
     }

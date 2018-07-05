@@ -39,7 +39,7 @@ void printError(const Str&... strs) {
 }
 
 void add(fase::FaseCore* core, CLIEditor* cli_editor,
-         const std::vector<std::string> &input) {
+         const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 3) {
         printError("Invalid arguments (<func_repr>, <node_name>)");
@@ -56,7 +56,7 @@ void add(fase::FaseCore* core, CLIEditor* cli_editor,
 }
 
 void del(fase::FaseCore* core, CLIEditor* cli_editor,
-         const std::vector<std::string> &input) {
+         const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 2) {
         printError("Invalid arguments (<node_name>)");
@@ -67,7 +67,7 @@ void del(fase::FaseCore* core, CLIEditor* cli_editor,
 }
 
 void link(fase::FaseCore* core, CLIEditor* cli_editor,
-          const std::vector<std::string> &input) {
+          const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 5) {
         printError("Invalid arguments (<src_node_name>, <src_arg_idx>, ",
@@ -87,7 +87,7 @@ void link(fase::FaseCore* core, CLIEditor* cli_editor,
 }
 
 void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
-            const std::vector<std::string> &input) {
+            const std::vector<std::string>& input) {
     if (input.size() < 4) {
         printError("Invalid arguments (<node_name>, <arg_idx>, <value>)");
         return;
@@ -122,7 +122,7 @@ void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
         printError("Non-supported argument type");
         return;
     }
-    const std::function<Variable(const std::string&)> &func =
+    const std::function<Variable(const std::string&)>& func =
             generators.at(arg_type);
 
     // Convert to a variable and set
@@ -134,7 +134,7 @@ void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
 }
 
 void show(fase::FaseCore* core, CLIEditor* cli_editor,
-          const std::vector<std::string> &input) {
+          const std::vector<std::string>& input) {
     (void)input, (void)cli_editor;
     std::cout << core->genNativeCode() << std::endl;
 }
@@ -156,15 +156,11 @@ void run(fase::FaseCore* core, CLIEditor* cli_editor,
 
 void CLIEditor::start(FaseCore* core) {
     using Command = std::function<void(FaseCore*, CLIEditor*,
-                                  const std::vector<std::string>&)>;
+                                       const std::vector<std::string>&)>;
 
     const std::map<std::string, Command> commands = {
-        {"add", add},
-        {"del", del},
-        {"link", link},
-        {"setArg", setArg},
-        {"show", show},
-        {"run", run},
+            {"add", add},       {"del", del},   {"link", link},
+            {"setArg", setArg}, {"show", show}, {"run", run},
     };
     const std::vector<std::string> exit_commands = {"quit", "exit", "logout"};
 

@@ -67,7 +67,7 @@ bool FaseCore::addFunctionBuilder(
     if (func_repr.empty()) {
         return false;
     }
-    for (auto&& arg_type_repr: arg_type_reprs) {
+    for (auto&& arg_type_repr : arg_type_reprs) {
         if (arg_type_repr.empty()) {
             return false;
         }
@@ -75,13 +75,14 @@ bool FaseCore::addFunctionBuilder(
 
     // Register
     functions[func_repr] = {
-        std::make_unique<FunctionBuilder<Args...>>(func_val),
-        std::vector<std::string>(arg_type_reprs.begin(), arg_type_reprs.end()),
-        std::vector<std::string>(default_arg_reprs.begin(),
-                                 default_arg_reprs.end()),
-        std::vector<std::string>(arg_names.begin(), arg_names.end()),
-        std::vector<Variable>(args.begin(), args.end()),
-        std::vector<const std::type_info*>{ getCleanTypeId<Args>()... }};
+            std::make_unique<FunctionBuilder<Args...>>(func_val),
+            std::vector<std::string>(arg_type_reprs.begin(),
+                                     arg_type_reprs.end()),
+            std::vector<std::string>(default_arg_reprs.begin(),
+                                     default_arg_reprs.end()),
+            std::vector<std::string>(arg_names.begin(), arg_names.end()),
+            std::vector<Variable>(args.begin(), args.end()),
+            std::vector<const std::type_info*>{getCleanTypeId<Args>()...}};
     return true;
 }
 

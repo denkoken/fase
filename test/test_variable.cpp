@@ -19,12 +19,22 @@ public:
         return *this;
     }
 
-    bool isNone() { return status == Status::NONE; }
-    bool isMaked() { return status == Status::MAKED; }
-    bool isCopied() { return status == Status::COPIED; }
-    bool isMoved() { return status == Status::MOVED; }
+    bool isNone() {
+        return status == Status::NONE;
+    }
+    bool isMaked() {
+        return status == Status::MAKED;
+    }
+    bool isCopied() {
+        return status == Status::COPIED;
+    }
+    bool isMoved() {
+        return status == Status::MOVED;
+    }
 
-    void clear() { status = Status::NONE; }
+    void clear() {
+        status = Status::NONE;
+    }
 
 private:
     Status status;

@@ -29,7 +29,7 @@ public:
     }
 
     template <typename Gen>
-    bool addVarGenerator(Gen &&gen) {
+    bool addVarGenerator(Gen&& gen) {
         return editor.addVarGenerator(std::forward<Gen>(gen));
     }
 

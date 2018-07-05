@@ -20,7 +20,7 @@ struct Link {
 
 struct Node {
     std::string func_repr;    // Corresponding to function representation
-    std::vector<Link> links;             // size == |args|
+    std::vector<Link> links;  // size == |args|
     std::vector<std::string> arg_reprs;  // size == |args|
     std::vector<Variable> arg_values;    // size == |args|
 };
@@ -28,7 +28,7 @@ struct Node {
 struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_type_reprs;       // size == |args|
-    std::vector<std::string> default_arg_reprs;        // size == |args|
+    std::vector<std::string> default_arg_reprs;    // size == |args|
     std::vector<std::string> arg_names;            // size == |args|
     std::vector<Variable> default_arg_values;      // size == |args|
     std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
