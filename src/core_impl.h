@@ -50,7 +50,7 @@ bool FaseCore::addFunctionBuilder(
         const std::string& func_repr,
         const std::function<void(Args...)>& func_val,
         const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
-        const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
+        const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
         const std::array<std::string, sizeof...(Args)>& arg_names,
         const std::array<Variable, sizeof...(Args)>& default_args) {
     if (exists(functions, func_repr)) {
@@ -77,7 +77,8 @@ bool FaseCore::addFunctionBuilder(
     functions[func_repr] = {
         std::make_unique<FunctionBuilder<Args...>>(func_val),
         std::vector<std::string>(arg_type_reprs.begin(), arg_type_reprs.end()),
-        std::vector<std::string>(arg_val_reprs.begin(), arg_val_reprs.end()),
+        std::vector<std::string>(default_arg_reprs.begin(),
+                                 default_arg_reprs.end()),
         std::vector<std::string>(arg_names.begin(), arg_names.end()),
         std::vector<Variable>(args.begin(), args.end()),
         std::vector<const std::type_info*>{ getCleanTypeId<Args>()... }};

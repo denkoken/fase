@@ -127,7 +127,7 @@ void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
 
     // Convert to a variable and set
     Variable var = func(value_str);
-    if (!core->setNodeArg(node_name, arg_idx, var)) {
+    if (!core->setNodeArg(node_name, arg_idx, value_str, var)) {
         printError("Failed");
         return;
     }

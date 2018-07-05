@@ -19,13 +19,13 @@ public:
             const std::string& func_repr,
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
-            const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
+            const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
         // Register to the core system
         return core.template addFunctionBuilder<Args...>(
-                func_repr, func_val, arg_type_reprs, arg_val_reprs, arg_names,
-                default_args);
+                func_repr, func_val, arg_type_reprs, default_arg_reprs,
+                arg_names, default_args);
     }
 
     template <typename Gen>

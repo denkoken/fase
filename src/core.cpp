@@ -142,6 +142,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
+                   .arg_reprs = functions[func_repr].default_arg_reprs,
                    .arg_values = functions[func_repr].default_arg_values};
 
     return true;
@@ -182,24 +183,25 @@ bool FaseCore::linkNode(const std::string& src_node_name,
 }
 
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
-                          Variable arg) {
+                          const std::string& arg_repr, Variable arg_val) {
     if (!exists(nodes, node_name)) {
         return false;
     }
-    if (nodes[node_name].links.size() <= arg_idx) {
+    Node& node = nodes[node_name];
+    if (node.links.size() <= arg_idx) {
         return false;
     }
-    assert(nodes[node_name].arg_values.size() == nodes[node_name].links.size());
+    assert(node.arg_values.size() == node.links.size());
 
     // Check input type
-    auto& arg_value = nodes[node_name].arg_values[arg_idx];
-    if (!arg_value.isSameType(arg)) {
+    if (!node.arg_values[arg_idx].isSameType(arg_val)) {
         std::cerr << "Invalid input type to set node argument" << std::endl;
         return false;
     }
 
     // Register
-    arg_value = arg;
+    node.arg_reprs[arg_idx] = arg_repr;
+    node.arg_values[arg_idx] = arg_val;
     return true;
 }
 
@@ -292,8 +294,7 @@ std::string FaseCore::genNativeCode(const std::string& entry_name,
         // Argument representations
         const std::vector<std::string>& arg_type_reprs =
                 functions[node.func_repr].arg_type_reprs;
-        const std::vector<std::string>& arg_val_reprs =
-                functions[node.func_repr].arg_val_reprs;
+        const std::vector<std::string>& arg_reprs = node.arg_reprs;
 
         // Collect argument names
         std::vector<std::string> var_names;
@@ -305,7 +306,7 @@ std::string FaseCore::genNativeCode(const std::string& entry_name,
                 // Add declaration code
                 native_code << indent;
                 native_code << genVarDeclaration(arg_type_reprs[arg_idx],
-                                                 arg_val_reprs[arg_idx],
+                                                 arg_reprs[arg_idx],
                                                  var_names.back());
             } else {
                 // Case 2: Use output variable

@@ -20,14 +20,15 @@ struct Link {
 
 struct Node {
     std::string func_repr;    // Corresponding to function representation
-    std::vector<Link> links;  // size == |function arguments|
-    std::vector<Variable> arg_values;  // size == |function arguments|
+    std::vector<Link> links;             // size == |args|
+    std::vector<std::string> arg_reprs;  // size == |args|
+    std::vector<Variable> arg_values;    // size == |args|
 };
 
 struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_type_reprs;       // size == |args|
-    std::vector<std::string> arg_val_reprs;        // size == |args|
+    std::vector<std::string> default_arg_reprs;        // size == |args|
     std::vector<std::string> arg_names;            // size == |args|
     std::vector<Variable> default_arg_values;      // size == |args|
     std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
@@ -42,7 +43,7 @@ public:
             const std::string& func_repr,
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
-            const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
+            const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
@@ -54,7 +55,7 @@ public:
                   const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     bool setNodeArg(const std::string& node_name, const size_t arg_idx,
-                    Variable arg);
+                    const std::string& arg_repr, Variable arg_val);
 
     const std::map<std::string, Node>& getNodes();
 

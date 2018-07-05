@@ -47,17 +47,17 @@ void extractArgExprs(std::string types, std::array<std::string, N>& reprs) {
 #define FaseExpandListHelper(...) {__VA_ARGS__}
 #define FaseExpandList(v) FaseExpandListHelper v
 
-#define FaseAddFunctionBuilderImpl(cls, func, arg_types, arg_names, ...)      \
-[&](){                                                                        \
-    std::array<std::string, fase::NArgs<void arg_types>{}.N>  arg_type_reprs; \
-    fase::extractArgExprs(#arg_types, arg_type_reprs);                        \
-    std::array<std::string, fase::NArgs<void arg_types>{}.N> arg_val_reprs;   \
-    fase::extractArgExprs(#__VA_ARGS__, arg_val_reprs);                       \
-    return cls.addFunctionBuilder(#func,                                      \
-                                  std::function<void arg_types>(func),        \
-                                  arg_type_reprs, arg_val_reprs,              \
-                                  FaseExpandList(arg_names),                  \
-                                  {__VA_ARGS__});                             \
+#define FaseAddFunctionBuilderImpl(cls, func, arg_types, arg_names, ...)       \
+[&](){                                                                         \
+    std::array<std::string, fase::NArgs<void arg_types>{}.N>  arg_type_reprs;  \
+    fase::extractArgExprs(#arg_types, arg_type_reprs);                         \
+    std::array<std::string, fase::NArgs<void arg_types>{}.N> default_arg_reprs;\
+    fase::extractArgExprs(#__VA_ARGS__, default_arg_reprs);                    \
+    return cls.addFunctionBuilder(#func,                                       \
+                                  std::function<void arg_types>(func),         \
+                                  arg_type_reprs, default_arg_reprs,           \
+                                  FaseExpandList(arg_names),                   \
+                                  {__VA_ARGS__});                              \
 }()
 
 
