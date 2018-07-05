@@ -1,12 +1,12 @@
 #ifndef FASE_CORE_H_20180622
 #define FASE_CORE_H_20180622
 
+#include <algorithm>
 #include <cassert>
 #include <list>
 #include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 
 #include "function_node.h"
 #include "variable.h"
@@ -45,7 +45,7 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
-    bool makeNode(const std::string& node_name, const std::string& func_repr);
+    bool addNode(const std::string& node_name, const std::string& func_repr);
 
     void delNode(const std::string& name) noexcept;
 

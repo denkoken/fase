@@ -127,7 +127,7 @@ std::string genFunctionCall(const std::string& func_repr,
 
 }  // anonymous namespace
 
-bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
+bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
     // check defined function name.
     if (!exists(functions, func_repr)) {
         return false;
@@ -160,6 +160,12 @@ bool FaseCore::linkNode(const std::string& src_node_name,
     }
     if (nodes[dst_node_name].links.size() <= dst_arg_idx ||
         nodes[src_node_name].links.size() <= src_arg_idx) {
+        return false;
+    }
+
+    // Check inverse link
+    if (nodes[src_node_name].links[src_arg_idx].node_name == dst_node_name &&
+        nodes[src_node_name].links[src_arg_idx].arg_idx == dst_arg_idx) {
         return false;
     }
 

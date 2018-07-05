@@ -80,7 +80,7 @@ endif()
 add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
     ${CMAKE_SOURCE_DIR}/src/core.cpp
-#     ${CMAKE_SOURCE_DIR}/src/editor.cpp
+    ${CMAKE_SOURCE_DIR}/src/cli_editor.cpp
 )
 setup_target(fase "" "")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)

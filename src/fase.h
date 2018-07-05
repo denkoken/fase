@@ -3,23 +3,16 @@
 
 #include "core.h"
 #include "editor.h"
-#include "exceptions.h"
-#include "function_node.h"
-#include "variable.h"
 
 #define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
     FaseAddFunctionBuilderImpl(fase, func, arg_types, arg_names, __VA_ARGS__)
 
 namespace fase {
 
+template <class Editor>
 class Fase {
 public:
-    Fase() : core() {}
-
-    template <class EditorClass>
-    void setEditor() {
-        editor = std::make_unique<EditorClass>();
-    }
+    Fase() {}
 
     template <typename... Args>
     bool addFunctionBuilder(
@@ -29,19 +22,28 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
-        const bool core_ret =
-                core.addFunctionBuilder(func_repr, func_val, arg_type_reprs,
-                                        arg_val_reprs, arg_names, default_args);
-        return core_ret;
+        // Register to the core
+        const bool core_ret = core.template addFunctionBuilder<Args...>(
+                func_repr, func_val, arg_type_reprs, arg_val_reprs, arg_names,
+                default_args);
+        if (!core_ret) {
+            return false;
+        }
+        // Pass argument types to the editor
+        const bool editor_ret = editor.template addFunctionBuilder<Args...>();
+        if (!editor_ret) {
+            return false;
+        }
+        return true;
     }
 
     void startEditing() {
-        editor->start(&core);
+        editor.start(&core);
     }
 
 private:
     FaseCore core;
-    std::unique_ptr<Editor> editor;
+    Editor editor;
 };
 
 }  // namespace fase

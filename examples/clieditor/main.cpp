@@ -8,23 +8,16 @@ void Square(const int& in, int& dst) { dst = in * in; }
 void Print(const int& in) { std::cout << in << std::endl; }
 
 int main() {
-    fase::Fase fase;
+    fase::Fase<fase::CLIEditor> fase;
 
     FaseAddFunctionBuilder(fase, Add, (const int&, const int&, int&),
-                           ("a", "b", "c"));
+                           ("src1", "src2", "dst"));
 
-//     fase.setEditor<fase::editor::CLIEditor>();
-//
-//     std::array<std::string, 3> add_arg{{"a", "b", "dst"}};
-//     faseAddFunctionBuilder(fase, Add, add_arg, const int&, const int&, int&);
-//
-//     std::array<std::string, 2> sq_arg{{"in", "dst"}};
-//     faseAddFunctionBuilder(fase, Square, sq_arg, const int&, int&);
-//
-//     std::array<std::string, 1> print_arg{{"in"}};
-//     faseAddFunctionBuilder(fase, Print, print_arg, const int&);
-//
-//     fase.startEditing();
+    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("src", "dst"));
+
+    FaseAddFunctionBuilder(fase, Print, (const int&), ("src"));
+
+    fase.startEditing();
 
     return 0;
 }

@@ -8,6 +8,11 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);
 }
 
+template <typename T>
+bool exists(const std::vector<T>& vec, const T& key) {
+    return std::find(vec.begin(), vec.end(), key) != std::end(vec);
+}
+
 template <std::size_t N>
 bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
                          std::array<Variable, N>& dst_args, size_t idx) {
