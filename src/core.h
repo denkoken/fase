@@ -35,7 +35,7 @@ public:
     FaseCore() {}
 
     template <typename... Args>
-    void addFunctionBuilder(
+    bool addFunctionBuilder(
             const std::string& func_repr,
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_reprs,
@@ -57,6 +57,10 @@ public:
 
     bool build();
     bool run();
+
+    template <typename T>
+    T getOutput(const std::string& node_name, const size_t& arg_idx,
+                const T& default_value = T());
 
 private:
     // Registered functions

@@ -8,11 +8,6 @@ namespace fase {
 
 namespace {
 
-template <typename T, typename S>
-inline bool exists(const std::map<T, S>& map, const T& key) {
-    return map.find(key) != std::end(map);
-}
-
 template <typename T>
 void extractKeys(const std::map<std::string, T>& src_map,
                  std::set<std::string>& dst_set) {
@@ -152,9 +147,10 @@ bool FaseCore::build() {
         // Find runnable node by checking link dependency
         const std::string& node_name =
                 FindRunnableNode(unused_node_names, nodes, output_variables);
+
         if (node_name.empty()) {
             // No runnable node
-            return true;
+            break;
         }
         unused_node_names.erase(node_name);
 
