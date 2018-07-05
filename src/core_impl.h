@@ -37,7 +37,8 @@ template <typename... Args>
 bool FaseCore::addFunctionBuilder(
         const std::string& func_repr,
         const std::function<void(Args...)>& func_val,
-        const std::array<std::string, sizeof...(Args)>& arg_reprs,
+        const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
+        const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
         const std::array<Variable, sizeof...(Args)>& default_args) {
     if (exists(functions, func_repr)) {
         return false;
@@ -53,17 +54,18 @@ bool FaseCore::addFunctionBuilder(
     if (func_repr.empty()) {
         return false;
     }
-    for (auto&& arg_repr: arg_reprs) {
-        if (arg_repr.empty()) {
+    for (auto&& arg_type_repr: arg_type_reprs) {
+        if (arg_type_repr.empty()) {
             return false;
         }
     }
 
     // Register
     functions[func_repr] = {
-            std::make_unique<FunctionBuilder<Args...>>(func_val),
-            std::vector<std::string>(arg_reprs.begin(), arg_reprs.end()),
-            std::vector<Variable>(args.begin(), args.end())};
+        std::make_unique<FunctionBuilder<Args...>>(func_val),
+        std::vector<std::string>(arg_type_reprs.begin(), arg_type_reprs.end()),
+        std::vector<std::string>(arg_val_reprs.begin(), arg_val_reprs.end()),
+        std::vector<Variable>(args.begin(), args.end())};
     return true;
 }
 

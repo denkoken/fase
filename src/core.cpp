@@ -104,7 +104,7 @@ bool FaseCore::makeNode(const std::string& name, const std::string& func_repr) {
     }
 
     // Register node (arg_values are copied from function's default_arg_values)
-    const size_t n_args = functions[func_repr].arg_reprs.size();
+    const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
                    .arg_values = functions[func_repr].default_arg_values};
@@ -242,7 +242,9 @@ std::string FaseCore::genNativeCode() {
 
         // Argument types
         const std::vector<std::string>& arg_type_reprs =
-                functions[node.func_repr].arg_reprs;
+                functions[node.func_repr].arg_type_reprs;
+        const std::vector<std::string>& arg_val_reprs =
+                functions[node.func_repr].arg_val_reprs;
 
         // Collect argument names
         std::vector<std::string> var_names;
@@ -253,10 +255,14 @@ std::string FaseCore::genNativeCode() {
                 // Case 1: Create default argument
                 var_name_ss << node_name << "_" << arg_idx;
                 var_names.push_back(var_name_ss.str());
-                // Add declaration code
-                // Remove reference for variable declaration
+                // Add declaration code (Remove reference for declaration)
                 native_code << removeReprRef(arg_type_reprs[arg_idx]) << " "
-                            << var_names.back() << ";" << std::endl;
+                            << var_names.back();
+                if (!arg_val_reprs[arg_idx].empty()) {
+                    // Add variable initialization
+                    native_code << " = " << arg_val_reprs[arg_idx];
+                }
+                native_code << ";" << std::endl;
             } else {
                 // Case 2: Use output variable
                 var_name_ss << link.node_name << "_" << link.arg_idx;

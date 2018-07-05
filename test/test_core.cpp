@@ -16,14 +16,13 @@ struct NArgs<void(Args...)> {
 };
 
 template <std::size_t N>
-void extractArgExprs(const std::string &raw_types,
-                     std::array<std::string, N>& reprs) {
+void extractArgExprs(std::string types, std::array<std::string, N>& reprs) {
     // Remove '(' and ')'
-    auto l_par_idx = raw_types.find('(');
-    auto r_par_idx = raw_types.rfind(')');
-    assert(l_par_idx != std::string::npos && r_par_idx != std::string::npos);
-    std::string types = raw_types.substr(l_par_idx + 1,
-                                         r_par_idx - l_par_idx - 1);
+    auto l_par_idx = types.find('(');
+    auto r_par_idx = types.rfind(')');
+    if (l_par_idx != std::string::npos && r_par_idx != std::string::npos) {
+        types = types.substr(l_par_idx + 1, r_par_idx - l_par_idx - 1);
+    }
 
     // Split by ','
     std::stringstream ss(types);
@@ -46,11 +45,14 @@ void extractArgExprs(const std::string &raw_types,
 }
 
 #define FaseAddFunctionBuilder(core, func, arg_types, ...) [&](){       \
-    std::array<std::string, NArgs<void arg_types>{}.N>  arg_reprs;      \
-    extractArgExprs(#arg_types, arg_reprs);                             \
+    std::array<std::string, NArgs<void arg_types>{}.N>  arg_type_reprs; \
+    extractArgExprs(#arg_types, arg_type_reprs);                        \
+    std::array<std::string, NArgs<void arg_types>{}.N> arg_val_reprs;   \
+    extractArgExprs(#__VA_ARGS__, arg_val_reprs);                       \
     return core.addFunctionBuilder(#func,                               \
                                    std::function<void arg_types>(func), \
-                                   arg_reprs, {__VA_ARGS__});           \
+                                   arg_type_reprs, arg_val_reprs,       \
+                                   {__VA_ARGS__});                      \
 }()
 
 
@@ -78,7 +80,6 @@ TEST_CASE("Core test") {
         REQUIRE(core.build());
         REQUIRE(core.run());
         REQUIRE(core.getOutput<int>("square1", 1) == 900);  // (10 + 20) ** 2
-        std::cout << core.genNativeCode() << std::endl;
     }
 
     SECTION("Build with default argument") {
@@ -92,6 +93,7 @@ TEST_CASE("Core test") {
         REQUIRE(core.build());
         REQUIRE(core.run());
         REQUIRE(core.getOutput<int>("square1", 1) == 2500);  // (30 + 20) ** 2
+        std::cout << core.genNativeCode() << std::endl;
     }
 
     SECTION("Duplicate AddFunctionBuilder") {
