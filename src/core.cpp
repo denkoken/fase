@@ -81,6 +81,12 @@ private:
     const std::map<std::string, std::vector<Variable>> *output_variables;
 };
 
+std::string genVarName(const std::string& node_name, const size_t arg_idx) {
+    std::stringstream var_name_ss;
+    var_name_ss << node_name << "_" << arg_idx;
+    return var_name_ss.str();
+}
+
 std::string removeReprRef(const std::string& type_repr) {
     auto idx = type_repr.rfind('&');
     if (idx == std::string::npos) {
@@ -88,6 +94,35 @@ std::string removeReprRef(const std::string& type_repr) {
     } else {
         return type_repr.substr(0, idx);
     }
+}
+
+std::string genVarDeclaration(const std::string& type_repr,
+                              const std::string& val_repr,
+                              const std::string& name) {
+    // Add declaration code (Remove reference for declaration)
+    std::stringstream ss;
+    ss << removeReprRef(type_repr) << " " << name;
+    if (!val_repr.empty()) {
+        // Add variable initialization
+        ss << " = " << val_repr;
+    }
+    ss << ";" << std::endl;
+    return ss.str();
+}
+
+std::string genFunctionCall(const std::string& func_repr,
+                            const std::vector<std::string> &var_names) {
+    // Add declaration code (Remove reference for declaration)
+    std::stringstream ss;
+    ss << func_repr << "(";
+    for (size_t i = 0; i < var_names.size(); i++) {
+        ss << var_names[i];
+        if (i != var_names.size() - 1) {
+            ss << ", ";
+        }
+    }
+    ss << ");" << std::endl;
+    return ss.str();
 }
 
 }  // anonymous namespace
@@ -222,11 +257,16 @@ bool FaseCore::run() {
     return true;
 }
 
-std::string FaseCore::genNativeCode() {
+std::string FaseCore::genNativeCode(const std::string& entry_name,
+                                    const std::string& indent) {
     std::stringstream native_code;
 
     // Stack for finding runnable node
     RunnableNodeStack runnable_nodes_stack(&nodes, &output_variables);
+
+    if (!entry_name.empty()) {
+        native_code << "void " << entry_name << "() {" << std::endl;
+    }
 
     while (true) {
         // Find runnable node
@@ -238,9 +278,12 @@ std::string FaseCore::genNativeCode() {
         Node& node = nodes[node_name];
         const size_t n_args = node.links.size();
 
-        native_code << "// " << node.func_repr << std::endl;
+        // Add comment
+        native_code << indent;
+        native_code << "// " << node.func_repr << " [" << node_name << "]"
+                    << std::endl;
 
-        // Argument types
+        // Argument representations
         const std::vector<std::string>& arg_type_reprs =
                 functions[node.func_repr].arg_type_reprs;
         const std::vector<std::string>& arg_val_reprs =
@@ -249,36 +292,28 @@ std::string FaseCore::genNativeCode() {
         // Collect argument names
         std::vector<std::string> var_names;
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            std::stringstream var_name_ss;
             auto& link = node.links[arg_idx];
             if (link.node_name.empty()) {
                 // Case 1: Create default argument
-                var_name_ss << node_name << "_" << arg_idx;
-                var_names.push_back(var_name_ss.str());
-                // Add declaration code (Remove reference for declaration)
-                native_code << removeReprRef(arg_type_reprs[arg_idx]) << " "
-                            << var_names.back();
-                if (!arg_val_reprs[arg_idx].empty()) {
-                    // Add variable initialization
-                    native_code << " = " << arg_val_reprs[arg_idx];
-                }
-                native_code << ";" << std::endl;
+                var_names.push_back(genVarName(node_name, arg_idx));
+                // Add declaration code
+                native_code << indent;
+                native_code << genVarDeclaration(arg_type_reprs[arg_idx],
+                                                 arg_val_reprs[arg_idx],
+                                                 var_names.back());
             } else {
                 // Case 2: Use output variable
-                var_name_ss << link.node_name << "_" << link.arg_idx;
-                var_names.push_back(var_name_ss.str());
+                var_names.push_back(genVarName(link.node_name, link.arg_idx));
             }
         }
 
         // Add function call
-        native_code << node.func_repr << "(";
-        for (size_t i = 0; i < var_names.size(); i++) {
-            native_code << var_names[i];
-            if (i != var_names.size() - 1) {
-                native_code << ", ";
-            }
-        }
-        native_code << ");" << std::endl;
+        native_code << indent;
+        native_code << genFunctionCall(node.func_repr, var_names);
+    }
+
+    if (!entry_name.empty()) {
+        native_code << "}";
     }
 
     return native_code.str();

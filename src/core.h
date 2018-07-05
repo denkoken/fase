@@ -60,7 +60,8 @@ public:
     bool build();
     bool run();
 
-    std::string genNativeCode();
+    std::string genNativeCode(const std::string& entry_name = "Pipeline",
+                              const std::string& indent = "    ");
 
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
