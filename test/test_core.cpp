@@ -78,6 +78,7 @@ TEST_CASE("Core test") {
         REQUIRE(core.build());
         REQUIRE(core.run());
         REQUIRE(core.getOutput<int>("square1", 1) == 900);  // (10 + 20) ** 2
+        std::cout << core.genNativeCode() << std::endl;
     }
 
     SECTION("Build with default argument") {

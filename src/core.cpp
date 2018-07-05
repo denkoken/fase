@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <set>
+#include <sstream>
 
 namespace fase {
 
@@ -53,6 +54,40 @@ std::string FindRunnableNode(
     }
 
     return std::string();
+}
+
+class RunnableNodeStack {
+public:
+    explicit RunnableNodeStack(const std::map<std::string, Node> *nodes_p,
+                const std::map<std::string, std::vector<Variable>> *vars_p)
+            : nodes(nodes_p), output_variables(vars_p) {
+        // Mark all node names as unused
+        extractKeys(*nodes, unused_node_names);
+    }
+
+    std::string pop() {
+        // Find runnable node by checking link dependency
+        const std::string& node_name =
+                FindRunnableNode(unused_node_names, *nodes, *output_variables);
+        if (!node_name.empty()) {
+            unused_node_names.erase(node_name);  // Mark as used
+        }
+        return node_name;
+    }
+
+private:
+    std::set<std::string> unused_node_names;
+    const std::map<std::string, Node> *nodes;
+    const std::map<std::string, std::vector<Variable>> *output_variables;
+};
+
+std::string removeReprRef(const std::string& type_repr) {
+    auto idx = type_repr.rfind('&');
+    if (idx == std::string::npos) {
+        return type_repr;
+    } else {
+        return type_repr.substr(0, idx);
+    }
 }
 
 }  // anonymous namespace
@@ -139,23 +174,18 @@ bool FaseCore::build() {
     pipeline.clear();
     output_variables.clear();
 
-    // Mark all node names as unused
-    std::set<std::string> unused_node_names;
-    extractKeys(nodes, unused_node_names);
+    // Stack for finding runnable node
+    RunnableNodeStack runnable_nodes_stack(&nodes, &output_variables);
 
     while (true) {
-        // Find runnable node by checking link dependency
-        const std::string& node_name =
-                FindRunnableNode(unused_node_names, nodes, output_variables);
-
+        // Find runnable node
+        const std::string node_name = runnable_nodes_stack.pop();
         if (node_name.empty()) {
-            // No runnable node
             break;
         }
-        unused_node_names.erase(node_name);
 
         Node& node = nodes[node_name];
-        size_t n_args = node.links.size();
+        const size_t n_args = node.links.size();
 
         // Set output variable
         assert(output_variables[node_name].empty());
@@ -172,12 +202,11 @@ bool FaseCore::build() {
             }
         }
 
-        // Collect or create binding variables
+        // Collect binding variables
         std::vector<Variable*> bound_variables;
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
             bound_variables.push_back(&output_variables[node_name][arg_idx]);
         }
-
         // Build
         Function& func = functions[node.func_repr];
         pipeline.push_back(func.builder->build(bound_variables));
@@ -191,6 +220,62 @@ bool FaseCore::run() {
         f();
     }
     return true;
+}
+
+std::string FaseCore::genNativeCode() {
+    std::stringstream native_code;
+
+    // Stack for finding runnable node
+    RunnableNodeStack runnable_nodes_stack(&nodes, &output_variables);
+
+    while (true) {
+        // Find runnable node
+        const std::string node_name = runnable_nodes_stack.pop();
+        if (node_name.empty()) {
+            break;
+        }
+
+        Node& node = nodes[node_name];
+        const size_t n_args = node.links.size();
+
+        native_code << "// " << node.func_repr << std::endl;
+
+        // Argument types
+        const std::vector<std::string>& arg_type_reprs =
+                functions[node.func_repr].arg_reprs;
+
+        // Collect argument names
+        std::vector<std::string> var_names;
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            std::stringstream var_name_ss;
+            auto& link = node.links[arg_idx];
+            if (link.node_name.empty()) {
+                // Case 1: Create default argument
+                var_name_ss << node_name << "_" << arg_idx;
+                var_names.push_back(var_name_ss.str());
+                // Add declaration code
+                // Remove reference for variable declaration
+                native_code << removeReprRef(arg_type_reprs[arg_idx]) << " "
+                            << var_names.back() << ";" << std::endl;
+            } else {
+                // Case 2: Use output variable
+                var_name_ss << link.node_name << "_" << link.arg_idx;
+                var_names.push_back(var_name_ss.str());
+            }
+        }
+
+        // Add function call
+        native_code << node.func_repr << "(";
+        for (size_t i = 0; i < var_names.size(); i++) {
+            native_code << var_names[i];
+            if (i != var_names.size() - 1) {
+                native_code << ", ";
+            }
+        }
+        native_code << ");" << std::endl;
+    }
+
+    return native_code.str();
 }
 
 }  // namespace fase

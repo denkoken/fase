@@ -58,6 +58,8 @@ public:
     bool build();
     bool run();
 
+    std::string genNativeCode();
+
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
                 const T& default_value = T());
