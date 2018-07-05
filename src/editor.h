@@ -8,8 +8,8 @@ namespace fase {
 
 class Editor {
 public:
-    virtual ~Editor() {}
     virtual void start(FaseCore*) = 0;
+    virtual ~Editor() {}
 };
 
 namespace editor {

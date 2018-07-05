@@ -11,6 +11,9 @@ void Square(const int& in, int& dst) {
     dst = in * in;
 }
 
+#define FaseCoreAddFunctionBuilder(core, func, arg_types, ...) \
+    FaseAddFunctionBuilder(core, func, arg_types, (""), __VA_ARGS__)
+
 TEST_CASE("Core test") {
     FaseCore core;
 

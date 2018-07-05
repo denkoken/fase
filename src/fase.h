@@ -10,9 +10,6 @@
 #define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
     FaseAddFunctionBuilderImpl(fase, func, arg_types, arg_names, __VA_ARGS__)
 
-#define FaseCoreAddFunctionBuilder(core, func, arg_types, ...) \
-    FaseCoreAddFunctionBuilderImpl(core, func, arg_types, __VA_ARGS__)
-
 namespace fase {
 
 class Fase {
@@ -30,11 +27,11 @@ public:
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
-            const std::array<std::string, sizeof...(Args)>& arg_names,
+            const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
         const bool core_ret =
                 core.addFunctionBuilder(func_repr, func_val, arg_type_reprs,
-                                        arg_val_reprs, default_args);
+                                        arg_val_reprs, arg_names, default_args);
         return core_ret;
     }
 

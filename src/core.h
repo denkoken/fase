@@ -28,6 +28,7 @@ struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_type_reprs;   // size == |function arguments|
     std::vector<std::string> arg_val_reprs;    // size == |function arguments|
+    std::vector<std::string> arg_names;        // size == |function arguments|
     std::vector<Variable> default_arg_values;  // size == |function arguments|
 };
 
@@ -41,6 +42,7 @@ public:
             const std::function<void(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
+            const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
     bool makeNode(const std::string& node_name, const std::string& func_repr);
