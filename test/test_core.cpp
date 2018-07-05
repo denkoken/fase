@@ -3,59 +3,6 @@
 #include "fase.h"
 using namespace fase;
 
-#include <sstream>
-
-template <typename... Args>
-struct NArgs {
-    size_t N = sizeof...(Args);
-};
-
-template <typename... Args>
-struct NArgs<void(Args...)> {
-    size_t N = sizeof...(Args);
-};
-
-template <std::size_t N>
-void extractArgExprs(std::string types, std::array<std::string, N>& reprs) {
-    // Remove '(' and ')'
-    auto l_par_idx = types.find('(');
-    auto r_par_idx = types.rfind(')');
-    if (l_par_idx != std::string::npos && r_par_idx != std::string::npos) {
-        types = types.substr(l_par_idx + 1, r_par_idx - l_par_idx - 1);
-    }
-
-    // Split by ','
-    std::stringstream ss(types);
-    std::string item;
-    size_t idx = 0;
-    while (std::getline(ss, item, ',')) {
-        // Remove extra spaces
-        size_t l_sp_idx = 0;
-        while (item[l_sp_idx] == ' ') l_sp_idx++;
-        item = item.substr(l_sp_idx);
-        size_t r_sp_idx = item.size() - 1;
-        while (item[r_sp_idx] == ' ') r_sp_idx--;
-        item = item.substr(0, r_sp_idx + 1);
-
-        // Register
-        reprs[idx] = item;
-        idx += 1;
-        assert(idx <= N);
-    }
-}
-
-#define FaseAddFunctionBuilder(core, func, arg_types, ...) [&](){       \
-    std::array<std::string, NArgs<void arg_types>{}.N>  arg_type_reprs; \
-    extractArgExprs(#arg_types, arg_type_reprs);                        \
-    std::array<std::string, NArgs<void arg_types>{}.N> arg_val_reprs;   \
-    extractArgExprs(#__VA_ARGS__, arg_val_reprs);                       \
-    return core.addFunctionBuilder(#func,                               \
-                                   std::function<void arg_types>(func), \
-                                   arg_type_reprs, arg_val_reprs,       \
-                                   {__VA_ARGS__});                      \
-}()
-
-
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
@@ -68,10 +15,9 @@ TEST_CASE("Core test") {
     FaseCore core;
 
     SECTION("Build basic") {
-        REQUIRE(FaseAddFunctionBuilder(core, Add,
-                                       (const int&, const int&, int&)));
-        REQUIRE(FaseAddFunctionBuilder(core, Square,
-                                       (const int&, int&)));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
+                                           (const int&, const int&, int&)));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
         REQUIRE(core.makeNode("add1", "Add"));
         REQUIRE(core.makeNode("square1", "Square"));
         REQUIRE(core.linkNode("add1", 2, "square1", 0));
@@ -83,9 +29,9 @@ TEST_CASE("Core test") {
     }
 
     SECTION("Build with default argument") {
-        REQUIRE(FaseAddFunctionBuilder(core, Add,
-                                       (const int&, const int&, int&), 30));
-        REQUIRE(FaseAddFunctionBuilder(core, Square, (const int&, int&)));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
+                                           (const int&, const int&, int&), 30));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
         REQUIRE(core.makeNode("add1", "Add"));
         REQUIRE(core.makeNode("square1", "Square"));
         REQUIRE(core.linkNode("add1", 2, "square1", 0));
@@ -97,15 +43,15 @@ TEST_CASE("Core test") {
     }
 
     SECTION("Duplicate AddFunctionBuilder") {
-        REQUIRE(FaseAddFunctionBuilder(core, Add,
-                                       (const int&, const int&, int&)));
-        REQUIRE_FALSE(FaseAddFunctionBuilder(core, Add,
-                                             (const int&, const int&, int&)));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
+                                           (const int&, const int&, int&)));
+        REQUIRE_FALSE(FaseCoreAddFunctionBuilder(
+                core, Add, (const int&, const int&, int&)));
     }
 
     SECTION("Detect invalid node") {
-        REQUIRE(FaseAddFunctionBuilder(core, Add,
-                                       (const int&, const int&, int&)));
+        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
+                                           (const int&, const int&, int&)));
         REQUIRE(core.makeNode("add1", "Add"));
         // Function `Square` is not registered
         REQUIRE_FALSE(core.makeNode("square1", "Square"));

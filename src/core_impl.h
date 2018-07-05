@@ -11,6 +11,7 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
 template <std::size_t N>
 bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
                          std::array<Variable, N>& dst_args, size_t idx) {
+    (void)src_args, (void)dst_args, (void)idx;
     return true;
 }
 
