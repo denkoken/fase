@@ -8,15 +8,9 @@ namespace fase {
 template <typename P>
 class EditorBase {
 public:
-    virtual ~EditorBase() {}
-
     template <typename Gen>
-    bool addVarGenerator(Gen &&gen) {
-        return static_cast<P *>(this)->template addVarGenerator<Gen>(
-                std::forward<Gen>(gen));
-    }
-
-    virtual void start(FaseCore *) {}
+    bool addVarGenerator(Gen &&) {}
+    void start(FaseCore *) {}
 };
 
 class CLIEditor : public EditorBase<CLIEditor> {
@@ -27,17 +21,24 @@ public:
         return true;
     }
 
+    void start(FaseCore *core);
+
     auto getVarGenerators() {
         return var_generators;
     }
-
-    void start(FaseCore *core);
 
 private:
     // Variable generators
     std::map<const std::type_info *,
              std::function<Variable(const std::string &)>>
             var_generators;
+};
+
+class GUIEditor : public EditorBase<GUIEditor> {
+public:
+    void start(FaseCore *core);
+
+private:
 };
 
 }  // namespace fase

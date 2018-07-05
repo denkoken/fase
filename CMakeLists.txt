@@ -72,6 +72,9 @@ if (BUILD_TEST)
                 ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
 endif()
 
+# GLFW3
+find_package(glfw3 REQUIRED)
+
 # ------------------------------------------------------------------------------
 # ----------------------------- Internal Libraries -----------------------------
 # ------------------------------------------------------------------------------
@@ -81,6 +84,7 @@ add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
     ${CMAKE_SOURCE_DIR}/src/core.cpp
     ${CMAKE_SOURCE_DIR}/src/cli_editor.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui_editor.cpp
 )
 setup_target(fase "" "")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
@@ -93,6 +97,11 @@ if (BUILD_EXAMPLE)
         ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
     )
     setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+
+    add_executable(guieditor
+        ${CMAKE_SOURCE_DIR}/examples/guieditor/main.cpp
+    )
+    setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
 
 
