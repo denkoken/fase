@@ -26,10 +26,11 @@ struct Node {
 
 struct Function {
     std::unique_ptr<FunctionBuilderBase> builder;
-    std::vector<std::string> arg_type_reprs;   // size == |function arguments|
-    std::vector<std::string> arg_val_reprs;    // size == |function arguments|
-    std::vector<std::string> arg_names;        // size == |function arguments|
-    std::vector<Variable> default_arg_values;  // size == |function arguments|
+    std::vector<std::string> arg_type_reprs;       // size == |args|
+    std::vector<std::string> arg_val_reprs;        // size == |args|
+    std::vector<std::string> arg_names;            // size == |args|
+    std::vector<Variable> default_arg_values;      // size == |args|
+    std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
 };
 
 class FaseCore {

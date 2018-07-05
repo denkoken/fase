@@ -10,9 +10,10 @@ class EditorBase {
 public:
     virtual ~EditorBase() {}
 
-    template <typename... Args>
-    bool addFunctionBuilder() {
-        return static_cast<P*>(this)->template addFunctionBuilder<Args...>();
+    template <typename Gen>
+    bool addVarGenerator(Gen &&gen) {
+        return static_cast<P*>(this)->template addVarGenerator<Gen>(
+                std::forward<Gen>(gen));
     }
 
     virtual void start(FaseCore*) {}
@@ -20,18 +21,22 @@ public:
 
 class CLIEditor : public EditorBase<CLIEditor> {
 public:
-    template <typename... Args>
-    bool addFunctionBuilder();
+    template <typename T>
+    bool addVarGenerator(const std::function<T(const std::string&)> &func) {
+        var_generators[&typeid(T)] = func;
+        return true;
+    }
+
+    auto getVarGenerators() { return var_generators; }
 
     void start(FaseCore* core);
 
 private:
-    std::map<std::string,
-             std::function<Variable(const std::string&)>> var_generators;
+    // Variable generators
+    std::map<const std::type_info*, std::function<Variable(const std::string&)>>
+            var_generators;
 };
 
 }  // namespace fase
-
-#include "cli_editor_impl.h"
 
 #endif  // EDITOR_H_20180628

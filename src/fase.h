@@ -22,19 +22,15 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_val_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
-        // Register to the core
-        const bool core_ret = core.template addFunctionBuilder<Args...>(
+        // Register to the core system
+        return core.template addFunctionBuilder<Args...>(
                 func_repr, func_val, arg_type_reprs, arg_val_reprs, arg_names,
                 default_args);
-        if (!core_ret) {
-            return false;
-        }
-        // Pass argument types to the editor
-        const bool editor_ret = editor.template addFunctionBuilder<Args...>();
-        if (!editor_ret) {
-            return false;
-        }
-        return true;
+    }
+
+    template <typename Gen>
+    bool addVarGenerator(Gen &&gen) {
+        return editor.addVarGenerator(std::forward<Gen>(gen));
     }
 
     void startEditing() {

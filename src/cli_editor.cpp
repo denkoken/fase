@@ -38,7 +38,9 @@ void printError(const Str&... strs) {
     std::cout << std::endl;
 }
 
-void add(fase::FaseCore* core, const std::vector<std::string> &input) {
+void add(fase::FaseCore* core, CLIEditor* cli_editor,
+         const std::vector<std::string> &input) {
+    (void)cli_editor;
     if (input.size() < 3) {
         printError("Invalid arguments (<func_repr>, <node_name>)");
         return;
@@ -46,21 +48,16 @@ void add(fase::FaseCore* core, const std::vector<std::string> &input) {
     const std::string& func_repr = input[1];
     const std::string& node_name = input[2];
 
-    // Find function
-    const std::map<std::string, Function>& functions = core->getFunctions();
-    if (!exists(functions, func_repr)) {
-        printError("Invalid function repr");
-        return;
-    }
-
     // Add
-    if (!core->addNode(input[2], input[1])) {
+    if (!core->addNode(node_name, func_repr)) {
         printError("Failed");
         return;
     }
 }
 
-void del(fase::FaseCore* core, const std::vector<std::string> &input) {
+void del(fase::FaseCore* core, CLIEditor* cli_editor,
+         const std::vector<std::string> &input) {
+    (void)cli_editor;
     if (input.size() < 2) {
         printError("Invalid arguments (<node_name>)");
         return;
@@ -69,7 +66,9 @@ void del(fase::FaseCore* core, const std::vector<std::string> &input) {
     core->delNode(node_name);
 }
 
-void link(fase::FaseCore* core, const std::vector<std::string> &input) {
+void link(fase::FaseCore* core, CLIEditor* cli_editor,
+          const std::vector<std::string> &input) {
+    (void)cli_editor;
     if (input.size() < 5) {
         printError("Invalid arguments (<src_node_name>, <src_arg_idx>, ",
                    "<dst_node_name>, <dst_arg_idx>");
@@ -87,27 +86,62 @@ void link(fase::FaseCore* core, const std::vector<std::string> &input) {
     }
 }
 
-void setArg(fase::FaseCore* core, const std::vector<std::string> &input) {
+void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
+            const std::vector<std::string> &input) {
     if (input.size() < 4) {
-        printError("Invalid arguments (<node_name>, <arg_idx>, <value>");
+        printError("Invalid arguments (<node_name>, <arg_idx>, <value>)");
         return;
     }
     const std::string& node_name = input[1];
     const size_t arg_idx = std::stoull(input[2]);
     const std::string& value_str = input[3];
 
-    Variable var;
+    // Find function repr
+    const std::map<std::string, Node>& nodes = core->getNodes();
+    if (!exists(nodes, node_name)) {
+        printError("Invalid node name");
+        return;
+    }
+    const std::string& func_repr = nodes.at(node_name).func_repr;
+
+    // Get argument types
+    const std::map<std::string, Function>& functions = core->getFunctions();
+    const Function& function = functions.at(func_repr);
+    const std::vector<const std::type_info*> arg_types = function.arg_types;
+
+    // Get argument type
+    if (arg_types.size() <= arg_idx) {
+        printError("Invalid argument index");
+        return;
+    }
+    const std::type_info* arg_type = arg_types[arg_idx];
+
+    // Get variable generator
+    auto generators = cli_editor->getVarGenerators();
+    if (!exists(generators, arg_type)) {
+        printError("Non-supported argument type");
+        return;
+    }
+    const std::function<Variable(const std::string&)> &func =
+            generators.at(arg_type);
+
+    // Convert to a variable and set
+    Variable var = func(value_str);
     if (!core->setNodeArg(node_name, arg_idx, var)) {
         printError("Failed");
         return;
     }
 }
 
-void show(fase::FaseCore* core, const std::vector<std::string> &input) {
+void show(fase::FaseCore* core, CLIEditor* cli_editor,
+          const std::vector<std::string> &input) {
+    (void)input, (void)cli_editor;
     std::cout << core->genNativeCode() << std::endl;
 }
 
-void run(fase::FaseCore* core, const std::vector<std::string>& input) {
+void run(fase::FaseCore* core, CLIEditor* cli_editor,
+         const std::vector<std::string>& input) {
+    (void)cli_editor;
     try {
         if (input.size() == 1 || input[1] != std::string("nobuild")) {
             core->build();
@@ -121,10 +155,10 @@ void run(fase::FaseCore* core, const std::vector<std::string>& input) {
 }  // anonymous namespace
 
 void CLIEditor::start(FaseCore* core) {
-    using Command = std::function<void(FaseCore*,
+    using Command = std::function<void(FaseCore*, CLIEditor*,
                                   const std::vector<std::string>&)>;
 
-    std::map<std::string, Command> commands = {
+    const std::map<std::string, Command> commands = {
         {"add", add},
         {"del", del},
         {"link", link},
@@ -148,7 +182,7 @@ void CLIEditor::start(FaseCore* core) {
 
         // Check valid command
         if (exists(commands, input[0])) {
-            commands[input[0]](core, input);
+            commands.at(input[0])(core, this, input);
             continue;
         }
 

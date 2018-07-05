@@ -179,7 +179,7 @@ bool FaseCore::linkNode(const std::string& src_node_name,
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
     return true;
-};
+}
 
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
                           Variable arg) {

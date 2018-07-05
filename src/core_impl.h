@@ -39,6 +39,12 @@ bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
     return CompleteDefaultArgs<N, Tail...>(src_args, dst_args, idx + 1);
 }
 
+template <typename T>
+const std::type_info* getCleanTypeId() {
+    return &typeid(typename std::remove_reference<
+                   typename std::remove_cv<T>::type>::type);
+}
+
 template <typename... Args>
 bool FaseCore::addFunctionBuilder(
         const std::string& func_repr,
@@ -73,7 +79,8 @@ bool FaseCore::addFunctionBuilder(
         std::vector<std::string>(arg_type_reprs.begin(), arg_type_reprs.end()),
         std::vector<std::string>(arg_val_reprs.begin(), arg_val_reprs.end()),
         std::vector<std::string>(arg_names.begin(), arg_names.end()),
-        std::vector<Variable>(args.begin(), args.end())};
+        std::vector<Variable>(args.begin(), args.end()),
+        std::vector<const std::type_info*>{ getCleanTypeId<Args>()... }};
     return true;
 }
 
