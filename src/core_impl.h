@@ -9,6 +9,11 @@ inline bool exists(const std::map<T, S>& map, const T& key) {
 }
 
 template <typename T>
+inline bool exists(const std::set<T>& set, const T& key) {
+    return set.find(key) != std::end(set);
+}
+
+template <typename T>
 bool exists(const std::vector<T>& vec, const T& key) {
     return std::find(vec.begin(), vec.end(), key) != std::end(vec);
 }

@@ -17,10 +17,8 @@ void extractKeys(const std::map<std::string, T>& src_map,
     }
 }
 
-std::string FindRunnableNode(
-        const std::set<std::string>& unused_node_names,
-        const std::map<std::string, Node>& nodes,
-        const std::map<std::string, std::vector<Variable>>& output_variables) {
+std::string FindRunnableNode(const std::set<std::string>& unused_node_names,
+                             const std::map<std::string, Node>& nodes) {
     // Find runnable function node
     for (auto& node_name : unused_node_names) {
         const Node& node = nodes.at(node_name);
@@ -33,14 +31,7 @@ std::string FindRunnableNode(
             } else {
                 // Case 2: Use output variable
                 // Is linked node created?
-                if (!exists(output_variables, link.node_name)) {
-                    runnable = false;
-                    break;
-                }
-                // Is argument index valid?
-                const size_t n_args =
-                        output_variables.at(link.node_name).size();
-                if (link.arg_idx < 0 || n_args <= link.arg_idx) {
+                if (exists(unused_node_names, link.node_name)) {
                     runnable = false;
                     break;
                 }
@@ -58,10 +49,8 @@ std::string FindRunnableNode(
 
 class RunnableNodeStack {
 public:
-    explicit RunnableNodeStack(
-            const std::map<std::string, Node>* nodes_p,
-            const std::map<std::string, std::vector<Variable>>* vars_p)
-        : nodes(nodes_p), output_variables(vars_p) {
+    explicit RunnableNodeStack(const std::map<std::string, Node>* nodes_p)
+        : nodes(nodes_p) {
         // Mark all node names as unused
         extractKeys(*nodes, unused_node_names);
     }
@@ -69,7 +58,7 @@ public:
     std::string pop() {
         // Find runnable node by checking link dependency
         const std::string& node_name =
-                FindRunnableNode(unused_node_names, *nodes, *output_variables);
+                FindRunnableNode(unused_node_names, *nodes);
         if (!node_name.empty()) {
             unused_node_names.erase(node_name);  // Mark as used
         }
@@ -79,7 +68,6 @@ public:
 private:
     std::set<std::string> unused_node_names;
     const std::map<std::string, Node>* nodes;
-    const std::map<std::string, std::vector<Variable>>* output_variables;
 };
 
 std::string genVarName(const std::string& node_name, const size_t arg_idx) {
@@ -219,7 +207,7 @@ bool FaseCore::build() {
     output_variables.clear();
 
     // Stack for finding runnable node
-    RunnableNodeStack runnable_nodes_stack(&nodes, &output_variables);
+    RunnableNodeStack runnable_nodes_stack(&nodes);
 
     while (true) {
         // Find runnable node
@@ -271,7 +259,7 @@ std::string FaseCore::genNativeCode(const std::string& entry_name,
     std::stringstream native_code;
 
     // Stack for finding runnable node
-    RunnableNodeStack runnable_nodes_stack(&nodes, &output_variables);
+    RunnableNodeStack runnable_nodes_stack(&nodes);
 
     if (!entry_name.empty()) {
         native_code << "void " << entry_name << "() {" << std::endl;

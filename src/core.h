@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <set>
 
 #include "function_node.h"
 #include "variable.h"
