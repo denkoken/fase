@@ -1,10 +1,6 @@
-#include "editor_cli.h"
+#include "editor.h"
 
-#include <algorithm>
-#include <iostream>
-#include <map>
 #include <sstream>
-#include <vector>
 
 namespace fase {
 
@@ -38,8 +34,8 @@ void printError(const Str&... strs) {
     std::cout << std::endl;
 }
 
-void add(fase::FaseCore* core, CLIEditor* cli_editor,
-         const std::vector<std::string>& input) {
+void commandAdd(fase::FaseCore* core, CLIEditor* cli_editor,
+                const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 3) {
         printError("Invalid arguments (<func_repr>, <node_name>)");
@@ -55,8 +51,8 @@ void add(fase::FaseCore* core, CLIEditor* cli_editor,
     }
 }
 
-void del(fase::FaseCore* core, CLIEditor* cli_editor,
-         const std::vector<std::string>& input) {
+void commandDel(fase::FaseCore* core, CLIEditor* cli_editor,
+                const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 2) {
         printError("Invalid arguments (<node_name>)");
@@ -66,8 +62,8 @@ void del(fase::FaseCore* core, CLIEditor* cli_editor,
     core->delNode(node_name);
 }
 
-void link(fase::FaseCore* core, CLIEditor* cli_editor,
-          const std::vector<std::string>& input) {
+void commandLink(fase::FaseCore* core, CLIEditor* cli_editor,
+                 const std::vector<std::string>& input) {
     (void)cli_editor;
     if (input.size() < 5) {
         printError("Invalid arguments (<src_node_name>, <src_arg_idx>, ",
@@ -86,8 +82,8 @@ void link(fase::FaseCore* core, CLIEditor* cli_editor,
     }
 }
 
-void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
-            const std::vector<std::string>& input) {
+void commandSetArg(fase::FaseCore* core, CLIEditor* cli_editor,
+                   const std::vector<std::string>& input) {
     if (input.size() < 4) {
         printError("Invalid arguments (<node_name>, <arg_idx>, <value>)");
         return;
@@ -133,14 +129,14 @@ void setArg(fase::FaseCore* core, CLIEditor* cli_editor,
     }
 }
 
-void show(fase::FaseCore* core, CLIEditor* cli_editor,
-          const std::vector<std::string>& input) {
+void commandShow(fase::FaseCore* core, CLIEditor* cli_editor,
+                 const std::vector<std::string>& input) {
     (void)input, (void)cli_editor;
     std::cout << core->genNativeCode() << std::endl;
 }
 
-void run(fase::FaseCore* core, CLIEditor* cli_editor,
-         const std::vector<std::string>& input) {
+void commandRun(fase::FaseCore* core, CLIEditor* cli_editor,
+                const std::vector<std::string>& input) {
     (void)cli_editor;
     try {
         if (input.size() == 1 || input[1] != std::string("nobuild")) {
@@ -154,36 +150,36 @@ void run(fase::FaseCore* core, CLIEditor* cli_editor,
 
 }  // anonymous namespace
 
-void CLIEditor::start(FaseCore* core) {
+bool CLIEditor::run(FaseCore* core) {
     using Command = std::function<void(FaseCore*, CLIEditor*,
                                        const std::vector<std::string>&)>;
 
     const std::map<std::string, Command> commands = {
-            {"add", add},       {"del", del},   {"link", link},
-            {"setArg", setArg}, {"show", show}, {"run", run},
+            {"add", commandAdd},    {"del", commandDel},
+            {"link", commandLink},  {"setArg", commandSetArg},
+            {"show", commandShow},  {"run", commandRun},
     };
     const std::vector<std::string> exit_commands = {"quit", "exit", "logout"};
 
-    while (true) {
-        // Get command line input
-        const std::vector<std::string> input = clInput();
-        if (input.empty()) {
-            continue;
-        }
-
-        // Check exit command
-        if (exists(exit_commands, input[0])) {
-            break;
-        }
-
-        // Check valid command
-        if (exists(commands, input[0])) {
-            commands.at(input[0])(core, this, input);
-            continue;
-        }
-
-        printError("Undefined Command (", input[0], ")");
+    // Get command line input
+    const std::vector<std::string> input = clInput();
+    if (input.empty()) {
+        return true;  // continue
     }
+
+    // Check exit command
+    if (exists(exit_commands, input[0])) {
+        return false;  // exit
+    }
+
+    // Check valid command
+    if (exists(commands, input[0])) {
+        commands.at(input[0])(core, this, input);
+        return true;  // continue
+    }
+
+    printError("Undefined Command (", input[0], ")");
+    return true;
 }
 
 }  // namespace fase

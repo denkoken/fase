@@ -34,8 +34,8 @@ public:
     }
 
     template <typename... Args>
-    void startEditing(Args&&... args) {
-        editor.start(&core, std::forward<Args>(args)...);
+    bool runEditing(Args&&... args) {
+        return editor.run(&core, std::forward<Args>(args)...);
     }
 
 private:

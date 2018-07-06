@@ -1,10 +1,6 @@
-#include "editor_gui.h"
+#include "editor.h"
 
-#include <algorithm>
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <vector>
+#include <imgui.h>
 
 namespace fase {
 
@@ -12,7 +8,9 @@ namespace {
 
 }  // anonymous namespace
 
-void GUIEditor::start(FaseCore* core, GLFWwindow* window) {
+bool GUIEditor::run(FaseCore* core) {
+    ImGui::Text("Hello, world!");
+    return true;
 }
 
 }  // namespace fase

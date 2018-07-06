@@ -1,6 +1,9 @@
 #include <fase.h>
-#include <editor_gui.h>
 
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
+
+#include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
@@ -101,7 +104,33 @@ int main() {
 //     fase.addVarGenerator(std::function<int(const std::string&)>(
 //             [](const std::string& s) { return std::atoi(s.c_str()); }));
 //
-    fase.startEditing(window);
+
+    // Start main loop
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
+        // Start the ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Draw Fase's interface
+        if (!fase.runEditing()) {
+            break;
+        }
+
+        // Rendering
+        ImGui::Render();
+        int display_w, display_h;
+        glfwMakeContextCurrent(window);
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwMakeContextCurrent(window);
+        glfwSwapBuffers(window);
+    }
 
     return 0;
 }

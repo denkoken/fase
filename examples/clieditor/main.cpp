@@ -1,5 +1,4 @@
 #include <fase.h>
-#include <editor_cli.h>
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
@@ -27,7 +26,12 @@ int main() {
     fase.addVarGenerator(std::function<int(const std::string&)>(
             [](const std::string& s) { return std::atoi(s.c_str()); }));
 
-    fase.startEditing();
+    // Start main loop
+    while (true) {
+        if (!fase.runEditing()) {
+            break;
+        }
+    }
 
     return 0;
 }
