@@ -105,7 +105,7 @@ set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
 setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
-list(APPEND FASE_INCLUDE )
+list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
 list(APPEND FASE_LIBRARY imgui)
 
 # ------------------------------------------------------------------------------
@@ -116,21 +116,23 @@ list(APPEND FASE_LIBRARY imgui)
 add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
     ${CMAKE_SOURCE_DIR}/src/core.cpp
-    ${CMAKE_SOURCE_DIR}/src/cli_editor.cpp
-    ${CMAKE_SOURCE_DIR}/src/gui_editor.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor_gui.cpp
 )
-setup_target(fase "" "")
+setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)
 
 
 # ---------------------------------- examples ----------------------------------
 if (BUILD_EXAMPLE)
+    # CLI Editor
     add_executable(clieditor
         ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
     )
     setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
+    # GUI Editor
     add_executable(guieditor
         ${CMAKE_SOURCE_DIR}/examples/guieditor/main.cpp
     )

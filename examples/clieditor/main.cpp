@@ -1,5 +1,5 @@
-
-#include "../../src/fase.h"
+#include <fase.h>
+#include <editor_cli.h>
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;

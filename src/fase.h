@@ -33,8 +33,9 @@ public:
         return editor.addVarGenerator(std::forward<Gen>(gen));
     }
 
-    void startEditing() {
-        editor.start(&core);
+    template <typename... Args>
+    void startEditing(Args&&... args) {
+        editor.start(&core, std::forward<Args>(args)...);
     }
 
 private:

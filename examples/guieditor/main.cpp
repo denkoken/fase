@@ -1,11 +1,8 @@
 #include <fase.h>
+#include <editor_gui.h>
 
-#include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
@@ -72,6 +69,12 @@ void InitImGui(GLFWwindow* window) {
 
     // Setup style
     ImGui::StyleColorsDark();
+
+    atexit([]() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    });
 }
 
 int main() {
@@ -98,7 +101,7 @@ int main() {
 //     fase.addVarGenerator(std::function<int(const std::string&)>(
 //             [](const std::string& s) { return std::atoi(s.c_str()); }));
 //
-    fase.startEditing();
+    fase.startEditing(window);
 
     return 0;
 }

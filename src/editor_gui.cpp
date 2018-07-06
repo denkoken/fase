@@ -1,4 +1,4 @@
-#include "editor.h"
+#include "editor_gui.h"
 
 #include <algorithm>
 #include <iostream>
@@ -12,7 +12,7 @@ namespace {
 
 }  // anonymous namespace
 
-void GUIEditor::start(FaseCore* core) {
+void GUIEditor::start(FaseCore* core, GLFWwindow* window) {
 }
 
 }  // namespace fase
