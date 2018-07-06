@@ -60,12 +60,15 @@ GLFWwindow* InitOpenGL(const std::string& window_title) {
     return window;
 }
 
-void InitImGui(GLFWwindow* window) {
+void InitImGui(GLFWwindow* window, const std::string& font_path) {
     ImGui::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // Add extra font
+    io.Fonts->AddFontFromFileTTF(font_path.c_str(), 16.0f);
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
@@ -81,15 +84,6 @@ void InitImGui(GLFWwindow* window) {
 }
 
 int main() {
-    // Create OpenGL window
-    GLFWwindow *window = InitOpenGL("GUI Editor Example");
-    if (!window) {
-        return 0;
-    }
-
-    // Initialize ImGui
-    InitImGui(window);
-
     // Create Fase instance with GUI editor
     fase::Fase<fase::GUIEditor> fase;
 
@@ -104,6 +98,15 @@ int main() {
 //     fase.addVarGenerator(std::function<int(const std::string&)>(
 //             [](const std::string& s) { return std::atoi(s.c_str()); }));
 //
+
+    // Create OpenGL window
+    GLFWwindow *window = InitOpenGL("GUI Editor Example");
+    if (!window) {
+        return 0;
+    }
+
+    // Initialize ImGui
+    InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
     while (!glfwWindowShouldClose(window)) {
