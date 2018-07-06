@@ -52,11 +52,15 @@ public:
 
     void delNode(const std::string& name) noexcept;
 
-    bool linkNode(const std::string& src_node_name, const size_t& src_arg_idx,
+    bool addLink(const std::string& src_node_name, const size_t& src_arg_idx,
                   const std::string& dst_node_name, const size_t& dst_arg_idx);
+
+    void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     bool setNodeArg(const std::string& node_name, const size_t arg_idx,
                     const std::string& arg_repr, Variable arg_val);
+
+    void clearNodeArg(const std::string& node_name, const size_t arg_idx);
 
     const std::map<std::string, Node>& getNodes();
 

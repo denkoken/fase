@@ -79,8 +79,8 @@ void link(fase::FaseCore* core, CLIEditor* cli_editor,
     const std::string& dst_node_name = input[3];
     const size_t dst_arg_idx = std::stoull(input[4]);
 
-    if (!core->linkNode(src_node_name, src_arg_idx, dst_node_name,
-                        dst_arg_idx)) {
+    if (!core->addLink(src_node_name, src_arg_idx, dst_node_name,
+                       dst_arg_idx)) {
         printError("Failed");
         return;
     }

@@ -23,7 +23,7 @@ TEST_CASE("Core test") {
         REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
         REQUIRE(core.addNode("add1", "Add"));
         REQUIRE(core.addNode("square1", "Square"));
-        REQUIRE(core.linkNode("add1", 2, "square1", 0));
+        REQUIRE(core.addLink("add1", 2, "square1", 0));
         REQUIRE(core.setNodeArg("add1", 0, "10", 10));
         REQUIRE(core.setNodeArg("add1", 1, "20", 20));
         REQUIRE(core.build());
@@ -37,7 +37,7 @@ TEST_CASE("Core test") {
         REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
         REQUIRE(core.addNode("add1", "Add"));
         REQUIRE(core.addNode("square1", "Square"));
-        REQUIRE(core.linkNode("add1", 2, "square1", 0));
+        REQUIRE(core.addLink("add1", 2, "square1", 0));
         REQUIRE(core.setNodeArg("add1", 1, "20", 20));
         REQUIRE(core.build());
         REQUIRE(core.run());
@@ -58,7 +58,7 @@ TEST_CASE("Core test") {
         REQUIRE(core.addNode("add1", "Add"));
         // Function `Square` is not registered
         REQUIRE_FALSE(core.addNode("square1", "Square"));
-        REQUIRE_FALSE(core.linkNode("add1", 2, "square1", 0));
+        REQUIRE_FALSE(core.addLink("add1", 2, "square1", 0));
 
         REQUIRE(core.setNodeArg("add1", 1, "20", 20));
         // Invalid argument index

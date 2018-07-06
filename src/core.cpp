@@ -151,10 +151,10 @@ void FaseCore::delNode(const std::string& name) noexcept {
     nodes.erase(name);
 }
 
-bool FaseCore::linkNode(const std::string& src_node_name,
-                        const size_t& src_arg_idx,
-                        const std::string& dst_node_name,
-                        const size_t& dst_arg_idx) {
+bool FaseCore::addLink(const std::string& src_node_name,
+                       const size_t& src_arg_idx,
+                       const std::string& dst_node_name,
+                       const size_t& dst_arg_idx) {
     if (!exists(nodes, src_node_name) || !exists(nodes, dst_node_name)) {
         return false;
     }
@@ -176,9 +176,27 @@ bool FaseCore::linkNode(const std::string& src_node_name,
         return false;
     }
 
+    // Check link existence
+    if (!nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
+        return false;
+    }
+
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
     return true;
+}
+
+void FaseCore::delLink(const std::string& dst_node_name,
+                       const size_t& dst_arg_idx) {
+    if (!exists(nodes, dst_node_name)) {
+        return;
+    }
+    if (nodes[dst_node_name].links.size() <= dst_arg_idx) {
+        return;
+    }
+
+    // Delete
+    nodes[dst_node_name].links[dst_arg_idx] = {};
 }
 
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
@@ -190,7 +208,6 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
     if (node.links.size() <= arg_idx) {
         return false;
     }
-    assert(node.arg_values.size() == node.links.size());
 
     // Check input type
     if (!node.arg_values[arg_idx].isSameType(arg_val)) {
@@ -202,6 +219,22 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
     node.arg_reprs[arg_idx] = arg_repr;
     node.arg_values[arg_idx] = arg_val;
     return true;
+}
+
+void FaseCore::clearNodeArg(const std::string& node_name,
+                            const size_t arg_idx) {
+    if (!exists(nodes, node_name)) {
+        return;
+    }
+    Node& node = nodes[node_name];
+    if (node.links.size() <= arg_idx) {
+        return;
+    }
+
+    // Clear (overwrite by default values)
+    const std::string& func_repr = node.func_repr;
+    node.arg_reprs[arg_idx] = functions[func_repr].default_arg_reprs[arg_idx];
+    node.arg_values[arg_idx] = functions[func_repr].default_arg_values[arg_idx];
 }
 
 const std::map<std::string, Node>& FaseCore::getNodes() {
