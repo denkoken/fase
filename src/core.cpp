@@ -85,12 +85,22 @@ std::string removeReprRef(const std::string& type_repr) {
     }
 }
 
+std::string removeReprConst(const std::string& type_repr) {
+    const std::string const_str = "const ";
+    auto idx = type_repr.rfind(const_str);
+    if (idx == std::string::npos) {
+        return type_repr;
+    } else {
+        return type_repr.substr(idx + const_str.size());
+    }
+}
+
 std::string genVarDeclaration(const std::string& type_repr,
                               const std::string& val_repr,
                               const std::string& name) {
     // Add declaration code (Remove reference for declaration)
     std::stringstream ss;
-    ss << removeReprRef(type_repr) << " " << name;
+    ss << removeReprConst(removeReprRef(type_repr)) << " " << name;
     if (!val_repr.empty()) {
         // Add variable initialization
         ss << " = " << val_repr;
