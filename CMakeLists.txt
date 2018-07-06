@@ -62,6 +62,12 @@ function(setup_target target includes libs)
     add_sanitizers(${target})
 endfunction(setup_target)
 
+# Utility function to setup a target simply (include, link)
+function(setup_target_simple target includes libs)
+    target_include_directories(${target} PUBLIC ${includes})
+    target_link_libraries(${target} ${libs})
+endfunction(setup_target_simple)
+
 # ------------------------------------------------------------------------------
 # --------------------------- Third Party Libraries ----------------------------
 # ------------------------------------------------------------------------------
@@ -72,8 +78,35 @@ if (BUILD_TEST)
                 ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
 endif()
 
+# OpenGL
+find_package(OpenGL REQUIRED)
+list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
+list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
+
 # GLFW3
-find_package(glfw3 REQUIRED)
+set(BUILD_SHARED_LIBS OFF)
+set(GLFW_BUILD_EXAMPLES OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_DOCS OFF)
+set(GLFW_INSTALL OFF)
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
+list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/third_party/glfw/include)
+list(APPEND FASE_LIBRARY glfw)
+
+# ImGui
+add_library(imgui SHARED
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+)
+set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
+                       ${CMAKE_SOURCE_DIR}/third_party/imgui/examples
+                       ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
+setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
+list(APPEND FASE_INCLUDE )
+list(APPEND FASE_LIBRARY imgui)
 
 # ------------------------------------------------------------------------------
 # ----------------------------- Internal Libraries -----------------------------
