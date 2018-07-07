@@ -28,8 +28,8 @@ private:
 inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
     return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
 }
-inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
-    return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
+    return ImVec2(lhs.x * rhs, lhs.y * rhs);
 }
 
 // Additional ImGui components
@@ -87,6 +87,14 @@ void DrawCanvas(const ImVec2& scroll_pos, float size) {
 struct GuiNode {
     ImVec2 pos;
     ImVec2 size;
+    std::vector<ImVec2> arg_poses;
+
+    ImVec2 getInputSlot(const size_t idx) const {
+        return arg_poses[idx];
+    }
+    ImVec2 getOutputSlot(const size_t idx) const {
+        return ImVec2(arg_poses[idx].x + size.x, arg_poses[idx].y);
+    }
 };
 
 // Draw button and pop up window for node adding
@@ -228,20 +236,22 @@ public:
             const ImVec2 node_rect_min = canvas_offset + gui_node.pos;
             const bool any_active_old = ImGui::IsAnyItemActive();
 
-            // Display node contents first
+            // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContents(node_name, node, functions, label);
+            drawNodeContents(node_name, node, gui_node, functions, label);
 
             // Fit to content size
-            gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING +
-                            NODE_WINDOW_PADDING;
+            gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
 
-            // Display node box
+            // Draw node box
             draw_list->ChannelsSetCurrent(0);  // Background
             ImGui::SetCursorScreenPos(node_rect_min);
             drawNodeBox(node_rect_min, gui_node.size, label,
                         (selected_node_name == node_name));
+
+            // Draw link slot
+            drawLinkSlots(gui_node);
 
             // Selection
             if (!any_active_old && ImGui::IsAnyItemActive()) {
@@ -266,6 +276,8 @@ private:
     const ImU32 BG_COLOR = IM_COL32(60, 60, 60, 255);
     const ImU32 BG_ACTICE_COLOR = IM_COL32(75, 75, 75, 255);
     const ImU32 BORDER_COLOR = IM_COL32(100, 100, 100, 255);
+    const float SLOT_SPACING = 3.f;
+    const ImU32 SLOT_COLOR = IM_COL32(240, 240, 150, 150);
 
     // Variable generators (pointer to the front class)
     const std::map<const std::type_info*,
@@ -275,33 +287,44 @@ private:
     std::string hovered_node_name;
 
     void drawNodeContents(const std::string& node_name, const Node& node,
+                          GuiNode& gui_node,
                           const std::map<std::string, Function>& functions,
                           LabelWrapper& label) {
         ImGui::BeginGroup();  // Lock horizontal position
         ImGui::Text("[%s] %s", node.func_repr.c_str(), node_name.c_str());
 
+        const size_t n_args = node.links.size();
+        gui_node.arg_poses.resize(n_args);
+
         // Draw arguments
         const Function& function = functions.at(node.func_repr);
-        for (size_t arg_idx = 0; arg_idx < node.links.size(); arg_idx++) {
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            // Save argument position
+            gui_node.arg_poses[arg_idx] = ImGui::GetCursorScreenPos();
+            gui_node.arg_poses[arg_idx].x -= NODE_WINDOW_PADDING.x;
+            gui_node.arg_poses[arg_idx].y += ImGui::GetTextLineHeight() * 0.5f;
+
             const std::string& arg_name = function.arg_names[arg_idx];
             const std::type_info* arg_type = function.arg_types[arg_idx];
             const std::string& arg_type_repr = function.arg_type_reprs[arg_idx];
             const std::string& arg_repr = node.arg_reprs[arg_idx];
-            ImGui::Text("* %s");
 
-            // Check link existence
-            if (!node.links[arg_idx].node_name.empty()) {
-                continue;
-            }
+            ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
             ImGui::SameLine();
-            if (var_generators->count(arg_type)) {
-                // Call registered GUI for editing
-                auto func = var_generators->at(arg_type);
-                func(label(arg_name), node.arg_values[arg_idx]);
-            } else {
-                // No GUI for editing
-                ImGui::Text("[%s] %s", arg_type_repr.c_str(), arg_repr.c_str());
+            if (node.links[arg_idx].node_name.empty()) {
+                // No link exists
+                if (var_generators->count(arg_type)) {
+                    // Call registered GUI for editing
+                    auto func = var_generators->at(arg_type);
+                    func(label(arg_name), node.arg_values[arg_idx]);
+                } else {
+                    // No GUI for editing
+                    ImGui::Text("[%s] %s", arg_type_repr.c_str(),
+                                arg_repr.c_str());
+                }
+                ImGui::SameLine();
             }
+            ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
         }
         ImGui::EndGroup();
     }
@@ -319,6 +342,16 @@ private:
                                      4.f);
         }
         draw_list->AddRect(node_rect_min, node_rect_max, BORDER_COLOR, 4.f);
+    }
+
+    void drawLinkSlots(const GuiNode& gui_node) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        for (size_t s_idx = 0; s_idx < gui_node.arg_poses.size(); s_idx++) {
+            draw_list->AddCircleFilled(gui_node.getInputSlot(s_idx),
+                                       NODE_SLOT_RADIUS, SLOT_COLOR);
+            draw_list->AddCircleFilled(gui_node.getOutputSlot(s_idx),
+                                       NODE_SLOT_RADIUS, SLOT_COLOR);
+        }
     }
 };
 
@@ -420,10 +453,6 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     }
 
     ImGui::End();  // End window
-
-    //     static Variable var = 10;
-    //     (*var_generators)[&typeid(int)]("label", var);
-
     return true;
 }
 
