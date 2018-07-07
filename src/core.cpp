@@ -127,6 +127,9 @@ std::string genFunctionCall(const std::string& func_repr,
 }  // anonymous namespace
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
+    if (name.empty()) {
+        return false;
+    }
     // check defined function name.
     if (!exists(functions, func_repr)) {
         return false;

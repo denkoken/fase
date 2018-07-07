@@ -26,6 +26,8 @@ public:
 
 class CLIEditor : public EditorBase<CLIEditor> {
 public:
+    CLIEditor() {}
+
     template <typename T>
     bool addVarGenerator(const std::function<T(const std::string &)> &func) {
         var_generators[&typeid(T)] = func;
@@ -47,9 +49,28 @@ private:
 
 class GUIEditor : public EditorBase<GUIEditor> {
 public:
-    bool run(FaseCore *core);
+    GUIEditor();
+    ~GUIEditor();
+
+    template <typename T>
+    bool addVarGenerator(T, const std::function<void(const char*,
+                                                const fase::Variable&)>& func) {
+        var_generators[&typeid(T)] = func;
+        return true;
+    }
+
+    bool run(FaseCore *core, const std::string& win_title = "Fase Editor",
+             const std::string& label_suffix = "##fase");
 
 private:
+    // Variable generators
+    std::map<const std::type_info *,
+             std::function<void(const char*, const Variable&)>>
+            var_generators;
+
+    // pImpl pattern
+    class Impl;
+    std::unique_ptr<Impl> impl;
 };
 
 }  // namespace fase

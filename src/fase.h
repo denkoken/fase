@@ -28,9 +28,13 @@ public:
                 arg_names, default_args);
     }
 
-    template <typename Gen>
-    bool addVarGenerator(Gen&& gen) {
-        return editor.addVarGenerator(std::forward<Gen>(gen));
+    template <typename... Gen>
+    bool addVarGenerator(Gen&&... gen) {
+        // for debug
+        core.addNode("add1", "Add");
+        core.addNode("print1", "Print");
+
+        return editor.addVarGenerator(std::forward<Gen>(gen)...);
     }
 
     template <typename... Args>

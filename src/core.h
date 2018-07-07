@@ -62,9 +62,9 @@ public:
 
     void clearNodeArg(const std::string& node_name, const size_t arg_idx);
 
-    const std::map<std::string, Node>& getNodes();
-
     const std::map<std::string, Function>& getFunctions();
+
+    const std::map<std::string, Node>& getNodes();
 
     bool build();
     bool run();

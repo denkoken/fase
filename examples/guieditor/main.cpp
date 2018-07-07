@@ -43,7 +43,7 @@ GLFWwindow* InitOpenGL(const std::string& window_title) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create hidden OpenGL window and context
-    window = glfwCreateWindow(600, 400, window_title.c_str(), NULL, NULL);
+    window = glfwCreateWindow(1200, 900, window_title.c_str(), NULL, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         return nullptr;
@@ -94,10 +94,11 @@ int main() {
                            0);
     FaseAddFunctionBuilder(fase, Print, (const int&), ("src"), 0);
 
-//     // Register for parsing command line string
-//     fase.addVarGenerator(std::function<int(const std::string&)>(
-//             [](const std::string& s) { return std::atoi(s.c_str()); }));
-//
+    // Register for argument editing
+    fase.addVarGenerator(int(), std::function<void(const char*, const fase::Variable&)>(
+                [](const char* label, const fase::Variable& v) {
+            ImGui::InputInt(label, &*v.getReader<int>());
+    }));
 
     // Create OpenGL window
     GLFWwindow *window = InitOpenGL("GUI Editor Example");
@@ -111,6 +112,12 @@ int main() {
     // Start main loop
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        // Key inputs
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS &&
+            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            break;
+        }
 
         // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -128,7 +135,7 @@ int main() {
         glfwMakeContextCurrent(window);
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(0, 0, 0, 1);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwMakeContextCurrent(window);
