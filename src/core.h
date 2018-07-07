@@ -6,8 +6,8 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <string>
 #include <set>
+#include <string>
 
 #include "function_node.h"
 #include "variable.h"
@@ -53,7 +53,7 @@ public:
     void delNode(const std::string& name) noexcept;
 
     bool addLink(const std::string& src_node_name, const size_t& src_arg_idx,
-                  const std::string& dst_node_name, const size_t& dst_arg_idx);
+                 const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 

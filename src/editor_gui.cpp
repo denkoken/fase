@@ -210,8 +210,10 @@ private:
 
 class NodeBoxGUI {
 public:
-    NodeBoxGUI(const std::map<const std::type_info*,
-                  std::function<void(const char*, const Variable&)>>* var_generators)
+    NodeBoxGUI(
+            const std::map<const std::type_info*,
+                           std::function<void(const char*, const Variable&)>>*
+                    var_generators)
         : var_generators(var_generators) {}
 
     void draw(FaseCore* core, const std::map<std::string, Node>& nodes,
@@ -237,7 +239,7 @@ public:
             const bool any_active_old = ImGui::IsAnyItemActive();
 
             // Display node contents first
-            draw_list->ChannelsSetCurrent(1); // Foreground
+            draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
             drawNodeContents(node_name, node, functions, label);
 
@@ -246,7 +248,7 @@ public:
                             NODE_WINDOW_PADDING;
 
             // Display node box
-            draw_list->ChannelsSetCurrent(0); // Background
+            draw_list->ChannelsSetCurrent(0);  // Background
             ImGui::SetCursorScreenPos(node_rect_min);
             drawNodeBox(node_rect_min, gui_node.size, label,
                         (selected_node_name == node_name));
@@ -277,15 +279,15 @@ private:
 
     // Variable generators (pointer to the front class)
     const std::map<const std::type_info*,
-             std::function<void(const char*, const fase::Variable&)>>*
-                 var_generators;
+                   std::function<void(const char*, const fase::Variable&)>>*
+            var_generators;
 
     std::string hovered_node_name;
 
     void drawNodeContents(const std::string& node_name, const Node& node,
                           const std::map<std::string, Function>& functions,
                           LabelWrapper& label) {
-        ImGui::BeginGroup(); // Lock horizontal position
+        ImGui::BeginGroup();  // Lock horizontal position
         ImGui::Text("[%s] %s", node.func_repr.c_str(), node_name.c_str());
 
         // Draw arguments
@@ -311,10 +313,8 @@ private:
                 label.popSuffix();
             } else {
                 // No GUI for editing
-                ImGui::Text("[%s] %s", arg_type_repr.c_str(),
-                            arg_repr.c_str());
+                ImGui::Text("[%s] %s", arg_type_repr.c_str(), arg_repr.c_str());
             }
-
         }
         ImGui::EndGroup();
     }
@@ -340,7 +340,8 @@ private:
 class GUIEditor::Impl {
 public:
     Impl(const std::map<const std::type_info*,
-                  std::function<void(const char*, const Variable&)>>* var_generators)
+                        std::function<void(const char*, const Variable&)>>*
+                 var_generators)
         : node_box_gui(var_generators) {}
 
     bool run(FaseCore* core, const std::string& win_title,
@@ -420,7 +421,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
 
         // Canvas scroll
         if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-                ImGui::IsMouseDragging(1, 0.0f)) {
+            ImGui::IsMouseDragging(1, 0.0f)) {
             scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
         }
 

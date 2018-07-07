@@ -23,7 +23,6 @@ public:
     bool run(FaseCore *, Args...) {}
 };
 
-
 class CLIEditor : public EditorBase<CLIEditor> {
 public:
     CLIEditor() {}
@@ -53,19 +52,20 @@ public:
     ~GUIEditor();
 
     template <typename T>
-    bool addVarGenerator(T, const std::function<void(const char*,
-                                                const fase::Variable&)>& func) {
+    bool addVarGenerator(
+            T, const std::function<void(const char *, const fase::Variable &)>
+                       &func) {
         var_generators[&typeid(T)] = func;
         return true;
     }
 
-    bool run(FaseCore *core, const std::string& win_title = "Fase Editor",
-             const std::string& label_suffix = "##fase");
+    bool run(FaseCore *core, const std::string &win_title = "Fase Editor",
+             const std::string &label_suffix = "##fase");
 
 private:
     // Variable generators
     std::map<const std::type_info *,
-             std::function<void(const char*, const Variable&)>>
+             std::function<void(const char *, const Variable &)>>
             var_generators;
 
     // pImpl pattern

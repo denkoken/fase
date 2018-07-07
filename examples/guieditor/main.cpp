@@ -20,7 +20,6 @@ void Print(const int& in) {
 }
 
 GLFWwindow* InitOpenGL(const std::string& window_title) {
-
     GLFWwindow* window = nullptr;
 
     // Set error callback
@@ -30,12 +29,11 @@ GLFWwindow* InitOpenGL(const std::string& window_title) {
 
     // Initialize GLFW
     if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;;
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        ;
         return nullptr;
     }
-    atexit([]() {
-        glfwTerminate();
-    });
+    atexit([]() { glfwTerminate(); });
 
     // OpenGL context flags (OpenGL 4.3)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -49,7 +47,7 @@ GLFWwindow* InitOpenGL(const std::string& window_title) {
         return nullptr;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1);  // Enable vsync
 
     // Initialize OpenGL context
     if (gl3wInit() != 0) {
@@ -95,13 +93,14 @@ int main() {
     FaseAddFunctionBuilder(fase, Print, (const int&), ("src"), 0);
 
     // Register for argument editing
-    fase.addVarGenerator(int(), std::function<void(const char*, const fase::Variable&)>(
-                [](const char* label, const fase::Variable& v) {
-            ImGui::InputInt(label, &*v.getReader<int>());
-    }));
+    fase.addVarGenerator(
+            int(), std::function<void(const char*, const fase::Variable&)>(
+                           [](const char* label, const fase::Variable& v) {
+                               ImGui::InputInt(label, &*v.getReader<int>());
+                           }));
 
     // Create OpenGL window
-    GLFWwindow *window = InitOpenGL("GUI Editor Example");
+    GLFWwindow* window = InitOpenGL("GUI Editor Example");
     if (!window) {
         return 0;
     }

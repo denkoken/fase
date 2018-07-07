@@ -155,9 +155,9 @@ bool CLIEditor::run(FaseCore* core) {
                                        const std::vector<std::string>&)>;
 
     const std::map<std::string, Command> commands = {
-            {"add", commandAdd},    {"del", commandDel},
-            {"link", commandLink},  {"setArg", commandSetArg},
-            {"show", commandShow},  {"run", commandRun},
+            {"add", commandAdd},   {"del", commandDel},
+            {"link", commandLink}, {"setArg", commandSetArg},
+            {"show", commandShow}, {"run", commandRun},
     };
     const std::vector<std::string> exit_commands = {"quit", "exit", "logout"};
 
