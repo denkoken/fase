@@ -13,14 +13,16 @@ namespace {
 // Label wrapper for suffix
 class LabelWrapper {
 public:
-    explicit LabelWrapper(const std::string& suffix) : suffix(suffix) {}
+    void setSuffix(const std::string& s) {
+        suffix = s;
+    }
     const char* operator()(const std::string& label) {
         last_label = label + suffix;
         return last_label.c_str();
     }
 
 private:
-    const std::string suffix;
+    std::string suffix;
     std::string last_label;  // temporary storage to return char*
 };
 
@@ -100,8 +102,9 @@ struct GuiNode {
 // Draw button and pop up window for node adding
 class NodeAddingGUI {
 public:
-    void draw(FaseCore* core, const std::map<std::string, Function>& functions,
-              LabelWrapper& label) {
+    NodeAddingGUI(LabelWrapper& label) : label(label) {}
+
+    void draw(FaseCore* core) {
         if (ImGui::Button(label("Add node"))) {
             ImGui::OpenPopup(label("Popup: Add node"));
         }
@@ -113,7 +116,7 @@ public:
             }
 
             // Extract function representations
-            updateFuncReprs(functions);
+            updateFuncReprs(core->getFunctions());
 
             // Input elements
             ImGui::InputText(label("Node name (ID)"), name_buf,
@@ -144,6 +147,10 @@ public:
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
 
+    // Reference to the parent's
+    LabelWrapper& label;
+
+    // Private status
     std::vector<std::string> func_reprs;
     char name_buf[1024] = "";
     int curr_idx = 0;
@@ -170,8 +177,10 @@ private:
 // Node list selector
 class NodeListGUI {
 public:
-    void draw(const std::map<std::string, Node>& nodes,
-              std::string& selected_node_name, LabelWrapper& label) {
+    NodeListGUI(LabelWrapper& label, std::string& selected_node_name)
+        : label(label), selected_node_name(selected_node_name) {}
+
+    void draw(FaseCore* core) {
         // Clear cache
         hovered_node_name = false;
 
@@ -179,6 +188,7 @@ public:
         ImGui::Separator();
         ImGui::BeginChild(label("node list"), ImVec2(), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
+        const std::map<std::string, Node>& nodes = core->getNodes();
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const Node& node = it->second;
@@ -203,27 +213,37 @@ public:
     }
 
 private:
+    // Reference to the parent's
+    LabelWrapper& label;
+    std::string& selected_node_name;
+
+    // Private status
     std::string hovered_node_name;
 };
 
 class NodeBoxGUI {
 public:
     NodeBoxGUI(
+            LabelWrapper& label, std::string& selected_node_name,
+            std::map<std::string, GuiNode>& gui_nodes, const ImVec2& scroll_pos,
             const std::map<const std::type_info*,
-                           std::function<void(const char*, const Variable&)>>*
+                           std::function<void(const char*, const Variable&)>>&
                     var_generators)
-        : var_generators(var_generators) {}
+        : label(label),
+          selected_node_name(selected_node_name),
+          gui_nodes(gui_nodes),
+          scroll_pos(scroll_pos),
+          var_generators(var_generators) {}
 
-    void draw(FaseCore* core, const std::map<std::string, Node>& nodes,
-              const std::map<std::string, Function>& functions,
-              std::map<std::string, GuiNode>& gui_nodes,
-              std::string& selected_node_name, const ImVec2& canvas_offset,
-              LabelWrapper& label) {
+    void draw(FaseCore* core) {
         // Clear cache
         hovered_node_name = false;
 
+        const ImVec2 canvas_offset = ImGui::GetCursorScreenPos() + scroll_pos;
+
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->ChannelsSplit(2);
+        const std::map<std::string, Node>& nodes = core->getNodes();
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const Node& node = it->second;
@@ -239,7 +259,8 @@ public:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContents(node_name, node, gui_node, functions, label);
+            drawNodeContents(node_name, node, gui_node, core->getFunctions(),
+                             label);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -279,11 +300,16 @@ private:
     const float SLOT_SPACING = 3.f;
     const ImU32 SLOT_COLOR = IM_COL32(240, 240, 150, 150);
 
-    // Variable generators (pointer to the front class)
+    // Reference to the parent's
+    LabelWrapper& label;
+    std::string& selected_node_name;
+    std::map<std::string, GuiNode>& gui_nodes;
+    const ImVec2& scroll_pos;
     const std::map<const std::type_info*,
-                   std::function<void(const char*, const fase::Variable&)>>*
+                   std::function<void(const char*, const fase::Variable&)>>&
             var_generators;
 
+    // Private status
     std::string hovered_node_name;
 
     void drawNodeContents(const std::string& node_name, const Node& node,
@@ -313,9 +339,9 @@ private:
             ImGui::SameLine();
             if (node.links[arg_idx].node_name.empty()) {
                 // No link exists
-                if (var_generators->count(arg_type)) {
+                if (var_generators.count(arg_type)) {
                     // Call registered GUI for editing
-                    auto func = var_generators->at(arg_type);
+                    auto func = var_generators.at(arg_type);
                     func(label(arg_name), node.arg_values[arg_idx]);
                 } else {
                     // No GUI for editing
@@ -360,9 +386,12 @@ private:
 class GUIEditor::Impl {
 public:
     Impl(const std::map<const std::type_info*,
-                        std::function<void(const char*, const Variable&)>>*
+                        std::function<void(const char*, const Variable&)>>&
                  var_generators)
-        : node_box_gui(var_generators) {}
+        : node_adding_gui(label),
+          node_list_gui(label, selected_node_name),
+          node_box_gui(label, selected_node_name, gui_nodes, scroll_pos,
+                       var_generators) {}
 
     bool run(FaseCore* core, const std::string& win_title,
              const std::string& label_suffix);
@@ -373,10 +402,13 @@ private:
     NodeListGUI node_list_gui;
     NodeBoxGUI node_box_gui;
 
+    // Label wrapper for suffix to generate unique label
+    LabelWrapper label;
+
     // Common status
+    std::string selected_node_name;
     std::map<std::string, GuiNode> gui_nodes;
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
-    std::string selected_node_name;
 };
 
 bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
@@ -388,11 +420,8 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         return true;
     }
 
-    // Get state from the core
-    const std::map<std::string, Function>& functions = core->getFunctions();
-    const std::map<std::string, Node>& nodes = core->getNodes();
-
     // Update GUI nodes
+    const std::map<std::string, Node>& nodes = core->getNodes();
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
         const std::string& node_name = it->first;
         if (!gui_nodes.count(node_name)) {
@@ -400,18 +429,18 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         }
     }
 
-    // Label wrapper for suffix to generate unique label
-    LabelWrapper label(label_suffix);
+    // Update label suffix
+    label.setSuffix(label_suffix);
 
     // Left side: Panel
     ImGui::BeginChild(label("left panel"), ImVec2(150, 0));
     {
         // Button to add new node
-        node_adding_gui.draw(core, functions, label);
+        node_adding_gui.draw(core);
         // Spacing
         ImGui::Dummy(ImVec2(0, 5));
         // Draw a list of nodes on the left side
-        node_list_gui.draw(nodes, selected_node_name, label);
+        node_list_gui.draw(core);
         ImGui::EndChild();
     }
     ImGui::SameLine();
@@ -430,14 +459,11 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
         ImGui::PushItemWidth(120.0f);
 
-        const ImVec2 canvas_offset = ImGui::GetCursorScreenPos() + scroll_pos;
-
         // Draw grid canvas
         DrawCanvas(scroll_pos, 64.f);
         // Draw links
         // Draw nodes
-        node_box_gui.draw(core, nodes, functions, gui_nodes, selected_node_name,
-                          canvas_offset, label);
+        node_box_gui.draw(core);
 
         // Canvas scroll
         if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
@@ -457,7 +483,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
 }
 
 // ------------------------------- pImpl pattern -------------------------------
-GUIEditor::GUIEditor() : impl(new GUIEditor::Impl(&var_generators)) {}
+GUIEditor::GUIEditor() : impl(new GUIEditor::Impl(var_generators)) {}
 GUIEditor::~GUIEditor() {}
 bool GUIEditor::run(FaseCore* core, const std::string& win_title,
                     const std::string& label_suffix) {

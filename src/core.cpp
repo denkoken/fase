@@ -142,7 +142,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
 
     // Make clone of default variables
     std::vector<Variable> arg_values;
-    for (auto& v: functions[func_repr].default_arg_values) {
+    for (auto& v : functions[func_repr].default_arg_values) {
         arg_values.push_back(v.clone());
     }
 
