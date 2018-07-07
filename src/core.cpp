@@ -140,12 +140,18 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
         return false;
     }
 
+    // Make clone of default variables
+    std::vector<Variable> arg_values;
+    for (auto& v: functions[func_repr].default_arg_values) {
+        arg_values.push_back(v.clone());
+    }
+
     // Register node (arg_values are copied from function's default_arg_values)
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
-                   .arg_values = functions[func_repr].default_arg_values};
+                   .arg_values = arg_values};
 
     return true;
 }
@@ -272,7 +278,7 @@ bool FaseCore::build() {
             if (link.node_name.empty()) {
                 // Case 1: Create default argument
                 const Variable& v = node.arg_values[arg_idx];
-                output_variables[node_name].push_back(v.clone());
+                output_variables[node_name].push_back(v);
             } else {
                 // Case 2: Use output variable
                 Variable& v = output_variables.at(link.node_name)[link.arg_idx];

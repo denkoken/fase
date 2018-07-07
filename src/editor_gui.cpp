@@ -14,23 +14,13 @@ namespace {
 class LabelWrapper {
 public:
     explicit LabelWrapper(const std::string& suffix) : suffix(suffix) {}
-
     const char* operator()(const std::string& label) {
         last_label = label + suffix;
         return last_label.c_str();
     }
 
-    void pushSuffix(const std::string& suffix) {
-        suffix_stack.push_back(suffix);
-    }
-
-    void popSuffix() {
-        suffix_stack.pop_back();
-    }
-
 private:
     const std::string suffix;
-    std::vector<std::string> suffix_stack;
     std::string last_label;  // temporary storage to return char*
 };
 
@@ -297,20 +287,17 @@ private:
             const std::type_info* arg_type = function.arg_types[arg_idx];
             const std::string& arg_type_repr = function.arg_type_reprs[arg_idx];
             const std::string& arg_repr = node.arg_reprs[arg_idx];
-            ImGui::Text("* ");
+            ImGui::Text("* %s");
 
             // Check link existence
             if (!node.links[arg_idx].node_name.empty()) {
                 continue;
             }
-
             ImGui::SameLine();
             if (var_generators->count(arg_type)) {
                 // Call registered GUI for editing
-                label.pushSuffix(node_name);
                 auto func = var_generators->at(arg_type);
                 func(label(arg_name), node.arg_values[arg_idx]);
-                label.popSuffix();
             } else {
                 // No GUI for editing
                 ImGui::Text("[%s] %s", arg_type_repr.c_str(), arg_repr.c_str());
