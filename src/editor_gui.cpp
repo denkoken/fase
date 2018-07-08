@@ -116,6 +116,24 @@ void EndCanvas() {
     ImGui::EndChild();
 }
 
+// Search connected output slots of Fase's node
+void FindConnectedOutSlots(const std::map<std::string, Node>& nodes,
+                           const std::string& node_name, const size_t& arg_idx,
+                           std::vector<std::pair<std::string, size_t>>& slots) {
+    slots.clear();
+    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+        const std::string& src_node_name = it->first;
+        const Node& src_node = it->second;
+        const size_t n_args = src_node.links.size();
+        for (size_t src_arg_idx = 0; src_arg_idx < n_args; src_arg_idx++) {
+            const Link& link = src_node.links[src_arg_idx];
+            if (link.node_name == node_name && link.arg_idx == arg_idx) {
+                slots.emplace_back(src_node_name, src_arg_idx);
+            }
+        }
+    }
+}
+
 // Draw canvas with grids
 void DrawCanvas(const ImVec2& scroll_pos, float size) {
     const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
@@ -754,10 +772,16 @@ public:
             ImGui::Separator();
             if (ImGui::MenuItem(label("Clear"))) {
                 if (is_selected_slot_input) {
+                    // Remove input link
                     core->delLink(selected_slot_name, selected_slot_idx);
                 } else {
-                    // TODO: implement
-                    std::cout << "Not implemented yet" << std::endl;
+                    // Remove output links
+                    std::vector<std::pair<std::string, size_t>> slots;
+                    FindConnectedOutSlots(core->getNodes(), selected_node_name,
+                                          selected_slot_idx, slots);
+                    for (auto& it : slots) {
+                        core->delLink(it.first, it.second);
+                    }
                 }
             }
             ImGui::EndPopup();
