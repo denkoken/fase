@@ -93,15 +93,15 @@ int main() {
     FaseAddFunctionBuilder(fase, Print, (const int&), ("in"), 0);
 
     // Register for argument editing
-    fase.addVarGenerator(
-            int(), fase::GuiGeneratorFunc([](const char* label,
-                                             const fase::Variable& v,
-                                             std::string& expr) {
-                int* v_p = &*v.getReader<int>();
-                const bool chg = ImGui::InputInt(label, v_p);
-                expr = std::to_string(*v_p);
-                return chg;
-            }));
+    fase.addVarGenerator(int(),
+                         fase::GuiGeneratorFunc([](const char* label,
+                                                   const fase::Variable& v,
+                                                   std::string& expr) {
+                             int* v_p = &*v.getReader<int>();
+                             const bool chg = ImGui::InputInt(label, v_p);
+                             expr = std::to_string(*v_p);
+                             return chg;
+                         }));
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");

@@ -488,7 +488,7 @@ public:
 private:
     const float SLOT_RADIUS = 4.f;
     const float SLOT_SPACING = 3.f;
-    const ImVec2 NODE_WINDOW_PADDING = ImVec2(8.f, 8.f);
+    const ImVec2 NODE_WINDOW_PADDING = ImVec2(8.f, 6.f);
     const ImU32 BORDER_COLOR = IM_COL32(100, 100, 100, 255);
     const ImU32 BG_NML_COLOR = IM_COL32(60, 60, 60, 255);
     const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
@@ -513,6 +513,7 @@ private:
                          const Node& node, GuiNode& gui_node) {
         ImGui::BeginGroup();  // Lock horizontal position
         ImGui::Text("[%s] %s", node.func_repr.c_str(), node_name.c_str());
+        ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
 
         const size_t n_args = node.links.size();
         assert(gui_node.arg_poses.size() == n_args);
@@ -562,9 +563,18 @@ private:
         const ImVec2 node_rect_max = node_rect_min + node_size;
         ImGui::InvisibleButton(label("node"), node_size);
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        // Background
         const ImU32 bg_col = is_active ? BG_ACT_COLOR : BG_NML_COLOR;
         draw_list->AddRectFilled(node_rect_min, node_rect_max, bg_col, 4.f);
+        // Border
         draw_list->AddRect(node_rect_min, node_rect_max, BORDER_COLOR, 4.f);
+        // Title
+        const float line_height = ImGui::GetTextLineHeight();
+        const float pad_height = NODE_WINDOW_PADDING.y * 2;
+        const ImVec2 node_title_rect_max =
+                node_rect_min + ImVec2(node_size.x, line_height + pad_height);
+        draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
+                                 IM_COL32(200, 100, 100, 255), 4.f);
     }
 
     void drawLinkSlots(const GuiNode& gui_node) {
@@ -735,9 +745,9 @@ private:
                                   3.0f);
         // Arrow's triangle
         const ImVec2 t_pos_1 =
-            d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
+                d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
         const ImVec2 t_pos_2 =
-            d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
+                d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
         draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, LINK_COLOR);
     }
 };
@@ -895,6 +905,7 @@ private:
     size_t prev_n_nodes = 0;
     size_t prev_n_links = 0;
     bool request_add_node = false;
+    std::vector<std::string> node_order;
 
     void updateGuiNodes(FaseCore* core) {
         // Clear cache
@@ -925,6 +936,8 @@ private:
             is_pipeline_updated = true;
             prev_n_nodes = n_nodes;
             prev_n_links = n_links;
+            // Update node order
+            core->getRunningOrder(node_order);
         }
     }
 };
