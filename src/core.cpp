@@ -216,7 +216,8 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Test for loop link
     RunnableNodeStack runnable_nodes_stack(&nodes);
-    while (!runnable_nodes_stack.pop().empty());
+    while (!runnable_nodes_stack.pop().empty())
+        ;
     if (!runnable_nodes_stack.empty()) {
         // Revert registration
         nodes[dst_node_name].links[dst_arg_idx] = {};

@@ -204,10 +204,10 @@ public:
             if (!opened) {
                 ImGui::CloseCurrentPopup();  // Behavior of close button
             }
-            ImGui::InputTextMultiline(
-                    label("##native code"),
-                    const_cast<char*>(native_code.c_str()), native_code.size(),
-                    ImVec2(500, 500), ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputTextMultiline(label("##native code"),
+                                      const_cast<char*>(native_code.c_str()),
+                                      native_code.size(), ImVec2(500, 500),
+                                      ImGuiInputTextFlags_ReadOnly);
 
             ImGui::EndPopup();
         }
@@ -226,13 +226,13 @@ private:
 // Node list selector
 class NodeListGUI {
 public:
-    NodeListGUI(LabelWrapper& label, std::string& selected_node_name)
-        : label(label), selected_node_name(selected_node_name) {}
+    NodeListGUI(LabelWrapper& label, std::string& selected_node_name,
+                std::string& hovered_node_name)
+        : label(label),
+          selected_node_name(selected_node_name),
+          hovered_node_name(hovered_node_name) {}
 
     void draw(FaseCore* core) {
-        // Clear cache
-        hovered_node_name = false;
-
         ImGui::Text("Nodes");
         ImGui::Separator();
         ImGui::BeginChild(label("node list"), ImVec2(), false,
@@ -257,23 +257,21 @@ public:
         ImGui::EndChild();
     }
 
-    const std::string& getHoveredNode() const {
-        return hovered_node_name;
-    }
-
 private:
     // Reference to the parent's
     LabelWrapper& label;
     std::string& selected_node_name;
+    std::string& hovered_node_name;
 
     // Private status
-    std::string hovered_node_name;
+    // [None]
 };
 
 class NodeBoxesGUI {
 public:
     NodeBoxesGUI(
             LabelWrapper& label, std::string& selected_node_name,
+            std::string& hovered_node_name,
             std::map<std::string, GuiNode>& gui_nodes, const ImVec2& scroll_pos,
             const bool& is_link_creating, bool& is_any_node_moving,
             const std::map<const std::type_info*,
@@ -281,6 +279,7 @@ public:
                     var_generators)
         : label(label),
           selected_node_name(selected_node_name),
+          hovered_node_name(hovered_node_name),
           gui_nodes(gui_nodes),
           scroll_pos(scroll_pos),
           is_link_creating(is_link_creating),
@@ -289,7 +288,6 @@ public:
 
     void draw(FaseCore* core) {
         // Clear cache
-        hovered_node_name = false;
         is_any_node_moving = false;
 
         const ImVec2 canvas_offset = ImGui::GetCursorScreenPos() + scroll_pos;
@@ -358,6 +356,7 @@ private:
     // Reference to the parent's
     LabelWrapper& label;
     std::string& selected_node_name;
+    std::string& hovered_node_name;
     std::map<std::string, GuiNode>& gui_nodes;
     const ImVec2& scroll_pos;
     const bool& is_link_creating;
@@ -367,7 +366,7 @@ private:
             var_generators;
 
     // Private status
-    std::string hovered_node_name;
+    // [None]
 
     void drawNodeContent(const std::string& node_name, const Node& node,
                          GuiNode& gui_node,
@@ -474,8 +473,8 @@ public:
         }
 
         // Search hovered slot
-        std::string hovered_node_name;
-        size_t hovered_arg_idx;
+        std::string hovered_slot_name;
+        size_t hovered_slot_idx;
         bool is_hovered_input;
         const ImVec2 mouse_pos = ImGui::GetMousePos();
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
@@ -498,8 +497,8 @@ public:
                 out_hov = (Length(mouse_pos - out_slot) <= SLOT_HOVER_RADIUS);
                 if (inp_hov || out_hov) {
                     // Save the last one
-                    hovered_node_name = node_name;
-                    hovered_arg_idx = arg_idx;
+                    hovered_slot_name = node_name;
+                    hovered_slot_idx = arg_idx;
                     is_hovered_input = inp_hov;
                 }
             }
@@ -510,49 +509,49 @@ public:
             if (ImGui::IsMouseDragging(0, 0.f)) {
                 // Editing
                 const ImVec2 mouse_pos = ImGui::GetMousePos();
-                const GuiNode& gui_node = gui_nodes.at(hovered_node_name_prev);
-                const size_t& arg_idx = hovered_arg_idx_prev;
+                const GuiNode& gui_node = gui_nodes.at(hovered_slot_name_prev);
+                const size_t& arg_idx = hovered_slot_idx_prev;
                 if (is_hovered_input_prev) {
                     drawLink(mouse_pos, gui_node.getInputSlot(arg_idx));
                 } else {
                     drawLink(gui_node.getOutputSlot(arg_idx), mouse_pos);
                 }
             } else {
-                if (hovered_node_name.empty() ||
+                if (hovered_slot_name.empty() ||
                     is_hovered_input == is_hovered_input_prev) {
                     // Canceled
                 } else {
                     // Create link
                     if (is_hovered_input_prev) {
-                        core->addLink(hovered_node_name, hovered_arg_idx,
-                                      hovered_node_name_prev,
-                                      hovered_arg_idx_prev);
+                        core->addLink(hovered_slot_name, hovered_slot_idx,
+                                      hovered_slot_name_prev,
+                                      hovered_slot_idx_prev);
                     } else {
-                        core->addLink(hovered_node_name_prev,
-                                      hovered_arg_idx_prev, hovered_node_name,
-                                      hovered_arg_idx);
+                        core->addLink(hovered_slot_name_prev,
+                                      hovered_slot_idx_prev, hovered_slot_name,
+                                      hovered_slot_idx);
                     }
                 }
                 is_link_creating = false;
             }
         } else {
             if (!is_any_node_moving && ImGui::IsMouseDragging(0, 0.f) &&
-                !hovered_node_name.empty()) {
+                !hovered_slot_name.empty()) {
                 // Start creating
                 is_link_creating = true;
                 const Link& link =
-                    nodes.at(hovered_node_name).links[hovered_arg_idx];
+                        nodes.at(hovered_slot_name).links[hovered_slot_idx];
                 if (link.node_name.empty() || !is_hovered_input) {
                     // New link
-                    hovered_node_name_prev = hovered_node_name;
-                    hovered_arg_idx_prev = hovered_arg_idx;
+                    hovered_slot_name_prev = hovered_slot_name;
+                    hovered_slot_idx_prev = hovered_slot_idx;
                     is_hovered_input_prev = is_hovered_input;
                 } else {
                     // Edit existing link
-                    hovered_node_name_prev = link.node_name;
-                    hovered_arg_idx_prev = link.arg_idx;
+                    hovered_slot_name_prev = link.node_name;
+                    hovered_slot_idx_prev = link.arg_idx;
                     is_hovered_input_prev = false;
-                    core->delLink(hovered_node_name, hovered_arg_idx);
+                    core->delLink(hovered_slot_name, hovered_slot_idx);
                 }
             }
         }
@@ -568,8 +567,8 @@ private:
     const bool& is_any_node_moving;
 
     // Private status
-    std::string hovered_node_name_prev;
-    size_t hovered_arg_idx_prev;
+    std::string hovered_slot_name_prev;
+    size_t hovered_slot_idx_prev;
     bool is_hovered_input_prev;
 
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
@@ -578,6 +577,49 @@ private:
                                   d_pos + ImVec2(-50, 0), d_pos, LINK_COLOR,
                                   3.0f);
     }
+};
+
+class ContextMenuGUI {
+public:
+    ContextMenuGUI(LabelWrapper& label, const std::string& selected_node_name,
+                   std::string& hovered_node_name,
+                   const std::map<std::string, GuiNode>& gui_nodes)
+        : label(label),
+          selected_node_name(selected_node_name),
+          hovered_node_name(hovered_node_name),
+          gui_nodes(gui_nodes) {}
+
+    void draw(FaseCore* core) {
+        const std::map<std::string, Node>& nodes = core->getNodes();
+        // Right click
+        if (ImGui::IsMouseClicked(1)) {
+            if (!hovered_node_name.empty()) {
+                ImGui::OpenPopup(label("context menu"));
+                hovered_node_name_prev = hovered_node_name;
+            }
+        }
+        if (ImGui::BeginPopup(label("context menu"))) {
+            ImGui::Text("Node \"%s\"", hovered_node_name_prev.c_str());
+            ImGui::Separator();
+            if (ImGui::MenuItem(label("Delete"))) {
+                core->delNode(hovered_node_name_prev);
+            }
+            ImGui::EndPopup();
+        }
+
+        // Clear cache
+        hovered_node_name.clear();
+    }
+
+private:
+    // Reference to the parent's
+    LabelWrapper& label;
+    const std::string& selected_node_name;
+    std::string& hovered_node_name;
+    const std::map<std::string, GuiNode>& gui_nodes;
+
+    // Private status
+    std::string hovered_node_name_prev;
 };
 
 }  // anonymous namespace
@@ -590,11 +632,13 @@ public:
         // Module dependencies are written here
         : node_adding_gui(label),
           native_code_gui(label),
-          node_list_gui(label, selected_node_name),
+          node_list_gui(label, selected_node_name, hovered_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
-          node_boxes_gui(label, selected_node_name, gui_nodes, scroll_pos,
-                         is_link_creating, is_any_node_moving, var_generators) {
-    }
+          node_boxes_gui(label, selected_node_name, hovered_node_name,
+                         gui_nodes, scroll_pos, is_link_creating,
+                         is_any_node_moving, var_generators),
+          context_menu_gui(label, selected_node_name, hovered_node_name,
+                           gui_nodes) {}
 
     bool run(FaseCore* core, const std::string& win_title,
              const std::string& label_suffix);
@@ -606,12 +650,12 @@ private:
     NodeListGUI node_list_gui;
     LinksGUI links_gui;
     NodeBoxesGUI node_boxes_gui;
-
-    // Label wrapper for suffix to generate unique label
-    LabelWrapper label;
+    ContextMenuGUI context_menu_gui;
 
     // Common status
+    LabelWrapper label;  // Label wrapper for suffix to generate unique label
     std::string selected_node_name;
+    std::string hovered_node_name;
     std::map<std::string, GuiNode> gui_nodes;
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
     bool is_link_creating = false;
@@ -711,6 +755,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         ImGui::PopStyleVar(2);
         ImGui::EndChild();
     }
+
+    // Context menu
+    context_menu_gui.draw(core);
 
     ImGui::End();  // End window
     return true;
