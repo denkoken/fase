@@ -172,6 +172,11 @@ bool FaseCore::addLink(const std::string& src_node_name,
         return false;
     }
 
+    // Check looping link
+    if (src_node_name == dst_node_name) {
+        return false;
+    }
+
     // Check inverse link
     if (nodes[src_node_name].links[src_arg_idx].node_name == dst_node_name &&
         nodes[src_node_name].links[src_arg_idx].arg_idx == dst_arg_idx) {

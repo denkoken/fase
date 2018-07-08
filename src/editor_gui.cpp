@@ -505,9 +505,20 @@ public:
                 !hovered_node_name.empty()) {
                 // Start creating
                 is_link_creating = true;
-                hovered_node_name_prev = hovered_node_name;
-                hovered_arg_idx_prev = hovered_arg_idx;
-                is_hovered_input_prev = is_hovered_input;
+                const Link& link =
+                    nodes.at(hovered_node_name).links[hovered_arg_idx];
+                if (link.node_name.empty() || !is_hovered_input) {
+                    // New link
+                    hovered_node_name_prev = hovered_node_name;
+                    hovered_arg_idx_prev = hovered_arg_idx;
+                    is_hovered_input_prev = is_hovered_input;
+                } else {
+                    // Edit existing link
+                    hovered_node_name_prev = link.node_name;
+                    hovered_arg_idx_prev = link.arg_idx;
+                    is_hovered_input_prev = false;
+                    core->delLink(hovered_node_name, hovered_arg_idx);
+                }
             }
         }
     }
