@@ -985,9 +985,6 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     // Update label suffix
     label.setSuffix(label_suffix);
 
-    // Context menu
-    context_menu_gui.draw(core);
-
     // Menu bar
     if (ImGui::BeginMenuBar()) {
         // Menu to add new node
@@ -1040,6 +1037,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         }
         EndCanvas();
     }
+
+    // Context menu
+    context_menu_gui.draw(core);
 
     ImGui::End();  // End window
     return true;
