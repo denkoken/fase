@@ -420,6 +420,9 @@ public:
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const Node& node = it->second;
+            if (!gui_nodes.count(node_name)) {
+                continue;  // Wait for creating GUI node
+            }
             const size_t n_args = node.links.size();
             for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
                 const std::string& src_name = node.links[arg_idx].node_name;
@@ -440,8 +443,11 @@ public:
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const Node& node = it->second;
-            const size_t n_args = node.links.size();
+            if (!gui_nodes.count(node_name)) {
+                continue;  // Wait for creating GUI node
+            }
             GuiNode& gui_node = gui_nodes[node_name];
+            const size_t n_args = node.links.size();
             for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
                 // Get slot position
                 const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx);
