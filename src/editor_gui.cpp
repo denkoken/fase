@@ -709,6 +709,9 @@ public:
 private:
     const ImU32 LINK_COLOR = IM_COL32(200, 200, 100, 255);
     const float SLOT_HOVER_RADIUS = 8.f;
+    const float ARROW_BEZIER_SIZE = 80.f;
+    const float ARROW_HEAD_SIZE = 15.f;
+    const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;
 
     // Reference to the parent's
     std::string& hovered_slot_name;
@@ -726,9 +729,16 @@ private:
     // Private methods
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        draw_list->AddBezierCurve(s_pos, s_pos + ImVec2(+50, 0),
-                                  d_pos + ImVec2(-50, 0), d_pos, LINK_COLOR,
+        const ImVec2 s_pos_2 = s_pos + ImVec2(ARROW_BEZIER_SIZE, 0.f);
+        const ImVec2 d_pos_2 = d_pos - ImVec2(ARROW_BEZIER_SIZE, 0.f);
+        draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2, d_pos, LINK_COLOR,
                                   3.0f);
+        // Arrow's triangle
+        const ImVec2 t_pos_1 =
+            d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
+        const ImVec2 t_pos_2 =
+            d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
+        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, LINK_COLOR);
     }
 };
 

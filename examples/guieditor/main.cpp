@@ -87,10 +87,10 @@ int main() {
 
     // Register functions
     FaseAddFunctionBuilder(fase, Add, (const int&, const int&, int&),
-                           ("src1", "src2", "dst"), 0, 0, 0);
-    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("src", "dst"), 0,
+                           ("in1", "in2", "out"), 0, 0, 0);
+    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("in", "out"), 0,
                            0);
-    FaseAddFunctionBuilder(fase, Print, (const int&), ("src"), 0);
+    FaseAddFunctionBuilder(fase, Print, (const int&), ("in"), 0);
 
     // Register for argument editing
     fase.addVarGenerator(
