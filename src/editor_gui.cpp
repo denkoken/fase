@@ -119,7 +119,7 @@ public:
     NodeAddingGUI(LabelWrapper& label) : label(label) {}
 
     void draw(FaseCore* core) {
-        if (ImGui::Button(label("Add node"))) {
+        if (ImGui::MenuItem(label("Add node"))) {
             ImGui::OpenPopup(label("Popup: Add node"));
         }
         bool opened = true;
@@ -194,7 +194,7 @@ public:
     NativeCodeGUI(LabelWrapper& label) : label(label) {}
 
     void draw(FaseCore* core) {
-        if (ImGui::Button(label("Show code"))) {
+        if (ImGui::MenuItem(label("Show code"))) {
             ImGui::OpenPopup(label("Popup: Native code"));
             native_code = core->genNativeCode();
         }
@@ -622,7 +622,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
                           const std::string& label_suffix) {
     // Create ImGui window
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin(win_title.c_str())) {
+    if (!ImGui::Begin(win_title.c_str(), NULL, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return true;
     }
@@ -641,25 +641,32 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     // Update label suffix
     label.setSuffix(label_suffix);
 
-    // Left side: Panel
-    ImGui::BeginChild(label("left panel"), ImVec2(150, 0));
-    {
-        // Button to add new node
+    // Menu bar
+    if (ImGui::BeginMenuBar()) {
+        // Menu to add new node
         node_adding_gui.draw(core);
         // Spacing
-        ImGui::Dummy(ImVec2(0, 5));
-        // Button to run
-        if (ImGui::Button(label("Run"))) {
+        ImGui::Dummy(ImVec2(5, 0));
+        // Menu to run
+        if (ImGui::MenuItem(label("Run"))) {
             core->build();
             core->run();
         }
-        if (ImGui::Button(label("Run (no build)"))) {
+        // Spacing
+        ImGui::Dummy(ImVec2(5, 0));
+        if (ImGui::MenuItem(label("Run (no build)"))) {
             core->run();
         }
+        // Spacing
+        ImGui::Dummy(ImVec2(5, 0));
         // Button to show native code
         native_code_gui.draw(core);
-        // Spacing
-        ImGui::Dummy(ImVec2(0, 5));
+        ImGui::EndMenuBar();
+    }
+
+    // Left side: Panel
+    ImGui::BeginChild(label("left panel"), ImVec2(150, 0));
+    {
         // Draw a list of nodes on the left side
         node_list_gui.draw(core);
         ImGui::EndChild();
