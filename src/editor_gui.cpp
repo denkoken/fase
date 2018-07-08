@@ -324,6 +324,28 @@ private:
     }
 };
 
+// Layout optimizer
+class LayoutOptimizeGUI {
+public:
+    LayoutOptimizeGUI(LabelWrapper& label,
+                      std::map<std::string, GuiNode>& gui_nodes)
+        : label(label), gui_nodes(gui_nodes) {}
+
+    void draw(FaseCore* core) {
+        if (ImGui::MenuItem(label("Optimize layout"))) {
+            // Not implemented
+        }
+    }
+
+private:
+    // Reference to the parent's
+    LabelWrapper& label;
+    std::map<std::string, GuiNode>& gui_nodes;
+
+    // Private status
+    // [None]
+};
+
 // Node list selector
 class NodeListGUI {
 public:
@@ -739,6 +761,7 @@ public:
         : node_adding_gui(label),
           run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label, var_generators),
+          layout_optimize_gui(label, gui_nodes),
           node_list_gui(label, selected_node_name, hovered_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
           node_boxes_gui(label, selected_node_name, hovered_node_name,
@@ -755,6 +778,7 @@ private:
     NodeAddingGUI node_adding_gui;
     RunPipelineGUI run_pipeline_gui;
     NativeCodeGUI native_code_gui;
+    LayoutOptimizeGUI layout_optimize_gui;
     NodeListGUI node_list_gui;
     LinksGUI links_gui;
     NodeBoxesGUI node_boxes_gui;
@@ -828,8 +852,11 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         // Menu to run
         run_pipeline_gui.draw(core);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
-        // Button to show native code
+        // Menu to show native code
         native_code_gui.draw(core);
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
+        // Menu to optimize the node layout
+        layout_optimize_gui.draw(core);
         ImGui::EndMenuBar();
     }
 
