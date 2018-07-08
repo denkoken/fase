@@ -328,6 +328,7 @@ bool FaseCore::build() {
         Function& func = functions[node.func_repr];
         pipeline.push_back(func.builder->build(bound_variables));
     }
+    assert(runnable_nodes_stack.empty());
 
     return true;
 }
@@ -392,6 +393,7 @@ std::string FaseCore::genNativeCode(const std::string& entry_name,
         native_code << indent;
         native_code << genFunctionCall(node.func_repr, var_names);
     }
+    assert(runnable_nodes_stack.empty());
 
     if (!entry_name.empty()) {
         native_code << "}";
@@ -413,6 +415,7 @@ void FaseCore::getRunningOrder(std::vector<std::string>& order) {
         }
         order.push_back(node_name);
     }
+    assert(runnable_nodes_stack.empty());
 }
 
 }  // namespace fase

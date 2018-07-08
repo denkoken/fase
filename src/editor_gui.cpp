@@ -347,19 +347,23 @@ private:
 class LayoutOptimizeGUI {
 public:
     LayoutOptimizeGUI(LabelWrapper& label,
+                      const std::vector<std::string>& node_order,
                       std::map<std::string, GuiNode>& gui_nodes)
-        : label(label), gui_nodes(gui_nodes) {}
+        : label(label), node_order(node_order), gui_nodes(gui_nodes) {}
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Optimize layout (TODO)"))) {
             // TODO: implemented
             std::cout << "Not implemented yet" << std::endl;
+            (void)node_order;
+            (void)gui_nodes;
         }
     }
 
 private:
     // Reference to the parent's
     LabelWrapper& label;
+    const std::vector<std::string>& node_order;
     std::map<std::string, GuiNode>& gui_nodes;
 
     // Private status
@@ -369,9 +373,10 @@ private:
 // Node list selector
 class NodeListGUI {
 public:
-    NodeListGUI(LabelWrapper& label, std::string& selected_node_name,
-                std::string& hovered_node_name)
+    NodeListGUI(LabelWrapper& label, const std::vector<std::string>& node_order,
+                std::string& selected_node_name, std::string& hovered_node_name)
         : label(label),
+          node_order(node_order),
           selected_node_name(selected_node_name),
           hovered_node_name(hovered_node_name) {}
 
@@ -381,14 +386,16 @@ public:
         ImGui::BeginChild(label("node list"), ImVec2(), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
         const std::map<std::string, Node>& nodes = core->getNodes();
-        for (auto it = nodes.begin(); it != nodes.end(); it++) {
-            const std::string& node_name = it->first;
-            const Node& node = it->second;
+        for (size_t order_idx = 0; order_idx < node_order.size(); order_idx++) {
+            const std::string& node_name = node_order[order_idx];
+            const Node& node = nodes.at(node_name);
 
             // List component
             ImGui::PushID(label(node_name));
-            std::string view_lavel = node_name + " [" + node.func_repr + "]";
-            if (ImGui::Selectable(label(view_lavel),
+            std::stringstream view_ss;
+            view_ss << order_idx << ") " << node_name;
+            view_ss << " [" + node.func_repr + "]";
+            if (ImGui::Selectable(label(view_ss.str()),
                                   node_name == selected_node_name)) {
                 selected_node_name = node_name;
             }
@@ -403,6 +410,7 @@ public:
 private:
     // Reference to the parent's
     LabelWrapper& label;
+    const std::vector<std::string>& node_order;
     std::string& selected_node_name;
     std::string& hovered_node_name;
 
@@ -412,7 +420,9 @@ private:
 
 class NodeBoxesGUI {
 public:
-    NodeBoxesGUI(LabelWrapper& label, std::string& selected_node_name,
+    NodeBoxesGUI(LabelWrapper& label,
+                 const std::vector<std::string>& node_order,
+                 std::string& selected_node_name,
                  std::string& hovered_node_name,
                  std::map<std::string, GuiNode>& gui_nodes,
                  const ImVec2& scroll_pos, const bool& is_link_creating,
@@ -420,6 +430,7 @@ public:
                  const std::map<const std::type_info*, GuiGeneratorFunc>&
                          var_generators)
         : label(label),
+          node_order(node_order),
           selected_node_name(selected_node_name),
           hovered_node_name(hovered_node_name),
           gui_nodes(gui_nodes),
@@ -437,9 +448,9 @@ public:
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->ChannelsSplit(2);
         const std::map<std::string, Node>& nodes = core->getNodes();
-        for (auto it = nodes.begin(); it != nodes.end(); it++) {
-            const std::string& node_name = it->first;
-            const Node& node = it->second;
+        for (size_t order_idx = 0; order_idx < node_order.size(); order_idx++) {
+            const std::string& node_name = node_order[order_idx];
+            const Node& node = nodes.at(node_name);
             if (!gui_nodes.count(node_name)) {
                 continue;  // Wait for creating GUI node
             }
@@ -452,7 +463,7 @@ public:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContent(core, node_name, node, gui_node);
+            drawNodeContent(core, node_name, node, gui_node, order_idx);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -461,7 +472,7 @@ public:
             draw_list->ChannelsSetCurrent(0);  // Background
             ImGui::SetCursorScreenPos(node_rect_min);
             drawNodeBox(node_rect_min, gui_node.size,
-                        (selected_node_name == node_name));
+                        (selected_node_name == node_name), order_idx);
 
             // Draw link slot
             drawLinkSlots(gui_node);
@@ -494,9 +505,12 @@ private:
     const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
     const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
     const ImU32 SLOT_ACT_COLOR = IM_COL32(255, 255, 100, 255);
+    const float TITLE_COL_SCALE = 155.f;
+    const float TITLE_COL_OFFSET = 100.f;
 
     // Reference to the parent's
     LabelWrapper& label;
+    const std::vector<std::string>& node_order;
     std::string& selected_node_name;
     std::string& hovered_node_name;
     std::map<std::string, GuiNode>& gui_nodes;
@@ -509,10 +523,28 @@ private:
     // [None]
 
     // Private methods
+    ImU32 genTitleColor(const size_t idx) {
+        const size_t denom = node_order.size();
+        assert(denom != 0);
+        const float v = float(idx) / float(denom - 1);
+        float r = (v <= 0.25f) ? 1.f :
+                  (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
+        float g = (v <= 0.25f) ? v / 0.25f :
+                  (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
+        float b = (v <= 0.50f) ? 0.f :
+                  (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+        r = r * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
+        g = g * TITLE_COL_SCALE * 0.5f + TITLE_COL_OFFSET;
+        b = b * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
+        return IM_COL32(int(r), int(g), int(b), 200);
+    }
+
     void drawNodeContent(FaseCore* core, const std::string& node_name,
-                         const Node& node, GuiNode& gui_node) {
+                         const Node& node, GuiNode& gui_node,
+                         const size_t order_idx) {
         ImGui::BeginGroup();  // Lock horizontal position
-        ImGui::Text("[%s] %s", node.func_repr.c_str(), node_name.c_str());
+        ImGui::Text("%zu) [%s] %s", order_idx, node.func_repr.c_str(),
+                    node_name.c_str());
         ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
 
         const size_t n_args = node.links.size();
@@ -559,7 +591,7 @@ private:
     }
 
     void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
-                     bool is_active) {
+                     const bool is_active, const size_t order_idx) {
         const ImVec2 node_rect_max = node_rect_min + node_size;
         ImGui::InvisibleButton(label("node"), node_size);
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -574,7 +606,7 @@ private:
         const ImVec2 node_title_rect_max =
                 node_rect_min + ImVec2(node_size.x, line_height + pad_height);
         draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
-                                 IM_COL32(200, 100, 100, 255), 4.f);
+                                 genTitleColor(order_idx), 4.f);
     }
 
     void drawLinkSlots(const GuiNode& gui_node) {
@@ -758,16 +790,13 @@ public:
                    std::string& hovered_node_name,
                    std::string& hovered_slot_name,
                    const size_t& hovered_slot_idx,
-                   const bool& is_hovered_slot_input,
-                   const std::map<std::string, GuiNode>& gui_nodes,
-                   bool& request_add_node)
+                   const bool& is_hovered_slot_input, bool& request_add_node)
         : label(label),
           selected_node_name(selected_node_name),
           hovered_node_name(hovered_node_name),
           hovered_slot_name(hovered_slot_name),
           hovered_slot_idx(hovered_slot_idx),
           is_hovered_slot_input(is_hovered_slot_input),
-          gui_nodes(gui_nodes),
           request_add_node(request_add_node) {}
 
     void draw(FaseCore* core) {
@@ -845,7 +874,6 @@ private:
     std::string& hovered_slot_name;
     const size_t& hovered_slot_idx;
     const bool& is_hovered_slot_input;
-    const std::map<std::string, GuiNode>& gui_nodes;
     bool& request_add_node;
 
     // Private status
@@ -864,17 +892,17 @@ public:
         : node_adding_gui(label, request_add_node),
           run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label, var_generators),
-          layout_optimize_gui(label, gui_nodes),
-          node_list_gui(label, selected_node_name, hovered_node_name),
+          layout_optimize_gui(label, node_order, gui_nodes),
+          node_list_gui(label, node_order, selected_node_name,
+                        hovered_node_name),
           links_gui(hovered_slot_name, hovered_slot_idx, is_hovered_slot_input,
                     gui_nodes, is_link_creating, is_any_node_moving),
-          node_boxes_gui(label, selected_node_name, hovered_node_name,
-                         gui_nodes, scroll_pos, is_link_creating,
-                         is_any_node_moving, var_generators),
+          node_boxes_gui(label, node_order, selected_node_name,
+                         hovered_node_name, gui_nodes, scroll_pos,
+                         is_link_creating, is_any_node_moving, var_generators),
           context_menu_gui(label, selected_node_name, hovered_node_name,
                            hovered_slot_name, hovered_slot_idx,
-                           is_hovered_slot_input, gui_nodes, request_add_node) {
-    }
+                           is_hovered_slot_input, request_add_node) {}
 
     bool run(FaseCore* core, const std::string& win_title,
              const std::string& label_suffix);
@@ -892,6 +920,7 @@ private:
 
     // Common status
     LabelWrapper label;  // Label wrapper for suffix to generate unique label
+    std::vector<std::string> node_order;
     std::string selected_node_name;
     std::string hovered_node_name;
     std::string hovered_slot_name;
@@ -905,7 +934,6 @@ private:
     size_t prev_n_nodes = 0;
     size_t prev_n_links = 0;
     bool request_add_node = false;
-    std::vector<std::string> node_order;
 
     void updateGuiNodes(FaseCore* core) {
         // Clear cache
