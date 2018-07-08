@@ -18,6 +18,10 @@ struct GuiNode {
     std::vector<char> arg_inp_hovered;
     std::vector<char> arg_out_hovered;
 
+    size_t arg_size() const {
+        return arg_poses.size();
+    }
+
     void alloc(size_t n_args) {
         arg_poses.resize(n_args);
         arg_inp_hovered.resize(n_args);
@@ -948,7 +952,8 @@ private:
             const std::string& node_name = it->first;
             const size_t n_args = it->second.links.size();
             // Check GUI node existence
-            if (!gui_nodes.count(node_name)) {
+            if (!gui_nodes.count(node_name) ||
+                gui_nodes[node_name].arg_size() != n_args) {
                 // Create new node and allocate for link slots
                 gui_nodes[node_name].alloc(n_args);
                 is_pipeline_updated = true;
@@ -966,6 +971,12 @@ private:
             is_pipeline_updated = true;
             prev_n_nodes = n_nodes;
             prev_n_links = n_links;
+            // Remove unused GUI nodes
+            for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
+                if (nodes.count(it->first) == 0) {
+                    gui_nodes.erase(it++--);
+                }
+            }
             // Update node order
             core->getRunningOrder(node_order);
         }
