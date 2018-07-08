@@ -58,7 +58,7 @@ public:
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     bool setNodeArg(const std::string& node_name, const size_t arg_idx,
-                    const std::string& arg_repr, Variable arg_val);
+                    const std::string& arg_repr, const Variable &arg_val);
 
     void clearNodeArg(const std::string& node_name, const size_t arg_idx);
 

@@ -255,17 +255,25 @@ private:
 // Draw button and pop up window for native code
 class NativeCodeGUI {
 public:
-    NativeCodeGUI(LabelWrapper& label) : label(label) {}
+    NativeCodeGUI(LabelWrapper& label,
+            const std::map<const std::type_info*,
+                           std::function<bool(const char*, const Variable&, std::string&)>>&
+                    var_generators)
+        : label(label), var_generators(var_generators) {}
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Show code"))) {
-            ImGui::OpenPopup(label("Popup: Native code"));
+            // Update all arguments
+            updateAllArgs(core);
+            // Generate native code
             native_code = core->genNativeCode();
+            // Open pop up window
+            ImGui::OpenPopup(label("Popup: Native code"));
         }
         bool opened = true;
         if (ImGui::BeginPopupModal(label("Popup: Native code"), &opened,
                                    ImGuiWindowFlags_NoResize)) {
-            if (!opened) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
                 ImGui::CloseCurrentPopup();  // Behavior of close button
             }
             ImGui::InputTextMultiline(label("##native code"),
@@ -282,9 +290,38 @@ private:
 
     // Reference to the parent's
     LabelWrapper& label;
+    const std::map<const std::type_info*,
+                   std::function<bool(const char*, const Variable&, std::string&)>>&
+            var_generators;
 
     // Private status
     std::string native_code;
+
+    void updateAllArgs(FaseCore* core) {
+        const std::map<std::string, Function>& functions = core->getFunctions();
+        const std::map<std::string, Node>& nodes = core->getNodes();
+        for (auto it = nodes.begin(); it != nodes.end(); it++) {
+            const std::string& node_name = it->first;
+            const Node& node = it->second;
+            const Function& function = functions.at(node.func_repr);
+            const size_t n_args = node.links.size();
+            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+                const std::string& arg_name = function.arg_names[arg_idx];
+                const std::type_info* arg_type = function.arg_types[arg_idx];
+                if (var_generators.count(arg_type)) {
+                    auto& func = var_generators.at(arg_type);
+                    const Variable& var = node.arg_values[arg_idx];
+                    // Get expression using GUI
+                    std::string expr;
+                    func(label(arg_name), var, expr);
+                    // Update forcibly
+                    core->setNodeArg(node_name, arg_idx, expr, var);
+                } else {
+                    // No GUI but no method for users to know the value changing
+                }
+            }
+        }
+    }
 };
 
 // Node list selector
@@ -339,7 +376,7 @@ public:
             std::map<std::string, GuiNode>& gui_nodes, const ImVec2& scroll_pos,
             const bool& is_link_creating, bool& is_any_node_moving,
             const std::map<const std::type_info*,
-                           std::function<void(const char*, const Variable&)>>&
+                           std::function<bool(const char*, const Variable&, std::string&)>>&
                     var_generators)
         : label(label),
           selected_node_name(selected_node_name),
@@ -374,7 +411,7 @@ public:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContent(node_name, node, gui_node, core->getFunctions());
+            drawNodeContent(core, node_name, node, gui_node);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -426,15 +463,14 @@ private:
     const bool& is_link_creating;
     bool& is_any_node_moving;
     const std::map<const std::type_info*,
-                   std::function<void(const char*, const fase::Variable&)>>&
+                   std::function<bool(const char*, const Variable&, std::string&)>>&
             var_generators;
 
     // Private status
     // [None]
 
-    void drawNodeContent(const std::string& node_name, const Node& node,
-                         GuiNode& gui_node,
-                         const std::map<std::string, Function>& functions) {
+    void drawNodeContent(FaseCore* core, const std::string& node_name, const Node& node,
+                         GuiNode& gui_node) {
         ImGui::BeginGroup();  // Lock horizontal position
         ImGui::Text("[%s] %s", node.func_repr.c_str(), node_name.c_str());
 
@@ -442,6 +478,7 @@ private:
         assert(gui_node.arg_poses.size() == n_args);
 
         // Draw arguments
+        const std::map<std::string, Function>& functions = core->getFunctions();
         const Function& function = functions.at(node.func_repr);
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
             // Save argument position
@@ -461,8 +498,14 @@ private:
                 ImGui::Text("%s", arg_name.c_str());
             } else if (var_generators.count(arg_type)) {
                 // Call registered GUI for editing
-                auto func = var_generators.at(arg_type);
-                func(label(arg_name), node.arg_values[arg_idx]);
+                auto& func = var_generators.at(arg_type);
+                const Variable& var = node.arg_values[arg_idx];
+                std::string expr;
+                const bool chg = func(label(arg_name), var, expr);
+                if (chg) {
+                    // Update argument
+                    core->setNodeArg(node_name, arg_idx, expr, var);
+                }
             } else {
                 // No GUI for editing
                 ImGui::Text("%s [default:%s]", arg_name.c_str(),
@@ -690,12 +733,12 @@ private:
 class GUIEditor::Impl {
 public:
     Impl(const std::map<const std::type_info*,
-                        std::function<void(const char*, const Variable&)>>&
+                        std::function<bool(const char*, const Variable&, std::string&)>>&
                  var_generators)
         // Module dependencies are written here
         : node_adding_gui(label),
           run_pipeline_gui(label, is_pipeline_updated),
-          native_code_gui(label),
+          native_code_gui(label, var_generators),
           node_list_gui(label, selected_node_name, hovered_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
           node_boxes_gui(label, selected_node_name, hovered_node_name,
@@ -753,7 +796,7 @@ private:
                 }
             }
         }
-
+        // Detect changes by the numbers of nodes and links
         if (n_nodes != prev_n_nodes || n_links != prev_n_links) {
             is_pipeline_updated = true;
             prev_n_nodes = n_nodes;
@@ -805,25 +848,25 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         ImGui::Text("Hold right mouse button to scroll (%f, %f)", scroll_pos.x,
                     scroll_pos.y);
         BeginCanvas(label("scrolling_region"));
+        {
+            // Draw grid canvas
+            DrawCanvas(scroll_pos, 64.f);
+            // Draw links
+            links_gui.draw(core);
+            // Draw nodes
+            node_boxes_gui.draw(core);
 
-        // Draw grid canvas
-        DrawCanvas(scroll_pos, 64.f);
-        // Draw links
-        links_gui.draw(core);
-        // Draw nodes
-        node_boxes_gui.draw(core);
-
-        // Canvas scroll
-        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-            ImGui::IsMouseDragging(1, 0.f)) {
-            scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
+            // Canvas scroll
+            if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+                ImGui::IsMouseDragging(1, 0.f)) {
+                scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
+            }
+            // Clear selected node
+            if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+                ImGui::IsMouseClicked(0)) {
+                selected_node_name.clear();
+            }
         }
-        // Clear selected node
-        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-            ImGui::IsMouseClicked(0)) {
-            selected_node_name.clear();
-        }
-
         EndCanvas();
     }
 

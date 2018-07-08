@@ -27,6 +27,10 @@ class CLIEditor : public EditorBase<CLIEditor> {
 public:
     CLIEditor() {}
 
+    ///
+    /// Add variable generator for a type "T"
+    ///  It requires a function which convert "string" to "T".
+    ///
     template <typename T>
     bool addVarGenerator(const std::function<T(const std::string &)> &func) {
         var_generators[&typeid(T)] = func;
@@ -51,9 +55,13 @@ public:
     GUIEditor();
     ~GUIEditor();
 
+    ///
+    /// Add variable generator for a type "T"
+    ///  It requires a function for drawing GUI.
+    ///
     template <typename T>
     bool addVarGenerator(
-            T, const std::function<void(const char *, const fase::Variable &)>
+            T, const std::function<bool(const char *, const Variable &, std::string&)>
                        &func) {
         var_generators[&typeid(T)] = func;
         return true;
@@ -65,7 +73,7 @@ public:
 private:
     // Variable generators
     std::map<const std::type_info *,
-             std::function<void(const char *, const Variable &)>>
+             std::function<bool(const char *, const Variable &, std::string&)>>
             var_generators;
 
     // pImpl pattern

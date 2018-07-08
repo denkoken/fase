@@ -94,9 +94,11 @@ int main() {
 
     // Register for argument editing
     fase.addVarGenerator(
-            int(), std::function<void(const char*, const fase::Variable&)>(
-                           [](const char* label, const fase::Variable& v) {
-                               ImGui::InputInt(label, &*v.getReader<int>());
+            int(), std::function<bool(const char*, const fase::Variable&, std::string&)>(
+                           [](const char* label, const fase::Variable& v, std::string& expr) {
+                               const bool chg = ImGui::InputInt(label, &*v.getReader<int>());
+                               expr = std::to_string(*v.getReader<int>());
+                               return chg;
                            }));
 
     // Create OpenGL window
