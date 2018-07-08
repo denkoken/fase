@@ -65,6 +65,10 @@ public:
         return node_name;
     }
 
+    bool empty() {
+        return unused_node_names.empty();
+    }
+
 private:
     std::set<std::string> unused_node_names;
     const std::map<std::string, Node>* nodes;
@@ -197,6 +201,16 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
+
+    // Test for loop link
+    RunnableNodeStack runnable_nodes_stack(&nodes);
+    while (!runnable_nodes_stack.pop().empty());
+    if (!runnable_nodes_stack.empty()) {
+        // Revert registration
+        nodes[dst_node_name].links[dst_arg_idx] = {};
+        return false;
+    }
+
     return true;
 }
 
