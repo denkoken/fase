@@ -188,6 +188,41 @@ private:
     }
 };
 
+// Draw button and pop up window for native code
+class NativeCodeGUI {
+public:
+    NativeCodeGUI(LabelWrapper& label) : label(label) {}
+
+    void draw(FaseCore* core) {
+        if (ImGui::Button(label("Show code"))) {
+            ImGui::OpenPopup(label("Popup: Native code"));
+            native_code = core->genNativeCode();
+        }
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label("Popup: Native code"), &opened,
+                                   ImGuiWindowFlags_NoResize)) {
+            if (!opened) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+            ImGui::InputTextMultiline(
+                    label("##native code"),
+                    const_cast<char*>(native_code.c_str()), native_code.size(),
+                    ImVec2(500, 500), ImGuiInputTextFlags_ReadOnly);
+
+            ImGui::EndPopup();
+        }
+    }
+
+private:
+    const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
+
+    // Reference to the parent's
+    LabelWrapper& label;
+
+    // Private status
+    std::string native_code;
+};
+
 // Node list selector
 class NodeListGUI {
 public:
@@ -554,6 +589,7 @@ public:
                  var_generators)
         // Module dependencies are written here
         : node_adding_gui(label),
+          native_code_gui(label),
           node_list_gui(label, selected_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
           node_boxes_gui(label, selected_node_name, gui_nodes, scroll_pos,
@@ -566,6 +602,7 @@ public:
 private:
     // GUI components
     NodeAddingGUI node_adding_gui;
+    NativeCodeGUI native_code_gui;
     NodeListGUI node_list_gui;
     LinksGUI links_gui;
     NodeBoxesGUI node_boxes_gui;
@@ -619,6 +656,8 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         if (ImGui::Button(label("Run (no build)"))) {
             core->run();
         }
+        // Button to show native code
+        native_code_gui.draw(core);
         // Spacing
         ImGui::Dummy(ImVec2(0, 5));
         // Draw a list of nodes on the left side
