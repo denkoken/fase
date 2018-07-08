@@ -153,10 +153,12 @@ void DrawCanvas(const ImVec2& scroll_pos, float size) {
 // Draw button and pop up window for node adding
 class NodeAddingGUI {
 public:
-    NodeAddingGUI(LabelWrapper& label) : label(label) {}
+    NodeAddingGUI(LabelWrapper& label, bool& request_add_node)
+        : label(label), request_add_node(request_add_node) {}
 
     void draw(FaseCore* core) {
-        if (ImGui::MenuItem(label("Add node"))) {
+        if (ImGui::MenuItem(label("Add node")) || request_add_node) {
+            request_add_node = false;
             ImGui::OpenPopup(label("Popup: Add node"));
         }
         bool opened = true;
@@ -200,6 +202,7 @@ private:
 
     // Reference to the parent's
     LabelWrapper& label;
+    bool& request_add_node;
 
     // Private status
     std::vector<std::string> func_reprs;
@@ -247,7 +250,7 @@ public:
                 }
             }
         } else {
-            if (ImGui::MenuItem(label("Stop (loop)"))) {
+            if (ImGui::MenuItem(label("Stop! (loop)"))) {
                 // Stop
                 is_running = false;
             } else {
@@ -739,14 +742,16 @@ public:
                    std::string& hovered_slot_name,
                    const size_t& hovered_slot_idx,
                    const bool& is_hovered_slot_input,
-                   const std::map<std::string, GuiNode>& gui_nodes)
+                   const std::map<std::string, GuiNode>& gui_nodes,
+                   bool& request_add_node)
         : label(label),
           selected_node_name(selected_node_name),
           hovered_node_name(hovered_node_name),
           hovered_slot_name(hovered_slot_name),
           hovered_slot_idx(hovered_slot_idx),
           is_hovered_slot_input(is_hovered_slot_input),
-          gui_nodes(gui_nodes) {}
+          gui_nodes(gui_nodes),
+          request_add_node(request_add_node) {}
 
     void draw(FaseCore* core) {
         // Right click
@@ -757,15 +762,19 @@ public:
                 selected_slot_name = hovered_slot_name;
                 selected_slot_idx = hovered_slot_idx;
                 is_selected_slot_input = is_hovered_slot_input;
-                ImGui::OpenPopup(label("slot context menu"));
+                ImGui::OpenPopup(label("Popup: Slot context menu"));
             } else if (!hovered_node_name.empty()) {
                 // Open pop up window for a node
                 selected_node_name = hovered_node_name;
-                ImGui::OpenPopup(label("node context menu"));
+                ImGui::OpenPopup(label("Popup: Node context menu"));
+            } else {
+                // Open pop up window
+                ImGui::OpenPopup(label("Popup: Common context menu"));
             }
         }
-        if (ImGui::BeginPopup(label("slot context menu"))) {
-            // Node menu
+
+        // Slot menu
+        if (ImGui::BeginPopup(label("Popup: Slot context menu"))) {
             ImGui::Text("Link \"%s[%d][%s]\"", selected_slot_name.c_str(),
                         int(selected_slot_idx),
                         is_selected_slot_input ? "in" : "out");
@@ -786,12 +795,22 @@ public:
             }
             ImGui::EndPopup();
         }
-        if (ImGui::BeginPopup(label("node context menu"))) {
-            // Node menu
+
+        // Node menu
+        if (ImGui::BeginPopup(label("Popup: Node context menu"))) {
             ImGui::Text("Node \"%s\"", selected_node_name.c_str());
             ImGui::Separator();
             if (ImGui::MenuItem(label("Delete"))) {
                 core->delNode(selected_node_name);
+            }
+            ImGui::EndPopup();
+        }
+
+        // Node menu
+        if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
+            if (ImGui::MenuItem(label("Add node"))) {
+                // Call for another class `NodeAddingGUI`
+                request_add_node = true;
             }
             ImGui::EndPopup();
         }
@@ -810,6 +829,7 @@ private:
     const size_t& hovered_slot_idx;
     const bool& is_hovered_slot_input;
     const std::map<std::string, GuiNode>& gui_nodes;
+    bool& request_add_node;
 
     // Private status
     std::string selected_slot_name;
@@ -825,7 +845,7 @@ public:
                         std::function<bool(const char*, const Variable&,
                                            std::string&)>>& var_generators)
         // Module dependencies are written here
-        : node_adding_gui(label),
+        : node_adding_gui(label, request_add_node),
           run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label, var_generators),
           layout_optimize_gui(label, gui_nodes),
@@ -837,7 +857,8 @@ public:
                          is_any_node_moving, var_generators),
           context_menu_gui(label, selected_node_name, hovered_node_name,
                            hovered_slot_name, hovered_slot_idx,
-                           is_hovered_slot_input, gui_nodes) {}
+                           is_hovered_slot_input, gui_nodes, request_add_node) {
+    }
 
     bool run(FaseCore* core, const std::string& win_title,
              const std::string& label_suffix);
@@ -867,6 +888,7 @@ private:
     bool is_pipeline_updated = false;
     size_t prev_n_nodes = 0;
     size_t prev_n_links = 0;
+    bool request_add_node = false;
 
     void updateGuiNodes(FaseCore* core) {
         // Clear cache
@@ -915,6 +937,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
 
     // Update label suffix
     label.setSuffix(label_suffix);
+
+    // Context menu
+    context_menu_gui.draw(core);
 
     // Menu bar
     if (ImGui::BeginMenuBar()) {
@@ -968,9 +993,6 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         }
         EndCanvas();
     }
-
-    // Context menu
-    context_menu_gui.draw(core);
 
     ImGui::End();  // End window
     return true;
