@@ -353,21 +353,22 @@ private:
                            pos.y + ImGui::GetTextLineHeight() * 0.5f);
             // Fetch from structures
             const std::string& arg_name = function.arg_names[arg_idx];
-            const std::type_info* arg_type = function.arg_types[arg_idx];
-            const std::string& arg_type_repr = function.arg_type_reprs[arg_idx];
             const std::string& arg_repr = node.arg_reprs[arg_idx];
+            const std::type_info* arg_type = function.arg_types[arg_idx];
             // Draw one argument
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
             ImGui::SameLine();
-            if (node.links[arg_idx].node_name.empty() &&
-                var_generators.count(arg_type)) {
-                // No link exists
-                auto func = var_generators.at(arg_type);
+            if (!node.links[arg_idx].node_name.empty()) {
+                // Link exists
+                ImGui::Text("%s", arg_name.c_str());
+            } else if (var_generators.count(arg_type)) {
                 // Call registered GUI for editing
+                auto func = var_generators.at(arg_type);
                 func(label(arg_name), node.arg_values[arg_idx]);
             } else {
-                // Link exists or No GUI for editing
-                ImGui::Text("%s [%s]", arg_repr.c_str(), arg_type_repr.c_str());
+                // No GUI for editing
+                ImGui::Text("%s [default:%s]", arg_name.c_str(),
+                            arg_repr.c_str());
             }
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
@@ -406,10 +407,9 @@ private:
 
 class LinksGUI {
 public:
-    LinksGUI(LabelWrapper& label, std::map<std::string, GuiNode>& gui_nodes,
-             bool& is_link_creating, const bool& is_any_node_moving)
-        : label(label),
-          gui_nodes(gui_nodes),
+    LinksGUI(std::map<std::string, GuiNode>& gui_nodes, bool& is_link_creating,
+             const bool& is_any_node_moving)
+        : gui_nodes(gui_nodes),
           is_link_creating(is_link_creating),
           is_any_node_moving(is_any_node_moving) {}
 
@@ -528,7 +528,6 @@ private:
     const float SLOT_HOVER_RADIUS = 8.f;
 
     // Reference to the parent's
-    LabelWrapper& label;
     std::map<std::string, GuiNode>& gui_nodes;
     bool& is_link_creating;
     const bool& is_any_node_moving;
@@ -556,7 +555,7 @@ public:
         // Module dependencies are written here
         : node_adding_gui(label),
           node_list_gui(label, selected_node_name),
-          links_gui(label, gui_nodes, is_link_creating, is_any_node_moving),
+          links_gui(gui_nodes, is_link_creating, is_any_node_moving),
           node_boxes_gui(label, selected_node_name, gui_nodes, scroll_pos,
                          is_link_creating, is_any_node_moving, var_generators) {
     }
@@ -610,6 +609,16 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     {
         // Button to add new node
         node_adding_gui.draw(core);
+        // Spacing
+        ImGui::Dummy(ImVec2(0, 5));
+        // Button to run
+        if (ImGui::Button(label("Run"))) {
+            core->build();
+            core->run();
+        }
+        if (ImGui::Button(label("Run (no build)"))) {
+            core->run();
+        }
         // Spacing
         ImGui::Dummy(ImVec2(0, 5));
         // Draw a list of nodes on the left side
