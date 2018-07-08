@@ -581,7 +581,7 @@ private:
 
 class ContextMenuGUI {
 public:
-    ContextMenuGUI(LabelWrapper& label, const std::string& selected_node_name,
+    ContextMenuGUI(LabelWrapper& label, std::string& selected_node_name,
                    std::string& hovered_node_name,
                    const std::map<std::string, GuiNode>& gui_nodes)
         : label(label),
@@ -590,19 +590,18 @@ public:
           gui_nodes(gui_nodes) {}
 
     void draw(FaseCore* core) {
-        const std::map<std::string, Node>& nodes = core->getNodes();
         // Right click
         if (ImGui::IsMouseClicked(1)) {
             if (!hovered_node_name.empty()) {
                 ImGui::OpenPopup(label("context menu"));
-                hovered_node_name_prev = hovered_node_name;
+                selected_node_name = hovered_node_name;
             }
         }
         if (ImGui::BeginPopup(label("context menu"))) {
-            ImGui::Text("Node \"%s\"", hovered_node_name_prev.c_str());
+            ImGui::Text("Node \"%s\"", selected_node_name.c_str());
             ImGui::Separator();
             if (ImGui::MenuItem(label("Delete"))) {
-                core->delNode(hovered_node_name_prev);
+                core->delNode(selected_node_name);
             }
             ImGui::EndPopup();
         }
@@ -614,12 +613,12 @@ public:
 private:
     // Reference to the parent's
     LabelWrapper& label;
-    const std::string& selected_node_name;
+    std::string& selected_node_name;
     std::string& hovered_node_name;
     const std::map<std::string, GuiNode>& gui_nodes;
 
     // Private status
-    std::string hovered_node_name_prev;
+    // [None]
 };
 
 }  // anonymous namespace
