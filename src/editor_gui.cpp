@@ -97,6 +97,26 @@ bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
             static_cast<void*>(&vals), int(vals.size()));
 }
 
+void BeginCanvas(const char* label) {
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ChildWindowBg,
+                          IM_COL32(60, 60, 70, 200));
+    ImGui::BeginChild(label, ImVec2(0, 0), true,
+                      ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse |
+                              ImGuiWindowFlags_NoMove);
+    ImGui::PushItemWidth(120.0f);
+}
+
+void EndCanvas() {
+    ImGui::PopItemWidth();
+    ImGui::EndChild();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+    ImGui::EndChild();
+}
+
 // Draw canvas with grids
 void DrawCanvas(const ImVec2& scroll_pos, float size) {
     const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
@@ -707,6 +727,22 @@ private:
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
     bool is_link_creating = false;
     bool is_any_node_moving = false;
+    bool is_node_updated = false;
+
+    void updateGuiNodes(FaseCore* core) {
+        // Clear cache
+        is_node_updated = false;
+        // Check GUI node existence
+        const std::map<std::string, Node>& nodes = core->getNodes();
+        for (auto it = nodes.begin(); it != nodes.end(); it++) {
+            const std::string& node_name = it->first;
+            if (!gui_nodes.count(node_name)) {
+                // Create new node and allocate for link slots
+                const size_t n_args = it->second.links.size();
+                gui_nodes[node_name].alloc(n_args);
+            }
+        }
+    }
 };
 
 bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
@@ -719,15 +755,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     }
 
     // Update GUI nodes
-    const std::map<std::string, Node>& nodes = core->getNodes();
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
-        const std::string& node_name = it->first;
-        if (!gui_nodes.count(node_name)) {
-            // Create new node and allocate for link slots
-            const size_t n_args = it->second.links.size();
-            gui_nodes[node_name].alloc(n_args);
-        }
-    }
+    updateGuiNodes(core);
 
     // Update label suffix
     label.setSuffix(label_suffix);
@@ -759,15 +787,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     {
         ImGui::Text("Hold right mouse button to scroll (%f, %f)", scroll_pos.x,
                     scroll_pos.y);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ChildWindowBg,
-                              IM_COL32(60, 60, 70, 200));
-        ImGui::BeginChild(label("scrolling_region"), ImVec2(0, 0), true,
-                          ImGuiWindowFlags_NoScrollbar |
-                                  ImGuiWindowFlags_NoScrollWithMouse |
-                                  ImGuiWindowFlags_NoMove);
-        ImGui::PushItemWidth(120.0f);
+        BeginCanvas(label("scrolling_region"));
 
         // Draw grid canvas
         DrawCanvas(scroll_pos, 64.f);
@@ -787,11 +807,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
             selected_node_name.clear();
         }
 
-        ImGui::PopItemWidth();
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar(2);
-        ImGui::EndChild();
+        EndCanvas();
     }
 
     // Context menu
