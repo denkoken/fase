@@ -210,6 +210,7 @@ private:
     int curr_idx = 0;
     std::string error_msg;
 
+    // Private methods
     void updateFuncReprs(const std::map<std::string, Function>& functions) {
         if (functions.size() != func_reprs.size()) {
             // Create all again
@@ -318,6 +319,7 @@ private:
     // Private status
     std::string native_code;
 
+    // Private methods
     void updateAllArgs(FaseCore* core) {
         const std::map<std::string, Function>& functions = core->getFunctions();
         const std::map<std::string, Node>& nodes = core->getNodes();
@@ -513,6 +515,7 @@ private:
     // Private status
     // [None]
 
+    // Private methods
     void drawNodeContent(FaseCore* core, const std::string& node_name,
                          const Node& node, GuiNode& gui_node) {
         ImGui::BeginGroup();  // Lock horizontal position
@@ -727,6 +730,7 @@ private:
     size_t hovered_slot_idx_prev;
     bool is_hovered_slot_input_prev;
 
+    // Private methods
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->AddBezierCurve(s_pos, s_pos + ImVec2(+50, 0),
