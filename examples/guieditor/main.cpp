@@ -124,7 +124,7 @@ int main() {
         ImGui::NewFrame();
 
         // Draw Fase's interface
-        if (!fase.runEditing()) {
+        if (!fase.runEditing("Fase Editor", "##fase")) {
             break;
         }
 
