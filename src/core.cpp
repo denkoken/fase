@@ -160,8 +160,20 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
     return true;
 }
 
-void FaseCore::delNode(const std::string& name) noexcept {
-    nodes.erase(name);
+void FaseCore::delNode(const std::string& node_name) noexcept {
+    // Remove connected links
+    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+        Node& node = it->second;
+        for (Link& link : node.links) {
+            if (link.node_name == node_name) {
+                // Remove
+                link = {};
+            }
+        }
+    }
+
+    // Remove node
+    nodes.erase(node_name);
 }
 
 bool FaseCore::addLink(const std::string& src_node_name,
