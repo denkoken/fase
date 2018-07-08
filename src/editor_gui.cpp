@@ -527,12 +527,14 @@ private:
         const size_t denom = node_order.size();
         assert(denom != 0);
         const float v = float(idx) / float(denom - 1);
+        // clang-format off
         float r = (v <= 0.25f) ? 1.f :
                   (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
         float g = (v <= 0.25f) ? v / 0.25f :
                   (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
         float b = (v <= 0.50f) ? 0.f :
                   (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+        // clang-format on
         r = r * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
         g = g * TITLE_COL_SCALE * 0.5f + TITLE_COL_OFFSET;
         b = b * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
