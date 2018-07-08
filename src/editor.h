@@ -61,8 +61,8 @@ public:
     ///
     template <typename T>
     bool addVarGenerator(
-            T, const std::function<bool(const char *, const Variable &, std::string&)>
-                       &func) {
+            T, const std::function<bool(const char *, const Variable &,
+                                        std::string &)> &func) {
         var_generators[&typeid(T)] = func;
         return true;
     }
@@ -73,7 +73,7 @@ public:
 private:
     // Variable generators
     std::map<const std::type_info *,
-             std::function<bool(const char *, const Variable &, std::string&)>>
+             std::function<bool(const char *, const Variable &, std::string &)>>
             var_generators;
 
     // pImpl pattern
