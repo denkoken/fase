@@ -188,6 +188,52 @@ private:
     }
 };
 
+class RunPipelineGUI {
+public:
+    RunPipelineGUI(LabelWrapper& label) : label(label) {}
+
+    void draw(FaseCore* core) {
+        // Run once
+        if (ImGui::MenuItem(label("Run"))) {
+            core->build();
+            core->run();
+        }
+
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
+        // Run by loop
+        if (running_cnt < 0) {
+            if (ImGui::MenuItem(label("Run (loop)"))) {
+                // Start loop
+                if (core->build()) {
+                    running_cnt = 0;
+                }
+            }
+        } else {
+            if (ImGui::MenuItem(label("Stop (loop)"))) {
+                // Stop
+                running_cnt = -1;
+            } else {
+                running_cnt++;
+                if (REBUILD_INTERBAL < running_cnt) {
+                    // Rebuild
+                    core->build();
+                    running_cnt = 0;
+                }
+                core->run();
+            }
+        }
+    }
+
+private:
+    const int REBUILD_INTERBAL = 30;
+
+    // Reference to the parent's
+    LabelWrapper& label;
+
+    // Private status
+    int running_cnt = -1;  // < 0: invalid, 0 <=: running
+};
+
 // Draw button and pop up window for native code
 class NativeCodeGUI {
 public:
@@ -630,6 +676,7 @@ public:
                  var_generators)
         // Module dependencies are written here
         : node_adding_gui(label),
+          run_pipeline_gui(label),
           native_code_gui(label),
           node_list_gui(label, selected_node_name, hovered_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
@@ -645,6 +692,7 @@ public:
 private:
     // GUI components
     NodeAddingGUI node_adding_gui;
+    RunPipelineGUI run_pipeline_gui;
     NativeCodeGUI native_code_gui;
     NodeListGUI node_list_gui;
     LinksGUI links_gui;
@@ -688,20 +736,10 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     if (ImGui::BeginMenuBar()) {
         // Menu to add new node
         node_adding_gui.draw(core);
-        // Spacing
-        ImGui::Dummy(ImVec2(5, 0));
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to run
-        if (ImGui::MenuItem(label("Run"))) {
-            core->build();
-            core->run();
-        }
-        // Spacing
-        ImGui::Dummy(ImVec2(5, 0));
-        if (ImGui::MenuItem(label("Run (no build)"))) {
-            core->run();
-        }
-        // Spacing
-        ImGui::Dummy(ImVec2(5, 0));
+        run_pipeline_gui.draw(core);
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Button to show native code
         native_code_gui.draw(core);
         ImGui::EndMenuBar();
@@ -725,9 +763,10 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::PushStyleColor(ImGuiCol_ChildWindowBg,
                               IM_COL32(60, 60, 70, 200));
-        ImGui::BeginChild(
-                label("scrolling_region"), ImVec2(0, 0), true,
-                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
+        ImGui::BeginChild(label("scrolling_region"), ImVec2(0, 0), true,
+                          ImGuiWindowFlags_NoScrollbar |
+                                  ImGuiWindowFlags_NoScrollWithMouse |
+                                  ImGuiWindowFlags_NoMove);
         ImGui::PushItemWidth(120.0f);
 
         // Draw grid canvas
