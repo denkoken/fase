@@ -189,8 +189,6 @@ bool FaseCore::addLink(const std::string& src_node_name,
     if (!nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
         return false;
     }
-    std::cout << src_node_name << " " << src_arg_idx << " -> " << dst_node_name
-              << " " << dst_arg_idx << std::endl;
 
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};

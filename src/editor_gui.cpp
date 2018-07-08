@@ -424,13 +424,16 @@ public:
                 continue;  // Wait for creating GUI node
             }
             const size_t n_args = node.links.size();
-            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-                const std::string& src_name = node.links[arg_idx].node_name;
-                if (src_name.empty()) {
-                    continue;
+            for (size_t dst_idx = 0; dst_idx < n_args; dst_idx++) {
+                const std::string& src_name = node.links[dst_idx].node_name;
+                const size_t& src_idx = node.links[dst_idx].arg_idx;
+                if (src_name.empty() || !gui_nodes.count(src_name)) {
+                    continue;  // No link or Wait for creating GUI node
                 }
-                const ImVec2 s_pos = gui_nodes[src_name].getOutputSlot(arg_idx);
-                const ImVec2 d_pos = gui_nodes[node_name].getInputSlot(arg_idx);
+                // Source
+                const ImVec2 s_pos = gui_nodes[src_name].getOutputSlot(src_idx);
+                // Destination
+                const ImVec2 d_pos = gui_nodes[node_name].getInputSlot(dst_idx);
                 drawLink(s_pos, d_pos);
             }
         }
