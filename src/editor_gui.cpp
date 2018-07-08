@@ -332,8 +332,9 @@ public:
         : label(label), gui_nodes(gui_nodes) {}
 
     void draw(FaseCore* core) {
-        if (ImGui::MenuItem(label("Optimize layout"))) {
-            // Not implemented
+        if (ImGui::MenuItem(label("Optimize layout (TODO)"))) {
+            // TODO: implemented
+            std::cout << "Not implemented yet" << std::endl;
         }
     }
 
@@ -756,6 +757,7 @@ public:
                     core->delLink(selected_slot_name, selected_slot_idx);
                 } else {
                     // TODO: implement
+                    std::cout << "Not implemented yet" << std::endl;
                 }
             }
             ImGui::EndPopup();
