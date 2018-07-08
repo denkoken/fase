@@ -399,4 +399,19 @@ std::string FaseCore::genNativeCode(const std::string& entry_name,
     return native_code.str();
 }
 
+void FaseCore::getRunningOrder(std::vector<std::string>& order) {
+    // Stack for finding runnable node
+    RunnableNodeStack runnable_nodes_stack(&nodes);
+
+    // Push in running order
+    order.clear();
+    while (true) {
+        const std::string& node_name = runnable_nodes_stack.pop();
+        if (node_name.empty()) {
+            break;
+        }
+        order.push_back(node_name);
+    }
+}
+
 }  // namespace fase

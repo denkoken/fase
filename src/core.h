@@ -72,6 +72,8 @@ public:
     std::string genNativeCode(const std::string& entry_name = "Pipeline",
                               const std::string& indent = "    ");
 
+    void getRunningOrder(std::vector<std::string>& order);
+
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
                 const T& default_value = T());
