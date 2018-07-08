@@ -23,6 +23,7 @@ public:
     bool run(FaseCore *, Args...) {}
 };
 
+// ------------------------------------ CLI ------------------------------------
 class CLIEditor : public EditorBase<CLIEditor> {
 public:
     CLIEditor() {}
@@ -50,6 +51,10 @@ private:
             var_generators;
 };
 
+// ------------------------------------ GUI ------------------------------------
+using GuiGeneratorFunc =
+        std::function<bool(const char *, const Variable &, std::string &)>;
+
 class GUIEditor : public EditorBase<GUIEditor> {
 public:
     GUIEditor();
@@ -72,9 +77,7 @@ public:
 
 private:
     // Variable generators
-    std::map<const std::type_info *,
-             std::function<bool(const char *, const Variable &, std::string &)>>
-            var_generators;
+    std::map<const std::type_info *, GuiGeneratorFunc> var_generators;
 
     // pImpl pattern
     class Impl;

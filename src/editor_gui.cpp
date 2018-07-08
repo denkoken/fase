@@ -276,11 +276,9 @@ private:
 // Draw button and pop up window for native code
 class NativeCodeGUI {
 public:
-    NativeCodeGUI(
-            LabelWrapper& label,
-            const std::map<const std::type_info*,
-                           std::function<bool(const char*, const Variable&,
-                                              std::string&)>>& var_generators)
+    NativeCodeGUI(LabelWrapper& label,
+                  const std::map<const std::type_info*, GuiGeneratorFunc>&
+                          var_generators)
         : label(label), var_generators(var_generators) {}
 
     void draw(FaseCore* core) {
@@ -312,9 +310,7 @@ private:
 
     // Reference to the parent's
     LabelWrapper& label;
-    const std::map<const std::type_info*,
-                   std::function<bool(const char*, const Variable&,
-                                      std::string&)>>& var_generators;
+    const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
 
     // Private status
     std::string native_code;
@@ -416,14 +412,13 @@ private:
 
 class NodeBoxesGUI {
 public:
-    NodeBoxesGUI(
-            LabelWrapper& label, std::string& selected_node_name,
-            std::string& hovered_node_name,
-            std::map<std::string, GuiNode>& gui_nodes, const ImVec2& scroll_pos,
-            const bool& is_link_creating, bool& is_any_node_moving,
-            const std::map<const std::type_info*,
-                           std::function<bool(const char*, const Variable&,
-                                              std::string&)>>& var_generators)
+    NodeBoxesGUI(LabelWrapper& label, std::string& selected_node_name,
+                 std::string& hovered_node_name,
+                 std::map<std::string, GuiNode>& gui_nodes,
+                 const ImVec2& scroll_pos, const bool& is_link_creating,
+                 bool& is_any_node_moving,
+                 const std::map<const std::type_info*, GuiGeneratorFunc>&
+                         var_generators)
         : label(label),
           selected_node_name(selected_node_name),
           hovered_node_name(hovered_node_name),
@@ -508,9 +503,7 @@ private:
     const ImVec2& scroll_pos;
     const bool& is_link_creating;
     bool& is_any_node_moving;
-    const std::map<const std::type_info*,
-                   std::function<bool(const char*, const Variable&,
-                                      std::string&)>>& var_generators;
+    const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
 
     // Private status
     // [None]
@@ -845,9 +838,8 @@ private:
 
 class GUIEditor::Impl {
 public:
-    Impl(const std::map<const std::type_info*,
-                        std::function<bool(const char*, const Variable&,
-                                           std::string&)>>& var_generators)
+    Impl(const std::map<const std::type_info*, GuiGeneratorFunc>&
+                 var_generators)
         // Module dependencies are written here
         : node_adding_gui(label, request_add_node),
           run_pipeline_gui(label, is_pipeline_updated),

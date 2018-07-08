@@ -94,12 +94,12 @@ int main() {
 
     // Register for argument editing
     fase.addVarGenerator(
-            int(), std::function<bool(const char*, const fase::Variable&,
-                                      std::string&)>([](const char* label,
-                                                        const fase::Variable& v,
-                                                        std::string& expr) {
-                const bool chg = ImGui::InputInt(label, &*v.getReader<int>());
-                expr = std::to_string(*v.getReader<int>());
+            int(), fase::GuiGeneratorFunc([](const char* label,
+                                             const fase::Variable& v,
+                                             std::string& expr) {
+                int* v_p = &*v.getReader<int>();
+                const bool chg = ImGui::InputInt(label, v_p);
+                expr = std::to_string(*v_p);
                 return chg;
             }));
 
