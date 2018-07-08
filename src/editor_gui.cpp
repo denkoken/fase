@@ -210,7 +210,8 @@ private:
 
 class RunPipelineGUI {
 public:
-    RunPipelineGUI(LabelWrapper& label) : label(label) {}
+    RunPipelineGUI(LabelWrapper& label, const bool& is_pipeline_updated)
+        : label(label), is_pipeline_updated(is_pipeline_updated) {}
 
     void draw(FaseCore* core) {
         // Run once
@@ -221,23 +222,21 @@ public:
 
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Run by loop
-        if (running_cnt < 0) {
+        if (!is_running) {
             if (ImGui::MenuItem(label("Run (loop)"))) {
                 // Start loop
                 if (core->build()) {
-                    running_cnt = 0;
+                    is_running = true;
                 }
             }
         } else {
             if (ImGui::MenuItem(label("Stop (loop)"))) {
                 // Stop
-                running_cnt = -1;
+                is_running = false;
             } else {
-                running_cnt++;
-                if (REBUILD_INTERBAL < running_cnt) {
+                if (is_pipeline_updated) {
                     // Rebuild
                     core->build();
-                    running_cnt = 0;
                 }
                 core->run();
             }
@@ -245,13 +244,12 @@ public:
     }
 
 private:
-    const int REBUILD_INTERBAL = 30;
-
     // Reference to the parent's
     LabelWrapper& label;
+    const bool& is_pipeline_updated;
 
     // Private status
-    int running_cnt = -1;  // < 0: invalid, 0 <=: running
+    bool is_running = false;
 };
 
 // Draw button and pop up window for native code
@@ -696,7 +694,7 @@ public:
                  var_generators)
         // Module dependencies are written here
         : node_adding_gui(label),
-          run_pipeline_gui(label),
+          run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label),
           node_list_gui(label, selected_node_name, hovered_node_name),
           links_gui(gui_nodes, is_link_creating, is_any_node_moving),
@@ -727,20 +725,39 @@ private:
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
     bool is_link_creating = false;
     bool is_any_node_moving = false;
-    bool is_node_updated = false;
+    bool is_pipeline_updated = false;
+    size_t prev_n_nodes = 0;
+    size_t prev_n_links = 0;
 
     void updateGuiNodes(FaseCore* core) {
         // Clear cache
-        is_node_updated = false;
-        // Check GUI node existence
+        is_pipeline_updated = false;
+
         const std::map<std::string, Node>& nodes = core->getNodes();
+        size_t n_nodes = nodes.size();
+        size_t n_links = 0;
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
+            const size_t n_args = it->second.links.size();
+            // Check GUI node existence
             if (!gui_nodes.count(node_name)) {
                 // Create new node and allocate for link slots
-                const size_t n_args = it->second.links.size();
                 gui_nodes[node_name].alloc(n_args);
+                is_pipeline_updated = true;
             }
+            // Count up links
+            const auto& links = it->second.links;
+            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+                if (!links[arg_idx].node_name.empty()) {
+                    n_links++;
+                }
+            }
+        }
+
+        if (n_nodes != prev_n_nodes || n_links != prev_n_links) {
+            is_pipeline_updated = true;
+            prev_n_nodes = n_nodes;
+            prev_n_links = n_links;
         }
     }
 };
