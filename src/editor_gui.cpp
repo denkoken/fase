@@ -1026,7 +1026,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     // Right side: Canvas
     ImGui::BeginChild(label("right canvas"));
     {
-        ImGui::Text("Hold right mouse button to scroll (%f, %f)", scroll_pos.x,
+        ImGui::Text("Hold middle mouse button to scroll (%f, %f)", scroll_pos.x,
                     scroll_pos.y);
         BeginCanvas(label("scrolling_region"));
         {
@@ -1039,7 +1039,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
 
             // Canvas scroll
             if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-                ImGui::IsMouseDragging(1, 0.f)) {
+                ImGui::IsMouseDragging(2, 0.f)) {
                 scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
             }
             // Clear selected node
