@@ -80,7 +80,7 @@ TEST_CASE("Variable test") {
     }
 
     SECTION("Create by const reference") {
-        const std::string& s = "test string";
+        const std::string &s = "test string";
         Variable v = s;
         REQUIRE(v.isSameType<std::string>());
         REQUIRE(*v.getReader<std::string>() == "test string");

@@ -72,27 +72,6 @@ endfunction(setup_target_simple)
 # --------------------------- Third Party Libraries ----------------------------
 # ------------------------------------------------------------------------------
 
-# Catch2
-if (BUILD_TEST)
-    list(APPEND FASE_INCLUDE
-                ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
-endif()
-
-# OpenGL
-find_package(OpenGL REQUIRED)
-list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
-list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
-
-# GLFW3
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-set(GLFW_INSTALL OFF CACHE BOOL "")
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
-list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/third_party/glfw/include)
-list(APPEND FASE_LIBRARY glfw)
-
 # ImGui
 add_library(imgui SHARED
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
@@ -107,6 +86,34 @@ set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
 setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
 list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
 list(APPEND FASE_LIBRARY imgui)
+
+# For tests
+if (BUILD_TEST)
+    # Catch2
+    list(APPEND FASE_INCLUDE
+                ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
+endif()
+
+# For examples
+if (BUILD_EXAMPLE)
+    # OpenGL
+    find_package(OpenGL REQUIRED)
+    list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
+    list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
+
+    # GLFW3
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
+    set(GLFW_INSTALL OFF CACHE BOOL "")
+    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
+    list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/third_party/glfw/include)
+    list(APPEND FASE_LIBRARY glfw)
+
+    # OpenCV
+    find_package(OpenCV)
+endif()
 
 # ------------------------------------------------------------------------------
 # ----------------------------- Internal Libraries -----------------------------
@@ -123,6 +130,16 @@ setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)
 
+# ----------------------------------- tests ------------------------------------
+if (BUILD_TEST)
+    add_executable(test
+        ${CMAKE_SOURCE_DIR}/test/test.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_variable.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_function.cpp
+        ${CMAKE_SOURCE_DIR}/test/test_core.cpp
+    )
+    setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+endif()
 
 # ---------------------------------- examples ----------------------------------
 if (BUILD_EXAMPLE)
@@ -137,16 +154,13 @@ if (BUILD_EXAMPLE)
         ${CMAKE_SOURCE_DIR}/examples/guieditor/main.cpp
     )
     setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
-endif()
 
-
-# ----------------------------------- tests ------------------------------------
-if (BUILD_TEST)
-    add_executable(test
-        ${CMAKE_SOURCE_DIR}/test/test.cpp
-        ${CMAKE_SOURCE_DIR}/test/test_variable.cpp
-        ${CMAKE_SOURCE_DIR}/test/test_function.cpp
-        ${CMAKE_SOURCE_DIR}/test/test_core.cpp
-    )
-    setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    if (${OpenCV_FOUND})
+        add_executable(guieditor_opencv
+            ${CMAKE_SOURCE_DIR}/examples/guieditor_opencv/main.cpp
+        )
+        list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
+        list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
+        setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    endif()
 endif()

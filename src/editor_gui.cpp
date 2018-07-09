@@ -580,7 +580,8 @@ private:
                 auto& func = var_generators.at(arg_type);
                 const Variable& var = node.arg_values[arg_idx];
                 std::string expr;
-                const bool chg = func(label(arg_name), var, expr);
+                const std::string view_label = arg_name + "##" + node_name;
+                const bool chg = func(label(view_label), var, expr);
                 if (chg) {
                     // Update argument
                     core->setNodeArg(node_name, arg_idx, expr, var);
@@ -974,7 +975,7 @@ private:
             // Remove unused GUI nodes
             for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
                 if (nodes.count(it->first) == 0) {
-                    gui_nodes.erase(it++--);
+                    gui_nodes.erase(it++ --);
                 }
             }
             // Update node order
