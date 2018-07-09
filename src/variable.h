@@ -17,8 +17,10 @@ public:
 
     template <typename T>
     Variable(T &&value) {
-        using Type = typename std::remove_reference<T>::type;
-        create<Type>(std::forward<T>(value));
+        using TypeCVR = T;
+        using TypeCV = typename std::remove_reference<TypeCVR>::type;
+        using Type = typename std::remove_cv<TypeCV>::type;
+        create<Type>(std::forward<TypeCV>(value));
     }
 
     template <typename T>
@@ -37,7 +39,7 @@ public:
 
     template <typename T, typename... Args>
     void create(Args &&... args) {
-        set(std::make_shared<T>(std::forward<T>(args)...));
+        set(std::make_shared<T>(std::forward<Args>(args)...));
     }
 
     template <typename T>

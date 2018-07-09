@@ -79,6 +79,14 @@ TEST_CASE("Variable test") {
         REQUIRE(&*v.getReader<TestClass>() == &*a);    // Equal (pointer copied)
     }
 
+    SECTION("Create by const reference") {
+        const std::string& s = "test string";
+        Variable v = s;
+        REQUIRE(v.isSameType<std::string>());
+        REQUIRE(*v.getReader<std::string>() == "test string");
+        REQUIRE(&*v.getReader<std::string>() != &s);  // Not equal (copied)
+    }
+
     SECTION("Copy") {
         Variable a = TestClass();
         Variable b = TestClass();
