@@ -430,7 +430,6 @@ public:
                  std::string& hovered_node_name,
                  std::map<std::string, GuiNode>& gui_nodes,
                  const ImVec2& scroll_pos, const bool& is_link_creating,
-                 bool& is_any_node_moving,
                  const std::map<const std::type_info*, GuiGeneratorFunc>&
                          var_generators)
         : label(label),
@@ -440,13 +439,9 @@ public:
           gui_nodes(gui_nodes),
           scroll_pos(scroll_pos),
           is_link_creating(is_link_creating),
-          is_any_node_moving(is_any_node_moving),
           var_generators(var_generators) {}
 
     void draw(FaseCore* core) {
-        // Clear cache
-        is_any_node_moving = false;
-
         const ImVec2 canvas_offset = ImGui::GetCursorScreenPos() + scroll_pos;
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -492,7 +487,6 @@ public:
             if (!is_link_creating && ImGui::IsItemActive() &&
                 ImGui::IsMouseDragging(0, 0.f)) {
                 gui_node.pos = gui_node.pos + ImGui::GetIO().MouseDelta;
-                is_any_node_moving = true;
             }
 
             ImGui::PopID();
@@ -520,7 +514,6 @@ private:
     std::map<std::string, GuiNode>& gui_nodes;
     const ImVec2& scroll_pos;
     const bool& is_link_creating;
-    bool& is_any_node_moving;
     const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
 
     // Private status
@@ -639,14 +632,12 @@ class LinksGUI {
 public:
     LinksGUI(std::string& hovered_slot_name, size_t& hovered_slot_idx,
              bool& is_hovered_slot_input,
-             std::map<std::string, GuiNode>& gui_nodes, bool& is_link_creating,
-             const bool& is_any_node_moving)
+             std::map<std::string, GuiNode>& gui_nodes, bool& is_link_creating)
         : hovered_slot_name(hovered_slot_name),
           hovered_slot_idx(hovered_slot_idx),
           is_hovered_slot_input(is_hovered_slot_input),
           gui_nodes(gui_nodes),
-          is_link_creating(is_link_creating),
-          is_any_node_moving(is_any_node_moving) {}
+          is_link_creating(is_link_creating) {}
 
     void draw(FaseCore* core) {
         const std::map<std::string, Node>& nodes = core->getNodes();
@@ -733,7 +724,7 @@ public:
                 is_link_creating = false;
             }
         } else {
-            if (!is_any_node_moving && ImGui::IsMouseDragging(0, 0.f) &&
+            if (ImGui::IsMouseDown(0) && !ImGui::IsMouseDragging(0, 1.f) &&
                 !hovered_slot_name.empty()) {
                 // Start creating
                 is_link_creating = true;
@@ -768,7 +759,6 @@ private:
     bool& is_hovered_slot_input;
     std::map<std::string, GuiNode>& gui_nodes;
     bool& is_link_creating;
-    const bool& is_any_node_moving;
 
     // Private status
     std::string hovered_slot_name_prev;
@@ -903,10 +893,10 @@ public:
           node_list_gui(label, node_order, selected_node_name,
                         hovered_node_name),
           links_gui(hovered_slot_name, hovered_slot_idx, is_hovered_slot_input,
-                    gui_nodes, is_link_creating, is_any_node_moving),
+                    gui_nodes, is_link_creating),
           node_boxes_gui(label, node_order, selected_node_name,
                          hovered_node_name, gui_nodes, scroll_pos,
-                         is_link_creating, is_any_node_moving, var_generators),
+                         is_link_creating, var_generators),
           context_menu_gui(label, selected_node_name, hovered_node_name,
                            hovered_slot_name, hovered_slot_idx,
                            is_hovered_slot_input, request_add_node) {}
@@ -936,7 +926,6 @@ private:
     std::map<std::string, GuiNode> gui_nodes;
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
     bool is_link_creating = false;
-    bool is_any_node_moving = false;
     bool is_pipeline_updated = false;
     size_t prev_n_nodes = 0;
     size_t prev_n_links = 0;
