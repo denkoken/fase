@@ -30,11 +30,6 @@ public:
 
     template <typename... Gen>
     bool addVarGenerator(Gen&&... gen) {
-        // for debug
-        core.addNode("add1", "Add");
-        core.addNode("print1", "Print");
-        core.addLink("add1", 2, "print1", 0);
-
         return editor.addVarGenerator(std::forward<Gen>(gen)...);
     }
 
