@@ -1,6 +1,7 @@
 #include <fase.h>
 
-#include "init_gl.h"
+#include "fase_gl_utils.h"
+#include "fase_var_generators.h"
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
@@ -20,21 +21,12 @@ int main() {
 
     // Register functions
     FaseAddFunctionBuilder(fase, Add, (const int&, const int&, int&),
-                           ("in1", "in2", "out"), 0, 0, 0);
-    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("in", "out"), 0,
-                           0);
-    FaseAddFunctionBuilder(fase, Print, (const int&), ("in"), 0);
+                           ("in1", "in2", "out"));
+    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("in", "out"));
+    FaseAddFunctionBuilder(fase, Print, (const int&), ("in"));
 
     // Register for argument editing
-    fase.addVarGenerator(int(),
-                         fase::GuiGeneratorFunc([](const char* label,
-                                                   const fase::Variable& v,
-                                                   std::string& expr) {
-                             int* v_p = &*v.getReader<int>();
-                             const bool chg = ImGui::InputInt(label, v_p);
-                             expr = std::to_string(*v_p);
-                             return chg;
-                         }));
+    FaseInstallBasicGuiGenerators(fase);
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");
@@ -46,37 +38,10 @@ int main() {
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-
-        // Key inputs
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS &&
-            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            break;
-        }
-
-        // Start the ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
+    RunRenderingLoop(window, [&]() {
         // Draw Fase's interface
-        if (!fase.runEditing("Fase Editor", "##fase")) {
-            break;
-        }
-
-        // Rendering
-        ImGui::Render();
-        int display_w, display_h;
-        glfwMakeContextCurrent(window);
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwMakeContextCurrent(window);
-        glfwSwapBuffers(window);
-    }
+        return fase.runEditing("Fase Editor", "##fase");
+    });
 
     return 0;
 }

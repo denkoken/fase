@@ -155,9 +155,10 @@ if (BUILD_EXAMPLE)
     )
     setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
+    # GUI Editor with OpenCV
     if (${OpenCV_FOUND})
         add_executable(guieditor_opencv
-            ${CMAKE_SOURCE_DIR}/examples/guieditor_opencv/main.cpp
+            ${CMAKE_SOURCE_DIR}/examples/guieditor/main_opencv.cpp
         )
         list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})

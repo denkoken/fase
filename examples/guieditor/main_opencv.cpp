@@ -4,7 +4,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "../guieditor/init_gl.h"
+#include "fase_gl_utils.h"
+#include "fase_var_generators.h"
 
 void LoadImage(const std::string& filename, cv::Mat& img) {
     img = cv::imread(filename);
@@ -29,37 +30,7 @@ int main() {
                            ("in", "out", "ksize"), cv::Mat(), cv::Mat(), 3);
 
     // Register for argument editing
-    //   <int>
-    fase.addVarGenerator(int(),
-                         fase::GuiGeneratorFunc([](const char* label,
-                                                   const fase::Variable& v,
-                                                   std::string& expr) {
-                             int* v_p = &*v.getReader<int>();
-                             const bool chg = ImGui::InputInt(label, v_p);
-                             expr = std::to_string(*v_p);
-                             return chg;
-                         }));
-    //   <std::string>
-    char str_buf[1024];
-    fase.addVarGenerator(
-            std::string(), fase::GuiGeneratorFunc([&](const char* label,
-                                                      const fase::Variable& v,
-                                                      std::string& expr) {
-                // Get editing value
-                std::string& str = *v.getReader<std::string>();
-                // Copy to editing buffer
-                const size_t n_str = sizeof(str_buf);
-                strncpy(str_buf, str.c_str(), n_str);
-                // Show GUI
-                const bool ret = ImGui::InputText(label, str_buf, n_str);
-                // Back to the value
-                str = str_buf;
-                // Create expression when editing occurs
-                if (ret) {
-                    expr = "\"" + str + "\"";
-                }
-                return ret;
-            }));
+    FaseInstallBasicGuiGenerators(fase);
     //   <cv::Mat>
     std::map<std::string, GLuint> tex_ids;
     fase.addVarGenerator(
@@ -103,7 +74,7 @@ int main() {
             }));
 
     // Create OpenGL window
-    GLFWwindow* window = InitOpenGL("GUI Editor Example");
+    GLFWwindow* window = InitOpenGL("GUI Editor Example with OpenCV");
     if (!window) {
         return 0;
     }
@@ -112,37 +83,10 @@ int main() {
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-
-        // Key inputs
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS &&
-            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            break;
-        }
-
-        // Start the ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
+    RunRenderingLoop(window, [&]() {
         // Draw Fase's interface
-        if (!fase.runEditing("Fase Editor", "##fase")) {
-            break;
-        }
-
-        // Rendering
-        ImGui::Render();
-        int display_w, display_h;
-        glfwMakeContextCurrent(window);
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwMakeContextCurrent(window);
-        glfwSwapBuffers(window);
-    }
+        return fase.runEditing("Fase Editor", "##fase");
+    });
 
     return 0;
 }

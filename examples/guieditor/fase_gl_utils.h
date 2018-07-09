@@ -1,3 +1,6 @@
+#ifndef FASE_GL_UTILS_H_180709
+#define FASE_GL_UTILS_H_180709
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
@@ -66,3 +69,40 @@ static void InitImGui(GLFWwindow* window, const std::string& font_path) {
         ImGui::DestroyContext();
     });
 }
+
+static void RunRenderingLoop(GLFWwindow* window,
+                             std::function<bool()> proc_func) {
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
+        // Key inputs
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS &&
+            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            break;
+        }
+
+        // Start the ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Call inserted process
+        if (!proc_func()) {
+            break;
+        }
+
+        // Rendering
+        ImGui::Render();
+        int display_w, display_h;
+        glfwMakeContextCurrent(window);
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwMakeContextCurrent(window);
+        glfwSwapBuffers(window);
+    }
+}
+
+#endif /* end of include guard */
