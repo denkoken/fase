@@ -162,7 +162,10 @@ public:
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Add node")) || request_add_node) {
-            request_add_node = false;
+            request_add_node = false;  // Clear request
+            // Set default name
+            setDefaultNodeName(core);
+            // Open pop up wijndow
             ImGui::OpenPopup(label("Popup: Add node"));
         }
         bool opened = true;
@@ -215,6 +218,12 @@ private:
     std::string error_msg;
 
     // Private methods
+    void setDefaultNodeName(FaseCore* core) {
+        std::stringstream ss;
+        ss << "node_" << core->getNodes().size();
+        strncpy(name_buf, ss.str().c_str(), sizeof(name_buf));
+    }
+
     void updateFuncReprs(const std::map<std::string, Function>& functions) {
         if (functions.size() != func_reprs.size()) {
             // Create all again
