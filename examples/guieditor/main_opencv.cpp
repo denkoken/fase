@@ -1,11 +1,13 @@
 #include <fase.h>
 
+#include "fase_gl_utils.h"
+#include "fase_var_generators.h"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "fase_gl_utils.h"
-#include "fase_var_generators.h"
+#include <random>
 
 void LoadImage(const std::string& filename, cv::Mat& img) {
     img = cv::imread(filename);
@@ -19,6 +21,19 @@ void BlurImage(const cv::Mat& src, cv::Mat& dst, int ksize) {
     cv::blur(src, dst, cv::Size(ksize, ksize));
 }
 
+void Random(int& v, const int& min_v, const int& max_v) {
+    static std::random_device rnd;
+    const int range = max_v - min_v;
+    if (range <= 0) {
+        v = min_v;
+    } else {
+        v = static_cast<int>(rnd()) % (range) + min_v;
+        if (v < min_v) {
+            v += range;
+        }
+    }
+}
+
 int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::GUIEditor> fase;
@@ -28,11 +43,13 @@ int main() {
                            ("filename", "img"));
     FaseAddFunctionBuilder(fase, BlurImage, (const cv::Mat&, cv::Mat&, int),
                            ("in", "out", "ksize"), cv::Mat(), cv::Mat(), 3);
+    FaseAddFunctionBuilder(fase, Random, (int&, const int&, const int&),
+                           ("out", "min", "max"), 0, 0, 256);
 
     // Register for argument editing
     FaseInstallBasicGuiGenerators(fase);
     //   <cv::Mat>
-    std::map<std::string, GLuint> tex_ids;
+    std::map<std::string, std::tuple<GLuint, int, int>> tex_ids;
     fase.addVarGenerator(
             cv::Mat(), fase::GuiGeneratorFunc([&](const char* label,
                                                   const fase::Variable& v,
@@ -48,8 +65,11 @@ int main() {
                     return false;
                 }
                 const bool exist = tex_ids.count(label);
-                GLuint& id = tex_ids[label];
-                if (!exist) {
+                auto& ctr = tex_ids[label];
+                GLuint& id = std::get<0>(ctr);
+                int& width = std::get<1>(ctr);
+                int& height = std::get<2>(ctr);
+                if (!exist || width != img.cols || height != img.rows) {
                     glGenTextures(1, &id);
                     glBindTexture(GL_TEXTURE_2D, id);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -59,12 +79,14 @@ int main() {
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // for 3 ch
                     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.cols, img.rows,
                                  0, GL_BGR, GL_UNSIGNED_BYTE, img.data);
+                    width = img.cols;
+                    height = img.rows;
                 } else {
                     glBindTexture(GL_TEXTURE_2D, id);
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.cols, img.rows,
                                     GL_BGR, GL_UNSIGNED_BYTE, img.data);
                 }
-                ImTextureID tex_id =
+                const ImTextureID tex_id =
                         reinterpret_cast<void*>(static_cast<intptr_t>(id));
                 ImGui::Image(tex_id, ImVec2(200.f, 200.f * img.rows / img.cols),
                              ImVec2(0, 0), ImVec2(1, 1));
