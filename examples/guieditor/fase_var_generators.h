@@ -3,6 +3,7 @@
 
 #include <fase.h>
 
+// ------------------------------- GUI components ------------------------------
 // GUI for <bool>
 bool ImGuiInputValue(const char* label, bool* v) {
     return ImGui::Checkbox(label, v);
@@ -29,7 +30,7 @@ template <typename T, typename C = int>
 bool ImGuiInputValue(const char* label, T* v) {
     C i = static_cast<C>(*v);
     const bool ret = ImGuiInputValue(label, &i, std::numeric_limits<C>::min(),
-            std::numeric_limits<C>::max());
+                                     std::numeric_limits<C>::max());
     *v = static_cast<T>(i);
     return ret;
 }
@@ -39,23 +40,50 @@ bool ImGuiInputValue(const char* label, double* v) {
     return ImGuiInputValue<double, float>(label, v);
 }
 
+// GUI for <std::string>
+bool ImGuiInputValue(const char* label, std::string* v) {
+    // Copy to editing buffer
+    char str_buf[1024];
+    const size_t n_str = sizeof(str_buf);
+    strncpy(str_buf, (*v).c_str(), n_str);
+    // Show GUI
+    const bool ret = ImGui::InputText(label, str_buf, n_str);
+    // Back to the value
+    (*v) = str_buf;
+    return ret;
+}
 
+// ---------------------------- Expression generators --------------------------
+// Expression for <primitives>
+template <typename T>
+std::string GenerateExpr(const T& v) {
+    std::stringstream ss;
+    ss << v;  // TODO: test for bool and char
+    return ss.str();
+}
+
+// Expression for <std::string>
+std::string GenerateExpr(const std::string& v) {
+    return "\"" + v + "\"";
+}
+
+// -----------------------------------------------------------------------------
 ///
 /// Install one GUI for a type 'T'
 ///
 template <typename T, typename F>
 static void FaseInstallOne(F& fase) {
-    const bool ret = fase.addVarGenerator(T(),
-                         fase::GuiGeneratorFunc([](const char* label,
-                                                   const fase::Variable& v,
-                                                   std::string& expr) {
-                             T& val = *v.getReader<T>();
-                             const bool chg = ImGuiInputValue(label, &val);
-                             if (chg) {
-                                 expr = std::to_string(val);
-                             }
-                             return chg;
-                         }));
+    const bool ret = fase.addVarGenerator(
+            T(), fase::GuiGeneratorFunc([](const char* label,
+                                           const fase::Variable& v,
+                                           std::string& expr) {
+                T& val = *v.getReader<T>();
+                const bool chg = ImGuiInputValue(label, &val);
+                if (chg) {
+                    expr = GenerateExpr(val);
+                }
+                return chg;
+            }));
     if (!ret) {
         std::cerr << "Failed to install Fase GUIEditor's interface for '"
                   << typeid(T).name() << "'" << std::endl;
@@ -88,27 +116,7 @@ static void FaseInstallBasicGuiGenerators(F& fase) {
 
     // STD containers
     // * string
-    fase.addVarGenerator(
-            std::string(), fase::GuiGeneratorFunc([&](const char* label,
-                                                      const fase::Variable& v,
-                                                      std::string& expr) {
-                // Get editing value
-                std::string& str = *v.getReader<std::string>();
-                // Copy to editing buffer
-                char str_buf[1024];
-                const size_t n_str = sizeof(str_buf);
-                strncpy(str_buf, str.c_str(), n_str);
-                // Show GUI
-                const bool ret = ImGui::InputText(label, str_buf, n_str);
-                // Back to the value
-                str = str_buf;
-                // Create expression when editing occurs
-                if (ret) {
-                    expr = "\"" + str + "\"";
-                }
-                return ret;
-            }));
+    FaseInstallOne<std::string>(fase);
 }
-
 
 #endif /* end of include guard */

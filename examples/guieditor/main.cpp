@@ -11,12 +11,9 @@ void Square(const int& in, int& dst) {
     dst = in * in;
 }
 
-void Print(const char& in) {
+void Print(const int& in) {
     std::cout << in << std::endl;
 }
-// void Print(const int& in) {
-//     std::cout << in << std::endl;
-// }
 
 int main() {
     // Create Fase instance with GUI editor
@@ -26,7 +23,7 @@ int main() {
     FaseAddFunctionBuilder(fase, Add, (const int&, const int&, int&),
                            ("in1", "in2", "out"));
     FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("in", "out"));
-    FaseAddFunctionBuilder(fase, Print, (const char&), ("in"));
+    FaseAddFunctionBuilder(fase, Print, (const int&), ("in"));
 
     // Register for argument editing
     FaseInstallBasicGuiGenerators(fase);

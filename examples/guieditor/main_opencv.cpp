@@ -57,14 +57,12 @@ int main() {
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
                                     GL_LINEAR);
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // for 3 ch
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.cols,
-                                 img.rows, 0, GL_BGR, GL_UNSIGNED_BYTE,
-                                 img.data);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.cols, img.rows,
+                                 0, GL_BGR, GL_UNSIGNED_BYTE, img.data);
                 } else {
                     glBindTexture(GL_TEXTURE_2D, id);
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.cols,
-                                    img.rows, GL_BGR, GL_UNSIGNED_BYTE,
-                                    img.data);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.cols, img.rows,
+                                    GL_BGR, GL_UNSIGNED_BYTE, img.data);
                 }
                 ImTextureID tex_id =
                         reinterpret_cast<void*>(static_cast<intptr_t>(id));
