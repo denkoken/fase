@@ -807,7 +807,8 @@ public:
 
     void draw(FaseCore* core) {
         // Right click
-        if (ImGui::IsMouseClicked(1)) {
+        if (ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) &&
+            ImGui::IsMouseClicked(1)) {
             if (!hovered_slot_name.empty()) {
                 // Open pop up window for a slot
                 selected_node_name = hovered_slot_name;
