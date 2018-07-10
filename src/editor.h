@@ -34,8 +34,12 @@ public:
     ///
     template <typename T>
     bool addVarGenerator(const std::function<T(const std::string &)> &func) {
-        var_generators[&typeid(T)] = func;
-        return true;
+        if (var_generators.count(&typeid(T))) {
+            return false;
+        } else {
+            var_generators[&typeid(T)] = func;
+            return true;
+        }
     }
 
     bool run(FaseCore *core);
@@ -68,8 +72,12 @@ public:
     bool addVarGenerator(
             T, const std::function<bool(const char *, const Variable &,
                                         std::string &)> &func) {
-        var_generators[&typeid(T)] = func;
-        return true;
+        if (var_generators.count(&typeid(T))) {
+            return false;
+        } else {
+            var_generators[&typeid(T)] = func;
+            return true;
+        }
     }
 
     bool run(FaseCore *core, const std::string &win_title = "Fase Editor",
