@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 3.5.1)
 # ------------------------------------------------------------------------------
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
+option(BUILD_GLFW "Build glfw libraries and link" ON)
 option(BUILD_EXAMPLE "Build example codes" ON)
 option(BUILD_TEST "Build test codes" ON)
-message(STATUS "Build examples: ${BUILD_EXAMPLE}, tests: ${BUILD_TEST}")
+message(STATUS "Build glfw: ${BUILD_GLFW}, examples: ${BUILD_EXAMPLE}, tests: ${BUILD_TEST}")
 
 
 # ------------------------------------------------------------------------------
@@ -72,6 +73,33 @@ endfunction(setup_target_simple)
 # --------------------------- Third Party Libraries ----------------------------
 # ------------------------------------------------------------------------------
 
+# For examples
+if (BUILD_EXAMPLE)
+    # OpenGL
+    find_package(OpenGL REQUIRED)
+    list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
+    list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
+
+    # GLFW3
+    if (BUILD_GLFW)
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+        set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
+        set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
+        set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
+        set(GLFW_INSTALL OFF CACHE BOOL "")
+        add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
+        list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/third_party/glfw/include)
+        list(APPEND FASE_LIBRARY glfw)
+    endif()
+
+    # OpenCV
+    find_package(OpenCV)
+endif()
+
+if (NOT BUILD_GLFW)
+    find_package(GLFW3 REQUIRED)
+endif()
+
 # ImGui
 add_library(imgui SHARED
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
@@ -82,8 +110,18 @@ add_library(imgui SHARED
 )
 set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples
-                       ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
-setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
+                       ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w
+                       /usr/local/include)
+
+if (BUILD_GLFW)
+    setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
+else()
+    setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "GLFW")
+endif()
+if ((NOT BUILD_GLFW) AND APPLE)
+    SET_TARGET_PROPERTIES(imgui PROPERTIES LINK_FLAGS "-framework CoreFoundation")
+endif()
+
 list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
 list(APPEND FASE_LIBRARY imgui)
 
@@ -92,27 +130,6 @@ if (BUILD_TEST)
     # Catch2
     list(APPEND FASE_INCLUDE
                 ${CMAKE_SOURCE_DIR}/third_party/Catch2/single_include)
-endif()
-
-# For examples
-if (BUILD_EXAMPLE)
-    # OpenGL
-    find_package(OpenGL REQUIRED)
-    list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
-    list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
-
-    # GLFW3
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-    set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-    set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-    set(GLFW_INSTALL OFF CACHE BOOL "")
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
-    list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/third_party/glfw/include)
-    list(APPEND FASE_LIBRARY glfw)
-
-    # OpenCV
-    find_package(OpenCV)
 endif()
 
 # ------------------------------------------------------------------------------
