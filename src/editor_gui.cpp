@@ -6,6 +6,8 @@
 #include <cmath>
 #include <sstream>
 
+#include "core_util.h"
+
 namespace fase {
 
 namespace {
@@ -299,7 +301,7 @@ public:
             // Update all arguments
             updateAllArgs(core);
             // Generate native code
-            native_code = core->genNativeCode();
+            native_code = genNativeCode(*core);
             // Open pop up window
             ImGui::OpenPopup(label("Popup: Native code"));
         }

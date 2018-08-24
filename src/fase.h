@@ -2,6 +2,7 @@
 #define FASE_H_20180617
 
 #include "core.h"
+#include "core_util.h"
 #include "editor.h"
 
 #define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
