@@ -74,7 +74,6 @@ private:
     const std::map<std::string, Node>* nodes;
 };
 
-
 }  // anonymous namespace
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {

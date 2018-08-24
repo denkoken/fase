@@ -69,9 +69,6 @@ public:
     bool build();
     bool run();
 
-    // std::string genNativeCode(const std::string& entry_name = "Pipeline",
-    //                           const std::string& indent = "    ");
-
     void getRunningOrder(std::vector<std::string>& order);
 
     template <typename T>

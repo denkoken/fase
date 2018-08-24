@@ -8,11 +8,18 @@
 
 namespace fase {
 
-std::string genNativeCode(const FaseCore& core,
+std::string GenNativeCode(const FaseCore& core,
                           const std::string& entry_name = "Pipeline",
                           const std::string& indent = "    ");
 
-}
+std::string CoreToString(const FaseCore& core);
 
+void StringToCore(const std::string& str, FaseCore* core);
 
-#endif // CORE_UTIL_H_20180824
+bool SaveFaseCore(const std::string& filename, const FaseCore& core);
+
+bool LoadFaseCore(const std::string& filename, FaseCore* core);
+
+}  // namespace fase
+
+#endif  // CORE_UTIL_H_20180824

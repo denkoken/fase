@@ -1,9 +1,10 @@
 
 #include "core_util.h"
 
-#include <string>
-#include <sstream>
+#include <fstream>
 #include <map>
+#include <sstream>
+#include <string>
 
 namespace {
 
@@ -99,7 +100,7 @@ std::string genFunctionCall(const std::string& func_repr,
     return ss.str();
 }
 
-}
+}  // namespace
 
 namespace fase {
 
@@ -130,9 +131,7 @@ private:
     const std::map<std::string, Node>* nodes;
 };
 
-
-std::string genNativeCode(const FaseCore& core,
-                          const std::string& entry_name,
+std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
                           const std::string& indent) {
     std::stringstream native_code;
 
@@ -162,6 +161,10 @@ std::string genNativeCode(const FaseCore& core,
         const std::vector<std::string>& arg_type_reprs =
                 core.getFunctions().at(node.func_repr).arg_type_reprs;
         const std::vector<std::string>& arg_reprs = node.arg_reprs;
+
+        for (const auto& arg_repr : arg_reprs) {
+            std::cout << arg_repr << std::endl;
+        }
 
         // Collect argument names
         std::vector<std::string> var_names;
@@ -194,5 +197,75 @@ std::string genNativeCode(const FaseCore& core,
     return native_code.str();
 }
 
+std::string CoreToString(const FaseCore& core) {
+    std::stringstream sstream;
 
+    sstream << "NODE" << std::endl;
+
+    for (const auto& pair : core.getNodes()) {
+        sstream << std::get<1>(pair).func_repr << " " << std::get<0>(pair)
+                << std::endl;
+    }
+
+    sstream << "LINK" << std::endl;
+
+    for (const auto& pair : core.getNodes()) {
+        const Node& node = std::get<1>(pair);
+        for (size_t i = 0; i < node.links.size(); i++) {
+            if (node.links[i].node_name.empty()) {
+                continue;
+            }
+            sstream << std::get<0>(pair) << " " << i << " "
+                    << node.links[i].node_name << " " << node.links[i].arg_idx
+                    << std::endl;
+        }
+    }
+
+    // TODO
+
+    return sstream.str();
 }
+
+void StringToCore(const std::string& str, FaseCore* core) {
+    // TODO
+}
+
+bool SaveFaseCore(const std::string& filename, const FaseCore& core) {
+    try {
+        std::ofstream output(filename);
+
+        output << CoreToString(core);
+
+        output.close();
+
+        return true;
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool LoadFaseCore(const std::string& filename, FaseCore* core) {
+    try {
+        std::ifstream input(filename);
+
+        std::stringstream ss;
+
+        while (!input.eof()) {
+            std::string buf;
+            std::getline(input, buf);
+            ss << buf;
+        }
+
+        StringToCore(ss.str(), core);
+
+        input.close();
+
+        return true;
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
+}
+
+}  // namespace fase

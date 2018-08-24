@@ -134,7 +134,7 @@ void commandSetArg(fase::FaseCore* core, CLIEditor* cli_editor,
 void commandShow(fase::FaseCore* core, CLIEditor* cli_editor,
                  const std::vector<std::string>& input) {
     (void)input, (void)cli_editor;
-    std::cout << genNativeCode(*core) << std::endl;
+    std::cout << GenNativeCode(*core) << std::endl;
 }
 
 void commandRun(fase::FaseCore* core, CLIEditor* cli_editor,

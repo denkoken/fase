@@ -301,7 +301,7 @@ public:
             // Update all arguments
             updateAllArgs(core);
             // Generate native code
-            native_code = genNativeCode(*core);
+            native_code = GenNativeCode(*core);
             // Open pop up window
             ImGui::OpenPopup(label("Popup: Native code"));
         }
@@ -372,6 +372,9 @@ public:
             std::cout << "Not implemented yet" << std::endl;
             (void)node_order;
             (void)gui_nodes;
+
+            std::cout << CoreToString(*core) << std::endl;
+            SaveFaseCore("test.txt", *core);
         }
     }
 
