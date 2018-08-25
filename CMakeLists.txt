@@ -141,6 +141,7 @@ add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/fase.cpp
     ${CMAKE_SOURCE_DIR}/src/core.cpp
     ${CMAKE_SOURCE_DIR}/src/core_util.cpp
+    ${CMAKE_SOURCE_DIR}/src/dst_code.cpp
     ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
     ${CMAKE_SOURCE_DIR}/src/editor_gui.cpp
 )

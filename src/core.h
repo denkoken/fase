@@ -24,6 +24,7 @@ struct Node {
     std::vector<Link> links;  // size == |args|
     std::vector<std::string> arg_reprs;  // size == |args|
     std::vector<Variable> arg_values;    // size == |args|
+    int phase;
 };
 
 struct Function {
@@ -48,7 +49,8 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
-    bool addNode(const std::string& node_name, const std::string& func_repr);
+    bool addNode(const std::string& node_name, const std::string& func_repr,
+                 const int& phase = 0);
 
     void delNode(const std::string& node_name) noexcept;
 

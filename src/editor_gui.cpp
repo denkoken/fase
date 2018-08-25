@@ -388,6 +388,44 @@ private:
     // [None]
 };
 
+// FaseCore saver
+class SaveGUI {
+public:
+    SaveGUI(LabelWrapper& label) : label(label) {}
+
+    void draw(FaseCore* core) {
+        if (ImGui::MenuItem(label("Save"))) {
+            SaveFaseCore("fase_save.txt", *core);
+        }
+    }
+
+private:
+    // Reference to the parent's
+    LabelWrapper& label;
+
+    // Private status
+    // [None]
+};
+
+// FaseCore saver
+class LoadGUI {
+public:
+    LoadGUI(LabelWrapper& label) : label(label) {}
+
+    void draw(FaseCore* core) {
+        if (ImGui::MenuItem(label("Load"))) {
+            LoadFaseCore("fase_save.txt", core);
+        }
+    }
+
+private:
+    // Reference to the parent's
+    LabelWrapper& label;
+
+    // Private status
+    // [None]
+};
+
 // Node list selector
 class NodeListGUI {
 public:
@@ -905,6 +943,8 @@ public:
           run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label, var_generators),
           layout_optimize_gui(label, node_order, gui_nodes),
+          save_gui(label),
+          load_gui(label),
           node_list_gui(label, node_order, selected_node_name,
                         hovered_node_name),
           links_gui(hovered_slot_name, hovered_slot_idx, is_hovered_slot_input,
@@ -925,6 +965,8 @@ private:
     RunPipelineGUI run_pipeline_gui;
     NativeCodeGUI native_code_gui;
     LayoutOptimizeGUI layout_optimize_gui;
+    SaveGUI save_gui;
+    LoadGUI load_gui;
     NodeListGUI node_list_gui;
     LinksGUI links_gui;
     NodeBoxesGUI node_boxes_gui;
@@ -1016,6 +1058,13 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to optimize the node layout
         layout_optimize_gui.draw(core);
+
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
+        save_gui.draw(core);
+
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
+        load_gui.draw(core);
+
         ImGui::EndMenuBar();
     }
 

@@ -76,7 +76,8 @@ private:
 
 }  // anonymous namespace
 
-bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
+bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
+                       const int& phase) {
     if (name.empty()) {
         return false;
     }
@@ -87,6 +88,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
 
     // check uniqueness of name.
     if (exists(nodes, name)) {
+        nodes[name].phase = phase;
         return false;
     }
 
@@ -101,7 +103,8 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr) {
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
-                   .arg_values = arg_values};
+                   .arg_values = arg_values,
+                   .phase = phase};
 
     return true;
 }

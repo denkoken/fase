@@ -14,7 +14,7 @@ std::string GenNativeCode(const FaseCore& core,
 
 std::string CoreToString(const FaseCore& core);
 
-void StringToCore(const std::string& str, FaseCore* core);
+bool StringToCore(const std::string& str, FaseCore* core);
 
 bool SaveFaseCore(const std::string& filename, const FaseCore& core);
 
