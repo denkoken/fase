@@ -364,17 +364,42 @@ public:
     LayoutOptimizeGUI(LabelWrapper& label,
                       const std::vector<std::string>& node_order,
                       std::map<std::string, GuiNode>& gui_nodes)
-        : label(label), node_order(node_order), gui_nodes(gui_nodes) {}
+        : label(label),
+          node_order(node_order),
+          gui_nodes(gui_nodes),
+          destinations() {}
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Optimize layout (TODO)"))) {
-            // TODO: implemented
-            std::cout << "Not implemented yet" << std::endl;
             (void)node_order;
-            (void)gui_nodes;
 
-            std::cout << CoreToString(*core) << std::endl;
-            SaveFaseCore("test.txt", *core);
+            auto names = GetCallOrder(core->getNodes());
+
+            float x = 10, y = 10;
+            for (auto& name_set : names) {
+                float maxx = 0;
+                for (auto name : name_set) {
+                    destinations[name].y = y;
+                    destinations[name].x = x;
+                    y += gui_nodes[name].size.y + 30.0;
+                    maxx = std::max(maxx, gui_nodes[name].size.x);
+                }
+                y = 10;
+                x += maxx + 50;
+            }
+        }
+
+        for (auto& pair : gui_nodes) {
+            if (!fase::exists(destinations, std::get<0>(pair))) {
+                continue;
+            }
+            std::get<1>(pair).pos = destinations[std::get<0>(pair)] * .3f +
+                                    std::get<1>(pair).pos * .7f;
+
+            if (std::abs(destinations[std::get<0>(pair)].x -
+                         std::get<1>(pair).pos.x) < 1.f) {
+                destinations.erase(std::get<0>(pair));
+            }
         }
     }
 
@@ -383,6 +408,8 @@ private:
     LabelWrapper& label;
     const std::vector<std::string>& node_order;
     std::map<std::string, GuiNode>& gui_nodes;
+
+    std::map<std::string, ImVec2> destinations;
 
     // Private status
     // [None]

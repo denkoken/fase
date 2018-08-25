@@ -20,6 +20,9 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core);
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core);
 
+std::vector<std::set<std::string>> GetCallOrder(
+        const std::map<std::string, Node>& nodes);
+
 }  // namespace fase
 
 #endif  // CORE_UTIL_H_20180824

@@ -26,6 +26,39 @@ std::vector<std::string> split(const std::string& str, const char& sp) {
     return dst;
 }
 
+std::vector<std::string> FindRunnableNodes(
+        const std::set<std::string>& unused_node_names,
+        const std::map<std::string, fase::Node>& nodes) {
+    std::vector<std::string> dst;
+
+    // Find runnable function node
+    for (auto& node_name : unused_node_names) {
+        const fase::Node& node = nodes.at(node_name);
+
+        bool runnable = true;
+        size_t arg_idx = 0;
+        for (auto& link : node.links) {
+            if (link.node_name.empty()) {
+                // Case 1: Create default argument
+            } else {
+                // Case 2: Use output variable
+                // Is linked node created?
+                if (fase::exists(unused_node_names, link.node_name)) {
+                    runnable = false;
+                    break;
+                }
+            }
+            arg_idx++;
+        }
+
+        if (runnable) {
+            dst.emplace_back(node_name);
+        }
+    }
+
+    return dst;
+}
+
 }  // namespace
 
 namespace fase {
@@ -90,14 +123,15 @@ bool StringToCore(const std::string& str, FaseCore* core) {
 
     // Links
     while (true) {
+        if (linep == std::end(lines)) {
+            break;
+        }
+
         if (*linep == "") {
             linep++;
             continue;
         }
 
-        if (linep == std::end(lines)) {
-            break;
-        }
         auto words = split(*linep, ' ');
         if (!core->addLink(words.at(2), std::stoul(words.at(3)), words.at(0),
                            std::stoul(words.at(1)))) {
@@ -147,6 +181,42 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core) {
         std::cerr << e.what() << std::endl;
         return false;
     }
+}
+
+std::vector<std::set<std::string>> GetCallOrder(
+        const std::map<std::string, Node>& nodes) {
+    std::vector<std::set<std::string>> dst;
+
+    std::set<std::string> unused_node_names;
+
+    for (const auto& pair : nodes) {
+        unused_node_names.insert(std::get<0>(pair));
+    }
+
+    while (true) {
+        auto runnables = FindRunnableNodes(unused_node_names, nodes);
+
+        if (runnables.empty()) break;
+
+        std::set<int> phases;
+
+        for (auto& name : runnables) {
+            phases.insert(nodes.at(name).phase);
+            unused_node_names.erase(name);
+        }
+
+        for (auto& phase : phases) {
+            std::set<std::string> buf;
+            for (auto& name : runnables) {
+                if (nodes.at(name).phase == phase) {
+                    buf.insert(name);
+                }
+            }
+            dst.emplace_back(std::move(buf));
+        }
+    }
+
+    return dst;
 }
 
 }  // namespace fase
