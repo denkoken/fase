@@ -5,6 +5,8 @@
 #include <set>
 #include <sstream>
 
+#include "core_util.h"
+
 namespace fase {
 
 namespace {
@@ -17,62 +19,21 @@ void extractKeys(const std::map<std::string, T>& src_map,
     }
 }
 
-std::string FindRunnableNode(const std::set<std::string>& unused_node_names,
-                             const std::map<std::string, Node>& nodes) {
-    // Find runnable function node
-    for (auto& node_name : unused_node_names) {
-        const Node& node = nodes.at(node_name);
-
-        bool runnable = true;
-        size_t arg_idx = 0;
-        for (auto& link : node.links) {
-            if (link.node_name.empty()) {
-                // Case 1: Create default argument
-            } else {
-                // Case 2: Use output variable
-                // Is linked node created?
-                if (exists(unused_node_names, link.node_name)) {
-                    runnable = false;
-                    break;
-                }
-            }
-            arg_idx++;
-        }
-
-        if (runnable) {
-            return node_name;
-        }
+template <typename T>
+T PopFront(std::vector<std::set<T>>& set_array) {
+    if (set_array.empty()) {
+        return T();
     }
 
-    return std::string();
+    auto dst = *std::begin(set_array[0]);
+    set_array[0].erase(dst);
+
+    if (set_array[0].empty()) {
+        set_array.erase(std::begin(set_array));
+    }
+
+    return dst;
 }
-
-class RunnableNodeStack {
-public:
-    explicit RunnableNodeStack(const std::map<std::string, Node>* nodes_p)
-        : nodes(nodes_p) {
-        // Mark all node names as unused
-        extractKeys(*nodes, unused_node_names);
-    }
-
-    std::string pop() {
-        // Find runnable node by checking link dependency
-        const std::string& node_name =
-                FindRunnableNode(unused_node_names, *nodes);
-        if (!node_name.empty()) {
-            unused_node_names.erase(node_name);  // Mark as used
-        }
-        return node_name;
-    }
-
-    bool empty() {
-        return unused_node_names.empty();
-    }
-
-private:
-    std::set<std::string> unused_node_names;
-    const std::map<std::string, Node>* nodes;
-};
 
 }  // anonymous namespace
 
@@ -164,10 +125,10 @@ bool FaseCore::addLink(const std::string& src_node_name,
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
 
     // Test for loop link
-    RunnableNodeStack runnable_nodes_stack(&nodes);
-    while (!runnable_nodes_stack.pop().empty())
+    auto node_order = GetCallOrder(nodes);
+    while (!PopFront(node_order).empty())
         ;
-    if (!runnable_nodes_stack.empty()) {
+    if (!node_order.empty()) {
         // Revert registration
         nodes[dst_node_name].links[dst_arg_idx] = {};
         return false;
@@ -241,11 +202,11 @@ bool FaseCore::build() {
     output_variables.clear();
 
     // Stack for finding runnable node
-    RunnableNodeStack runnable_nodes_stack(&nodes);
+    auto node_order = GetCallOrder(nodes);
 
     while (true) {
         // Find runnable node
-        const std::string node_name = runnable_nodes_stack.pop();
+        const std::string node_name = PopFront(node_order);
         if (node_name.empty()) {
             break;
         }
@@ -277,7 +238,7 @@ bool FaseCore::build() {
         Function& func = functions[node.func_repr];
         pipeline.push_back(func.builder->build(bound_variables));
     }
-    assert(runnable_nodes_stack.empty());
+    assert(node_order.empty());
 
     return true;
 }
@@ -287,22 +248,6 @@ bool FaseCore::run() {
         f();
     }
     return true;
-}
-
-void FaseCore::getRunningOrder(std::vector<std::string>& order) {
-    // Stack for finding runnable node
-    RunnableNodeStack runnable_nodes_stack(&nodes);
-
-    // Push in running order
-    order.clear();
-    while (true) {
-        const std::string& node_name = runnable_nodes_stack.pop();
-        if (node_name.empty()) {
-            break;
-        }
-        order.push_back(node_name);
-    }
-    assert(runnable_nodes_stack.empty());
 }
 
 }  // namespace fase

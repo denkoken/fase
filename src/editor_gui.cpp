@@ -362,17 +362,11 @@ private:
 class LayoutOptimizeGUI {
 public:
     LayoutOptimizeGUI(LabelWrapper& label,
-                      const std::vector<std::string>& node_order,
                       std::map<std::string, GuiNode>& gui_nodes)
-        : label(label),
-          node_order(node_order),
-          gui_nodes(gui_nodes),
-          destinations() {}
+        : label(label), gui_nodes(gui_nodes), destinations() {}
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Optimize layout"))) {
-            (void)node_order;
-
             auto names = GetCallOrder(core->getNodes());
 
             float x = 10, y = 10;
@@ -408,7 +402,6 @@ public:
 private:
     // Reference to the parent's
     LabelWrapper& label;
-    const std::vector<std::string>& node_order;
     std::map<std::string, GuiNode>& gui_nodes;
 
     std::map<std::string, ImVec2> destinations;
@@ -971,7 +964,7 @@ public:
         : node_adding_gui(label, request_add_node),
           run_pipeline_gui(label, is_pipeline_updated),
           native_code_gui(label, var_generators),
-          layout_optimize_gui(label, node_order, gui_nodes),
+          layout_optimize_gui(label, gui_nodes),
           save_gui(label),
           load_gui(label),
           node_list_gui(label, node_order, selected_node_name,
@@ -1054,7 +1047,11 @@ private:
                 }
             }
             // Update node order
-            core->getRunningOrder(node_order);
+            node_order.clear();
+            for (auto&& l : GetCallOrder(core->getNodes())) {
+                node_order.insert(std::end(node_order), std::begin(l),
+                                  std::end(l));
+            }
         }
     }
 };
