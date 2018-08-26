@@ -370,7 +370,7 @@ public:
           destinations() {}
 
     void draw(FaseCore* core) {
-        if (ImGui::MenuItem(label("Optimize layout (TODO)"))) {
+        if (ImGui::MenuItem(label("Optimize layout"))) {
             (void)node_order;
 
             auto names = GetCallOrder(core->getNodes());
@@ -397,7 +397,9 @@ public:
                                     std::get<1>(pair).pos * .7f;
 
             if (std::abs(destinations[std::get<0>(pair)].x -
-                         std::get<1>(pair).pos.x) < 1.f) {
+                         std::get<1>(pair).pos.x) < 1.f &&
+                std::abs(destinations[std::get<0>(pair)].y -
+                         std::get<1>(pair).pos.y) < 1.f) {
                 destinations.erase(std::get<0>(pair));
             }
         }

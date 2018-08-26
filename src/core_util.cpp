@@ -202,18 +202,19 @@ std::vector<std::set<std::string>> GetCallOrder(
 
         for (auto& name : runnables) {
             phases.insert(nodes.at(name).phase);
-            unused_node_names.erase(name);
         }
 
-        for (auto& phase : phases) {
-            std::set<std::string> buf;
-            for (auto& name : runnables) {
-                if (nodes.at(name).phase == phase) {
-                    buf.insert(name);
-                }
+        // get the smallest phase num
+        int smallest = *std::begin(phases);
+
+        std::set<std::string> buf;
+        for (auto& name : runnables) {
+            if (nodes.at(name).phase == smallest) {
+                buf.insert(name);
+                unused_node_names.erase(name);
             }
-            dst.emplace_back(std::move(buf));
         }
+        dst.emplace_back(std::move(buf));
     }
 
     return dst;
