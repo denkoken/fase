@@ -161,9 +161,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Test for loop link
     auto node_order = GetCallOrder(nodes);
-    while (!PopFront(node_order).empty())
-        ;
-    if (!node_order.empty()) {
+    if (node_order.empty()) {
         // Revert registration
         nodes[dst_node_name].links[dst_arg_idx] = {};
         return false;
@@ -304,6 +302,7 @@ bool FaseCore::build(std::map<std::string, ResultReport>* report_box,
 
     // Build running order.
     auto node_order = GetCallOrder(nodes);
+    assert(!node_order.empty());
 
     auto start = std::make_shared<std::chrono::system_clock::time_point>();
     if (report_box != nullptr) {

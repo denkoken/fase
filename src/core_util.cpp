@@ -217,6 +217,10 @@ std::vector<std::set<std::string>> GetCallOrder(
         dst.emplace_back(std::move(buf));
     }
 
+    if (!unused_node_names.empty()) {
+        return std::vector<std::set<std::string>>();
+    }
+
     return dst;
 }
 
