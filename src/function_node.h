@@ -2,6 +2,7 @@
 #define FASE_FUNCTION_NODE_H_20180617
 
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -13,11 +14,19 @@
 
 namespace fase {
 
+struct ResultReport {
+    using TimeType = decltype(std::chrono::system_clock::now() -
+                              std::chrono::system_clock::now());
+    TimeType execution_time;  // sec
+};
+
 class FunctionBuilderBase {
 public:
     virtual ~FunctionBuilderBase() {}
     virtual std::function<void()> build(
             const std::vector<Variable *> &in_args) = 0;
+    virtual std::function<void()> build(const std::vector<Variable *> &in_args,
+                                        ResultReport *report) = 0;
 };
 
 template <typename... Args>
@@ -62,6 +71,21 @@ public:
         return bind(args, std::index_sequence_for<Args...>());
     }
 
+    std::function<void()> build(const std::vector<Variable *> &in_args,
+                                ResultReport *report) {
+        if (in_args.size() != sizeof...(Args)) {
+            throw(InvalidArgN(sizeof...(Args), in_args.size()));
+        }
+
+        // Copy to an array of variables
+        std::array<Variable *, sizeof...(Args)> args;
+        for (size_t i = 0; i < sizeof...(Args); i++) {
+            args[i] = in_args[i];
+        }
+        // Bind arguments
+        return bind(args, std::index_sequence_for<Args...>(), report);
+    }
+
 private:
     template <std::size_t... Idx>
     auto bind(std::array<Variable *, sizeof...(Args)> &args,
@@ -70,6 +94,18 @@ private:
             func(*(*args[Idx])
                           .template getReader<typename std::remove_reference<
                                   Args>::type>()...);
+        };
+    }
+
+    template <std::size_t... Idx>
+    auto bind(std::array<Variable *, sizeof...(Args)> &args,
+              std::index_sequence<Idx...>, ResultReport *report) {
+        return [=]() {
+            auto start = std::chrono::system_clock::now();
+            func(*(*args[Idx])
+                          .template getReader<typename std::remove_reference<
+                                  Args>::type>()...);
+            report->execution_time = std::chrono::system_clock::now() - start;
         };
     }
 

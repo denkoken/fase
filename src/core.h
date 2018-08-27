@@ -68,7 +68,8 @@ public:
 
     const std::map<std::string, Node>& getNodes() const;
 
-    bool build();
+    bool build(std::map<std::string, ResultReport>* report_box = nullptr,
+               bool parallel_exe = false);
     bool run();
 
     template <typename T>
@@ -76,6 +77,14 @@ public:
                 const T& default_value = T());
 
 private:
+    std::function<void()> buildNode(
+            const std::string& node_name, const std::vector<Variable*>& args,
+            std::map<std::string, ResultReport>* report_box) const;
+
+    void buildNodesParallel(const std::set<std::string>& runnables,
+                            std::map<std::string, ResultReport>* report_box);
+    void buildNodesNonParallel(const std::set<std::string>& runnables,
+                               std::map<std::string, ResultReport>* report_box);
     // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 

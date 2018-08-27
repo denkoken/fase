@@ -252,8 +252,17 @@ public:
     void draw(FaseCore* core) {
         // Run once
         if (ImGui::MenuItem(label("Run"))) {
-            core->build();
+            std::map<std::string, ResultReport> report_box;
+            core->build(&report_box, true);
             core->run();
+            for (auto& report : report_box) {
+                std::cout << std::get<0>(report) << " : "
+                          << std::chrono::duration_cast<
+                                     std::chrono::microseconds>(
+                                     std::get<1>(report).execution_time)
+                                     .count()
+                          << " micro seconds" << std::endl;
+            }
         }
 
         ImGui::Dummy(ImVec2(5, 0));  // Spacing

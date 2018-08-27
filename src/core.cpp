@@ -4,6 +4,7 @@
 #include <cassert>
 #include <set>
 #include <sstream>
+#include <thread>
 
 #include "core_util.h"
 
@@ -33,6 +34,35 @@ T PopFront(std::vector<std::set<T>>& set_array) {
     }
 
     return dst;
+}
+
+std::vector<Variable*> BindVariables(
+        const Node& node,
+        const std::map<std::string, std::vector<Variable>>& exists_variables,
+        std::vector<Variable>* variables) {
+    assert(variables->empty());
+
+    const size_t n_args = node.links.size();
+    // Set output variable
+    for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+        const auto& link = node.links[arg_idx];
+        if (link.node_name.empty()) {
+            // Case 1: Create default argument
+            const Variable& v = node.arg_values[arg_idx];
+            variables->push_back(v);
+        } else {
+            // Case 2: Use output variable
+            variables->push_back(
+                    exists_variables.at(link.node_name)[link.arg_idx]);
+        }
+    }
+
+    // Collect binding variables
+    std::vector<Variable*> bound_variables;
+    for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+        bound_variables.push_back(&variables->at(arg_idx));
+    }
+    return bound_variables;
 }
 
 }  // anonymous namespace
@@ -197,46 +227,70 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
     return functions;
 }
 
-bool FaseCore::build() {
+std::function<void()> FaseCore::buildNode(
+        const std::string& node_name, const std::vector<Variable*>& args,
+        std::map<std::string, ResultReport>* report_box) const {
+    const Function& func = functions.at(nodes.at(node_name).func_repr);
+    if (report_box != nullptr) {
+        return func.builder->build(args, &(*report_box)[node_name]);
+    } else {
+        return func.builder->build(args);
+    }
+}
+
+void FaseCore::buildNodesParallel(
+        const std::set<std::string>& runnables,
+        std::map<std::string, ResultReport>* report_box) {
+    std::map<std::string, std::vector<Variable*>> variable_ps;
+    for (auto& runnable : runnables) {
+        variable_ps[runnable] = BindVariables(nodes[runnable], output_variables,
+                                              &output_variables[runnable]);
+    }
+
+    // Build
+    std::vector<std::function<void()>> funcs;
+    for (auto& runnable : runnables) {
+        funcs.emplace_back(
+                buildNode(runnable, variable_ps[runnable], report_box));
+    }
+    pipeline.push_back([funcs] {
+        std::vector<std::thread> ths;
+        for (auto& func : funcs) {
+            ths.emplace_back(func);
+        }
+        for (auto& th : ths) {
+            th.join();
+        }
+    });
+}
+
+void FaseCore::buildNodesNonParallel(
+        const std::set<std::string>& runnables,
+        std::map<std::string, ResultReport>* report_box) {
+    for (auto& runnable : runnables) {
+        const Node& node = nodes[runnable];
+        auto bound_variables = BindVariables(node, output_variables,
+                                             &output_variables[runnable]);
+
+        // Build
+        pipeline.emplace_back(buildNode(runnable, bound_variables, report_box));
+    }
+}
+
+bool FaseCore::build(std::map<std::string, ResultReport>* report_box,
+                     bool parallel_exe) {
     pipeline.clear();
     output_variables.clear();
 
-    // Stack for finding runnable node
+    // Build running order.
     auto node_order = GetCallOrder(nodes);
 
-    while (true) {
-        // Find runnable node
-        const std::string node_name = PopFront(node_order);
-        if (node_name.empty()) {
-            break;
+    for (auto& runnables : node_order) {
+        if (parallel_exe) {
+            buildNodesParallel(runnables, report_box);
+        } else {
+            buildNodesNonParallel(runnables, report_box);
         }
-
-        Node& node = nodes[node_name];
-        const size_t n_args = node.links.size();
-
-        // Set output variable
-        assert(output_variables[node_name].empty());
-        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            auto& link = node.links[arg_idx];
-            if (link.node_name.empty()) {
-                // Case 1: Create default argument
-                const Variable& v = node.arg_values[arg_idx];
-                output_variables[node_name].push_back(v);
-            } else {
-                // Case 2: Use output variable
-                Variable& v = output_variables.at(link.node_name)[link.arg_idx];
-                output_variables[node_name].push_back(v);
-            }
-        }
-
-        // Collect binding variables
-        std::vector<Variable*> bound_variables;
-        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            bound_variables.push_back(&output_variables[node_name][arg_idx]);
-        }
-        // Build
-        Function& func = functions[node.func_repr];
-        pipeline.push_back(func.builder->build(bound_variables));
     }
     assert(node_order.empty());
 
