@@ -82,6 +82,7 @@ private:
             std::map<std::string, ResultReport>* report_box) const;
 
     void buildNodesParallel(const std::set<std::string>& runnables,
+                            const size_t& step,
                             std::map<std::string, ResultReport>* report_box);
     void buildNodesNonParallel(const std::set<std::string>& runnables,
                                std::map<std::string, ResultReport>* report_box);

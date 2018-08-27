@@ -72,6 +72,11 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
     if (name.empty()) {
         return false;
     }
+
+    if (name.find(ReportHeaderStr()) != std::string::npos) {
+        return false;
+    }
+
     // check defined function name.
     if (!exists(functions, func_repr)) {
         return false;
@@ -239,7 +244,7 @@ std::function<void()> FaseCore::buildNode(
 }
 
 void FaseCore::buildNodesParallel(
-        const std::set<std::string>& runnables,
+        const std::set<std::string>& runnables, const size_t& step,
         std::map<std::string, ResultReport>* report_box) {
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
@@ -253,15 +258,30 @@ void FaseCore::buildNodesParallel(
         funcs.emplace_back(
                 buildNode(runnable, variable_ps[runnable], report_box));
     }
-    pipeline.push_back([funcs] {
-        std::vector<std::thread> ths;
-        for (auto& func : funcs) {
-            ths.emplace_back(func);
-        }
-        for (auto& th : ths) {
-            th.join();
-        }
-    });
+    if (report_box != nullptr) {
+        pipeline.push_back([funcs, report_box, step] {
+            auto start = std::chrono::system_clock::now();
+            std::vector<std::thread> ths;
+            for (auto& func : funcs) {
+                ths.emplace_back(func);
+            }
+            for (auto& th : ths) {
+                th.join();
+            }
+            (*report_box)[StepStr(step)].execution_time =
+                    std::chrono::system_clock::now() - start;
+        });
+    } else {
+        pipeline.push_back([funcs] {
+            std::vector<std::thread> ths;
+            for (auto& func : funcs) {
+                ths.emplace_back(func);
+            }
+            for (auto& th : ths) {
+                th.join();
+            }
+        });
+    }
 }
 
 void FaseCore::buildNodesNonParallel(
@@ -285,14 +305,27 @@ bool FaseCore::build(std::map<std::string, ResultReport>* report_box,
     // Build running order.
     auto node_order = GetCallOrder(nodes);
 
+    auto start = std::make_shared<std::chrono::system_clock::time_point>();
+    if (report_box != nullptr) {
+        pipeline.push_back(
+                [start] { *start = std::chrono::system_clock::now(); });
+    }
+
+    size_t step = 0;
     for (auto& runnables : node_order) {
         if (parallel_exe) {
-            buildNodesParallel(runnables, report_box);
+            buildNodesParallel(runnables, step++, report_box);
         } else {
             buildNodesNonParallel(runnables, report_box);
         }
     }
-    assert(node_order.empty());
+
+    if (report_box != nullptr) {
+        pipeline.push_back([start, report_box] {
+            (*report_box)[TotalTimeStr()].execution_time =
+                    std::chrono::system_clock::now() - *start;
+        });
+    }
 
     return true;
 }
