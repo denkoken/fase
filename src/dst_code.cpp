@@ -13,34 +13,20 @@ void extractKeys(const std::map<std::string, T>& src_map,
     }
 }
 
-std::string FindRunnableNode(const std::set<std::string>& unused_node_names,
-                             const std::map<std::string, fase::Node>& nodes) {
-    // Find runnable function node
-    for (auto& node_name : unused_node_names) {
-        const fase::Node& node = nodes.at(node_name);
-
-        bool runnable = true;
-        size_t arg_idx = 0;
-        for (auto& link : node.links) {
-            if (link.node_name.empty()) {
-                // Case 1: Create default argument
-            } else {
-                // Case 2: Use output variable
-                // Is linked node created?
-                if (fase::exists(unused_node_names, link.node_name)) {
-                    runnable = false;
-                    break;
-                }
-            }
-            arg_idx++;
-        }
-
-        if (runnable) {
-            return node_name;
-        }
+template <typename T>
+T PopFront(std::vector<std::set<T>>& set_array) {
+    if (set_array.empty()) {
+        return T();
     }
 
-    return std::string();
+    auto dst = *std::begin(set_array[0]);
+    set_array[0].erase(dst);
+
+    if (set_array[0].empty()) {
+        set_array.erase(std::begin(set_array));
+    }
+
+    return dst;
 }
 
 std::string genVarName(const std::string& node_name, const size_t arg_idx) {
@@ -101,39 +87,12 @@ std::string genFunctionCall(const std::string& func_repr,
 
 namespace fase {
 
-class RunnableNodeStack {
-public:
-    explicit RunnableNodeStack(const std::map<std::string, Node>& nodes_)
-        : nodes(&nodes_) {
-        // Mark all node names as unused
-        extractKeys(nodes_, unused_node_names);
-    }
-
-    std::string pop() {
-        // Find runnable node by checking link dependency
-        const std::string& node_name =
-                FindRunnableNode(unused_node_names, *nodes);
-        if (!node_name.empty()) {
-            unused_node_names.erase(node_name);  // Mark as used
-        }
-        return node_name;
-    }
-
-    bool empty() {
-        return unused_node_names.empty();
-    }
-
-private:
-    std::set<std::string> unused_node_names;
-    const std::map<std::string, Node>* nodes;
-};
-
 std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
                           const std::string& indent) {
     std::stringstream native_code;
 
     // Stack for finding runnable node
-    RunnableNodeStack runnable_nodes_stack(core.getNodes());
+    auto node_order = GetCallOrder(core.getNodes());
 
     if (!entry_name.empty()) {
         native_code << "void " << entry_name << "() {" << std::endl;
@@ -141,7 +100,7 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
 
     while (true) {
         // Find runnable node
-        const std::string node_name = runnable_nodes_stack.pop();
+        const std::string node_name = PopFront(node_order);
         if (node_name.empty()) {
             break;
         }
@@ -181,7 +140,7 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
         native_code << indent;
         native_code << genFunctionCall(node.func_repr, var_names);
     }
-    assert(runnable_nodes_stack.empty());
+    assert(node_order.empty());
 
     if (!entry_name.empty()) {
         native_code << "}";
