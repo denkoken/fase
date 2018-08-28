@@ -67,8 +67,19 @@ std::vector<Variable*> BindVariables(
 
 }  // anonymous namespace
 
+FaseCore::FaseCore() {
+    // TODO
+    // nodes[ReportHeaderStr() + std::string("__input")] = {
+    //     .func_repr="",
+    //     .links = std::vector<Link>(),
+    //     .arg_reprs = std::vector<std::string>(),
+    //     .arg_values = std::vector<Variable>(),
+    //     .phase = INT_MIN
+    // };
+}
+
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
-                       const int& phase) {
+                       const int& priority) {
     if (name.empty()) {
         return false;
     }
@@ -84,7 +95,6 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
     // check uniqueness of name.
     if (exists(nodes, name)) {
-        nodes[name].phase = phase;
         return false;
     }
 
@@ -100,7 +110,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
                    .links = std::vector<Link>(n_args),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
                    .arg_values = arg_values,
-                   .phase = phase};
+                   .priority = priority};
 
     return true;
 }
@@ -181,6 +191,14 @@ void FaseCore::delLink(const std::string& dst_node_name,
 
     // Delete
     nodes[dst_node_name].links[dst_arg_idx] = {};
+}
+
+bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
+    if (!exists(nodes, node_name)) {
+        return false;
+    }
+    nodes[node_name].priority = priority;
+    return true;
 }
 
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,

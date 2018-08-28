@@ -24,7 +24,7 @@ struct Node {
     std::vector<Link> links;  // size == |args|
     std::vector<std::string> arg_reprs;  // size == |args|
     std::vector<Variable> arg_values;    // size == |args|
-    int phase;
+    int priority;
 };
 
 struct Function {
@@ -38,7 +38,7 @@ struct Function {
 
 class FaseCore {
 public:
-    FaseCore() {}
+    FaseCore();
 
     template <typename... Args>
     bool addFunctionBuilder(
@@ -50,7 +50,7 @@ public:
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
     bool addNode(const std::string& node_name, const std::string& func_repr,
-                 const int& phase = 0);
+                 const int& priority = 0);
 
     void delNode(const std::string& node_name) noexcept;
 
@@ -58,6 +58,8 @@ public:
                  const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
+
+    bool setPriority(const std::string& node_name, const int& priority);
 
     bool setNodeArg(const std::string& node_name, const size_t arg_idx,
                     const std::string& arg_repr, const Variable& arg_val);

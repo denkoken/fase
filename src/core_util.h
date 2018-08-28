@@ -20,6 +20,9 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core);
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core);
 
+std::vector<std::vector<Link>> getReverseLinks(
+        const std::string& node, const std::map<std::string, Node>& nodes);
+
 /// if a empty vector returned, something went wrong.
 std::vector<std::set<std::string>> GetCallOrder(
         const std::map<std::string, Node>& nodes);

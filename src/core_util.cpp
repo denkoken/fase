@@ -183,6 +183,20 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core) {
     }
 }
 
+std::vector<std::vector<Link>> getReverseLinks(
+        const std::string& node, const std::map<std::string, Node>& nodes) {
+    std::vector<std::vector<Link>> dst(nodes.at(node).links.size());
+    for (const auto& pair : nodes) {
+        for (size_t i = 0; i < std::get<1>(pair).links.size(); i++) {
+            if (std::get<1>(pair).links[i].node_name == node) {
+                dst[std::get<1>(pair).links[i].arg_idx].push_back(
+                        {.node_name = std::get<0>(pair), .arg_idx = i});
+            }
+        }
+    }
+    return dst;
+}
+
 std::vector<std::set<std::string>> GetCallOrder(
         const std::map<std::string, Node>& nodes) {
     std::vector<std::set<std::string>> dst;
@@ -198,18 +212,18 @@ std::vector<std::set<std::string>> GetCallOrder(
 
         if (runnables.empty()) break;
 
-        std::set<int> phases;
+        std::set<int> prioritys;
 
         for (auto& name : runnables) {
-            phases.insert(nodes.at(name).phase);
+            prioritys.insert(nodes.at(name).priority);
         }
 
-        // get the smallest phase num
-        int smallest = *std::begin(phases);
+        // get the smallest priority num
+        int smallest = *std::begin(prioritys);
 
         std::set<std::string> buf;
         for (auto& name : runnables) {
-            if (nodes.at(name).phase == smallest) {
+            if (nodes.at(name).priority == smallest) {
                 buf.insert(name);
                 unused_node_names.erase(name);
             }

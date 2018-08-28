@@ -251,7 +251,7 @@ public:
 
     void draw(FaseCore* core) {
         // Run once
-        if (ImGui::MenuItem(label("Run"))) {
+        if (ImGui::MenuItem(label("Run")) && !is_running) {
             std::map<std::string, ResultReport> report_box;
             core->build(&report_box, true);
             core->run();
@@ -414,9 +414,6 @@ private:
     std::map<std::string, GuiNode>& gui_nodes;
 
     std::map<std::string, ImVec2> destinations;
-
-    // Private status
-    // [None]
 };
 
 // FaseCore saver
@@ -426,16 +423,43 @@ public:
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Save"))) {
-            SaveFaseCore("fase_save.txt", *core);
+            ImGui::OpenPopup(label("Popup: Save pipeline"));
+        }
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label("Popup: Save pipeline"), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            // Input elements
+            ImGui::InputText(label("File path"), filename_buf,
+                             sizeof(filename_buf));
+
+            if (!error_msg.empty()) {
+                ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
+            }
+
+            if (ImGui::Button(label("OK"))) {
+                if (SaveFaseCore(filename_buf, *core)) {
+                    ImGui::CloseCurrentPopup();
+                } else {
+                    error_msg = "Failed to save pipeline";  // Failed
+                }
+            }
+
+            ImGui::EndPopup();
         }
     }
 
 private:
+    const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
+
     // Reference to the parent's
     LabelWrapper& label;
 
-    // Private status
-    // [None]
+    std::string error_msg;
+    char filename_buf[1024];
 };
 
 // FaseCore saver
@@ -445,16 +469,43 @@ public:
 
     void draw(FaseCore* core) {
         if (ImGui::MenuItem(label("Load"))) {
-            LoadFaseCore("fase_save.txt", core);
+            ImGui::OpenPopup(label("Popup: Load pipeline"));
+        }
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label("Popup: Load pipeline"), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            // Input elements
+            ImGui::InputText(label("File path"), filename_buf,
+                             sizeof(filename_buf));
+
+            if (!error_msg.empty()) {
+                ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
+            }
+
+            if (ImGui::Button(label("OK"))) {
+                if (LoadFaseCore(filename_buf, core)) {
+                    ImGui::CloseCurrentPopup();
+                } else {
+                    error_msg = "Failed to load pipeline";  // Failed
+                }
+            }
+
+            ImGui::EndPopup();
         }
     }
 
 private:
+    const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
+
     // Reference to the parent's
     LabelWrapper& label;
 
-    // Private status
-    // [None]
+    std::string error_msg;
+    char filename_buf[1024];
 };
 
 // Node list selector
