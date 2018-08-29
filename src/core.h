@@ -34,6 +34,7 @@ struct Function {
     std::vector<std::string> arg_names;            // size == |args|
     std::vector<Variable> default_arg_values;      // size == |args|
     std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
+    std::vector<bool> is_input_args;               // size == |args|
 };
 
 class FaseCore {

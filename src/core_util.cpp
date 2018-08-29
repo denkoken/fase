@@ -164,6 +164,10 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core) {
     try {
         std::ifstream input(filename);
 
+        if (!input) {
+            return false;
+        }
+
         std::stringstream ss;
 
         while (!input.eof()) {

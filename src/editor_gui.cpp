@@ -718,6 +718,28 @@ private:
                 ImGui::Text("%s [default:%s]", arg_name.c_str(),
                             arg_repr.c_str());
             }
+
+            // draw input or inout.
+            ImGui::SameLine();
+            {
+                ImVec4 col;
+                std::string text;
+                if (function.is_input_args[arg_idx]) {
+                    col = ImVec4(.7f, .4f, .1f, 1.f);
+                    text = "  in  ";
+                } else {
+                    col = ImVec4(.2f, .7f, .1f, 1.f);
+                    text = "in/out";
+                }
+                ImGui::PushStyleColor(ImGuiCol_Button, col);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+                ImGui::Button(text.c_str());
+                ImGui::PopStyleColor();
+                ImGui::PopStyleColor();
+                ImGui::PopStyleColor();
+            }
+
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
         }

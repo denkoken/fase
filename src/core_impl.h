@@ -3,6 +3,8 @@
 
 namespace fase {
 
+namespace {
+
 template <typename T, typename S>
 inline bool exists(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);
@@ -45,10 +47,20 @@ bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
 }
 
 template <typename T>
-const std::type_info* getCleanTypeId() {
+const std::type_info* GetCleanTypeId() {
     return &typeid(typename std::remove_reference<
                    typename std::remove_cv<T>::type>::type);
 }
+
+template <typename T>
+constexpr bool IsInputArgType() {
+    using rrT = typename std::remove_reference<T>::type;
+    return std::is_same<rrT, T>() or
+           !std::is_same<typename std::remove_const<rrT>::type, rrT>() or
+           std::is_rvalue_reference<T>();
+}
+
+}  // namespace
 
 template <typename... Args>
 bool FaseCore::addFunctionBuilder(
@@ -87,7 +99,9 @@ bool FaseCore::addFunctionBuilder(
                                      default_arg_reprs.end()),
             std::vector<std::string>(arg_names.begin(), arg_names.end()),
             std::vector<Variable>(args.begin(), args.end()),
-            std::vector<const std::type_info*>{getCleanTypeId<Args>()...}};
+            std::vector<const std::type_info*>{GetCleanTypeId<Args>()...},
+            std::vector<bool>{IsInputArgType<Args>()...},
+    };
     return true;
 }
 
