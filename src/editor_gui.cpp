@@ -54,6 +54,21 @@ private:
     std::string last_label;  // temporary storage to return char*
 };
 
+template<class T, class Filter>
+T SubGroup(const T& group, const Filter& f) {
+    T dst;
+    auto i = std::begin(group), end = std::end(group);
+    while (i != end) {
+        i = std::find_if(i, end, f);
+
+        if (i != end) {
+            dst.insert(*i);
+            i++;
+        }
+    }
+    return dst;
+}
+
 // Extend ImGui's operator
 inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
     return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
@@ -246,44 +261,56 @@ private:
 
 class RunPipelineGUI {
 public:
-    RunPipelineGUI(LabelWrapper& label, const bool& is_pipeline_updated)
-        : label(label), is_pipeline_updated(is_pipeline_updated) {}
+    RunPipelineGUI(LabelWrapper& label, const bool& is_pipeline_updated, std::map<std::string, ResultReport>* p_reports)
+        : label(label), is_pipeline_updated(is_pipeline_updated), p_reports(p_reports){}
 
     void draw(FaseCore* core) {
-        // Run once
-        if (ImGui::MenuItem(label("Run")) && !is_running) {
-            std::map<std::string, ResultReport> report_box;
-            core->build(&report_box, true);
-            core->run();
-            for (auto& report : report_box) {
-                std::cout << std::get<0>(report) << " : "
-                          << std::chrono::duration_cast<
-                                     std::chrono::microseconds>(
-                                     std::get<1>(report).execution_time)
-                                     .count()
-                          << " micro seconds" << std::endl;
+        if (!is_running && ImGui::BeginMenu("Run")) {
+            // Run once
+            if (ImGui::MenuItem(label("Run")) && !is_running) {
+                core->build(multi, report);
+                *p_reports = core->run();
             }
-        }
-
-        ImGui::Dummy(ImVec2(5, 0));  // Spacing
-        // Run by loop
-        if (!is_running) {
-            if (ImGui::MenuItem(label("Run (loop)"))) {
-                // Start loop
-                if (core->build()) {
-                    is_running = true;
+            ImGui::Dummy(ImVec2(5, 0));  // Spacing
+            // Run by loop
+            if (!is_running) {
+                if (ImGui::MenuItem(label("Run (loop)"))) {
+                    // Start loop
+                    if (core->build(multi, report)) {
+                        is_running = true;
+                    }
                 }
             }
-        } else {
-            if (ImGui::MenuItem(label("Stop! (loop)"))) {
+            if (multi) {
+                if (ImGui::MenuItem(label("Multi Build (On)"))) {
+                    multi = false;
+                }
+            } else {
+                if (ImGui::MenuItem(label("Multi Build (Off)"))) {
+                    multi = true;
+                }
+            }
+            if (report) {
+                if (ImGui::MenuItem(label("Reporting (On)"))) {
+                    report = false;
+                }
+            } else {
+                if (ImGui::MenuItem(label("Reporting (Off)"))) {
+                    report = true;
+                }
+            }
+            ImGui::EndMenu();
+        }
+        else if (is_running) {
+            if (ImGui::MenuItem(label("Stop!"))) {
                 // Stop
                 is_running = false;
             } else {
                 if (is_pipeline_updated) {
                     // Rebuild
-                    core->build();
+                    core->build(multi, report);
                 }
-                core->run();
+                *p_reports = core->run();
             }
         }
     }
@@ -292,9 +319,12 @@ private:
     // Reference to the parent's
     LabelWrapper& label;
     const bool& is_pipeline_updated;
+    std::map<std::string, ResultReport>* p_reports;
 
     // Private status
     bool is_running = false;
+    bool multi = false;
+    bool report = true;
 };
 
 // Draw button and pop up window for native code
@@ -378,15 +408,24 @@ public:
         if (ImGui::MenuItem(label("Optimize layout"))) {
             auto names = GetCallOrder(core->getNodes());
 
-            float x = 10, y = 10;
+            float baseline_y = 0;
+            float x = 10, y = 10, maxy = 0;
+            ImVec2 component_size = ImGui::GetWindowSize() - ImGui::GetItemRectSize();
             for (auto& name_set : names) {
                 float maxx = 0;
-                for (auto name : name_set) {
-                    destinations[name].y = y;
-                    destinations[name].x = x;
-                    y += gui_nodes[name].size.y + 30.0;
+                for (auto& name : name_set) {
                     maxx = std::max(maxx, gui_nodes[name].size.x);
                 }
+                if (x + maxx > component_size.x) {
+                    x = 10;
+                    baseline_y = maxy + 20 + baseline_y;
+                }
+                for (auto& name : name_set) {
+                    destinations[name].y = y + baseline_y;
+                    destinations[name].x = x;
+                    y += gui_nodes[name].size.y + 30.0;
+                }
+                maxy = std::max(maxy, y);
                 y = 10;
                 x += maxx + 50;
             }
@@ -443,6 +482,7 @@ public:
             if (ImGui::Button(label("OK"))) {
                 if (SaveFaseCore(filename_buf, *core)) {
                     ImGui::CloseCurrentPopup();
+                    error_msg = "";
                 } else {
                     error_msg = "Failed to save pipeline";  // Failed
                 }
@@ -459,7 +499,7 @@ private:
     LabelWrapper& label;
 
     std::string error_msg;
-    char filename_buf[1024];
+    char filename_buf[1024] = "fase_save.txt";
 };
 
 // FaseCore saver
@@ -489,6 +529,7 @@ public:
             if (ImGui::Button(label("OK"))) {
                 if (LoadFaseCore(filename_buf, core)) {
                     ImGui::CloseCurrentPopup();
+                    error_msg = "";
                 } else {
                     error_msg = "Failed to load pipeline";  // Failed
                 }
@@ -505,7 +546,7 @@ private:
     LabelWrapper& label;
 
     std::string error_msg;
-    char filename_buf[1024];
+    char filename_buf[1024] = "fase_save.txt";
 };
 
 // Node list selector
@@ -672,6 +713,25 @@ private:
         return IM_COL32(int(r), int(g), int(b), 200);
     }
 
+    void drawInOutTag(bool in) {
+        ImVec4 col;
+        std::string text;
+        if (in) {
+            col = ImVec4(.7f, .4f, .1f, 1.f);
+            text = "  in  ";
+        } else {
+            col = ImVec4(.2f, .7f, .1f, 1.f);
+            text = "in/out";
+        }
+        ImGui::PushStyleColor(ImGuiCol_Button, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+        ImGui::Button(text.c_str());
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+
     void drawNodeContent(FaseCore* core, const std::string& node_name,
                          const Node& node, GuiNode& gui_node,
                          const size_t order_idx) {
@@ -696,8 +756,15 @@ private:
             const std::string& arg_name = function.arg_names[arg_idx];
             const std::string& arg_repr = node.arg_reprs[arg_idx];
             const std::type_info* arg_type = function.arg_types[arg_idx];
-            // Draw one argument
+
+            // start to draw one argument
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
+
+            // draw input or inout.
+            ImGui::SameLine();
+            drawInOutTag(function.is_input_args[arg_idx]);
+
+            // draw default argument editing
             ImGui::SameLine();
             if (!node.links[arg_idx].node_name.empty()) {
                 // Link exists
@@ -717,27 +784,6 @@ private:
                 // No GUI for editing
                 ImGui::Text("%s [default:%s]", arg_name.c_str(),
                             arg_repr.c_str());
-            }
-
-            // draw input or inout.
-            ImGui::SameLine();
-            {
-                ImVec4 col;
-                std::string text;
-                if (function.is_input_args[arg_idx]) {
-                    col = ImVec4(.7f, .4f, .1f, 1.f);
-                    text = "  in  ";
-                } else {
-                    col = ImVec4(.2f, .7f, .1f, 1.f);
-                    text = "in/out";
-                }
-                ImGui::PushStyleColor(ImGuiCol_Button, col);
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-                ImGui::Button(text.c_str());
-                ImGui::PopStyleColor();
-                ImGui::PopStyleColor();
-                ImGui::PopStyleColor();
             }
 
             ImGui::SameLine();
@@ -1036,6 +1082,72 @@ private:
     bool is_selected_slot_input = false;
 };
 
+class ReportWindow {
+public:
+
+    ReportWindow(LabelWrapper& label) : label(label) {}
+
+    void draw(const std::map<std::string, ResultReport>& report_box) {
+        if (report_box.empty()) {
+            return;
+        }
+
+        ImGui::Begin("Report", NULL, ImGuiWindowFlags_MenuBar);
+
+        ImGui::BeginMenuBar();
+
+        if (ImGui::MenuItem(label("Nodes"))) {
+            view = View::Nodes;
+        }
+        if (ImGui::MenuItem(label("Steps"))) {
+            view = View::Steps;
+        }
+
+        ImGui::EndMenuBar();
+
+        std::map<std::string, ResultReport> reports = SubGroup(report_box, getFilter());
+
+        long long vmax = 0;
+        for (auto& report : reports) {
+            vmax = std::max(vmax, std::chrono::duration_cast<
+                                     std::chrono::microseconds>(
+                                     std::get<1>(report).execution_time)
+                                     .count());
+        }
+        const float vmaxf = 10e-6f * float(vmax);
+
+        for (auto& report : reports) {
+            float v = float(std::chrono::duration_cast<
+                                     std::chrono::microseconds>(
+                                     std::get<1>(report).execution_time)
+                                     .count()) * 10e-6f;
+            ImGui::SliderFloat(std::get<0>(report).c_str(), &v, 0.f, vmaxf, "%.5f sec");
+        }
+
+        ImGui::End();
+    }
+private:
+    enum class View {
+        Nodes,
+        Steps,
+    };
+    LabelWrapper& label;
+    View view;
+
+    std::function<bool(const std::pair<std::string, ResultReport>&)> getFilter() {
+        if (view == View::Nodes) {
+            return [](const auto& v) {
+                return std::get<0>(v).find(ReportHeaderStr()) == std::string::npos;
+            };
+        } else if (view == View::Steps) {
+            return [](const auto& v) {
+                return std::get<0>(v).find(ReportHeaderStr()) != std::string::npos;
+            };
+        }
+        return [](const auto&){ return false; };
+    }
+};
+
 }  // anonymous namespace
 
 class GUIEditor::Impl {
@@ -1044,7 +1156,7 @@ public:
                  var_generators)
         // Module dependencies are written here
         : node_adding_gui(label, request_add_node),
-          run_pipeline_gui(label, is_pipeline_updated),
+          run_pipeline_gui(label, is_pipeline_updated, &reports),
           native_code_gui(label, var_generators),
           layout_optimize_gui(label, gui_nodes),
           save_gui(label),
@@ -1058,7 +1170,8 @@ public:
                          is_link_creating, var_generators),
           context_menu_gui(label, selected_node_name, hovered_node_name,
                            hovered_slot_name, hovered_slot_idx,
-                           is_hovered_slot_input, request_add_node) {}
+                           is_hovered_slot_input, request_add_node),
+          report_window(label) {}
 
     bool run(FaseCore* core, const std::string& win_title,
              const std::string& label_suffix);
@@ -1076,6 +1189,8 @@ private:
     NodeBoxesGUI node_boxes_gui;
     ContextMenuGUI context_menu_gui;
 
+    ReportWindow report_window;
+
     // Common status
     LabelWrapper label;  // Label wrapper for suffix to generate unique label
     std::vector<std::string> node_order;
@@ -1088,17 +1203,16 @@ private:
     ImVec2 scroll_pos = ImVec2(0.0f, 0.0f);
     bool is_link_creating = false;
     bool is_pipeline_updated = false;
-    size_t prev_n_nodes = 0;
-    size_t prev_n_links = 0;
+    std::string prev_nodes_str;
     bool request_add_node = false;
+    std::map<std::string, ResultReport> reports;
 
     void updateGuiNodes(FaseCore* core) {
         // Clear cache
         is_pipeline_updated = false;
 
         const std::map<std::string, Node>& nodes = core->getNodes();
-        size_t n_nodes = nodes.size();
-        size_t n_links = 0;
+        std::string nodes_str = CoreToString(*core);
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const size_t n_args = it->second.links.size();
@@ -1109,19 +1223,11 @@ private:
                 gui_nodes[node_name].alloc(n_args);
                 is_pipeline_updated = true;
             }
-            // Count up links
-            const auto& links = it->second.links;
-            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-                if (!links[arg_idx].node_name.empty()) {
-                    n_links++;
-                }
-            }
         }
         // Detect changes by the numbers of nodes and links
-        if (n_nodes != prev_n_nodes || n_links != prev_n_links) {
+        if (nodes_str != prev_nodes_str) {
             is_pipeline_updated = true;
-            prev_n_nodes = n_nodes;
-            prev_n_links = n_links;
+            prev_nodes_str = nodes_str;
             // Remove unused GUI nodes
             for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
                 if (nodes.count(it->first) == 0) {
@@ -1217,6 +1323,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     context_menu_gui.draw(core);
 
     ImGui::End();  // End window
+
+    report_window.draw(reports);
+
     return true;
 }
 

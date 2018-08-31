@@ -79,9 +79,7 @@ static void FaseInstallOne(F& fase) {
                                            std::string& expr) {
                 T& val = *v.getReader<T>();
                 const bool chg = ImGuiInputValue(label, &val);
-                if (chg) {
-                    expr = GenerateExpr(val);
-                }
+                expr = GenerateExpr(val);
                 return chg;
             }));
     if (!ret) {

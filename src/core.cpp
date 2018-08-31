@@ -20,22 +20,6 @@ void extractKeys(const std::map<std::string, T>& src_map,
     }
 }
 
-template <typename T>
-T PopFront(std::vector<std::set<T>>& set_array) {
-    if (set_array.empty()) {
-        return T();
-    }
-
-    auto dst = *std::begin(set_array[0]);
-    set_array[0].erase(dst);
-
-    if (set_array[0].empty()) {
-        set_array.erase(std::begin(set_array));
-    }
-
-    return dst;
-}
-
 std::vector<Variable*> BindVariables(
         const Node& node,
         const std::map<std::string, std::vector<Variable>>& exists_variables,
@@ -108,6 +92,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
+                   .rev_links = std::vector<std::vector<Link>>(n_args),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
                    .arg_values = arg_values,
                    .priority = priority};
@@ -168,12 +153,14 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
+    nodes[src_node_name].rev_links[src_arg_idx].push_back({dst_node_name, dst_arg_idx});
 
     // Test for loop link
     auto node_order = GetCallOrder(nodes);
     if (node_order.empty()) {
         // Revert registration
         nodes[dst_node_name].links[dst_arg_idx] = {};
+        nodes[src_node_name].rev_links[src_arg_idx].pop_back();
         return false;
     }
 
@@ -190,6 +177,15 @@ void FaseCore::delLink(const std::string& dst_node_name,
     }
 
     // Delete
+    Link l = nodes[dst_node_name].links[dst_arg_idx];
+    std::vector<Link>& rev_links = nodes[l.node_name].rev_links[l.arg_idx];
+    for (auto r_l = std::begin(rev_links); r_l != std::end(rev_links); r_l++) {
+        if (r_l->node_name == dst_node_name &&
+                r_l->arg_idx == dst_arg_idx) {
+            rev_links.erase(r_l);
+            break;
+        }
+    }
     nodes[dst_node_name].links[dst_arg_idx] = {};
 }
 
@@ -260,7 +256,8 @@ std::function<void()> FaseCore::buildNode(
 }
 
 void FaseCore::buildNodesParallel(
-        const std::set<std::string>& runnables, const size_t& step,
+        const std::set<std::string>& runnables,
+        const size_t& step, // for report.
         std::map<std::string, ResultReport>* report_box) {
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
@@ -313,45 +310,52 @@ void FaseCore::buildNodesNonParallel(
     }
 }
 
-bool FaseCore::build(std::map<std::string, ResultReport>* report_box,
-                     bool parallel_exe) {
+bool FaseCore::build(bool parallel_exe, bool profile) {
     pipeline.clear();
     output_variables.clear();
+    report_box.clear();
 
     // Build running order.
     auto node_order = GetCallOrder(nodes);
     assert(!node_order.empty());
 
-    auto start = std::make_shared<std::chrono::system_clock::time_point>();
-    if (report_box != nullptr) {
+    if (profile) {
+        auto start = std::make_shared<std::chrono::system_clock::time_point>();
         pipeline.push_back(
                 [start] { *start = std::chrono::system_clock::now(); });
-    }
 
-    size_t step = 0;
-    for (auto& runnables : node_order) {
-        if (parallel_exe) {
-            buildNodesParallel(runnables, step++, report_box);
-        } else {
-            buildNodesNonParallel(runnables, report_box);
+        size_t step = 0;
+        for (auto& runnables : node_order) {
+            if (parallel_exe) {
+                buildNodesParallel(runnables, step++, &report_box);
+            } else {
+                buildNodesNonParallel(runnables, &report_box);
+            }
         }
-    }
 
-    if (report_box != nullptr) {
-        pipeline.push_back([start, report_box] {
-            (*report_box)[TotalTimeStr()].execution_time =
+        pipeline.push_back([start, &report_box = this->report_box] {
+            report_box[TotalTimeStr()].execution_time =
                     std::chrono::system_clock::now() - *start;
         });
+    }
+    else {
+        for (auto& runnables : node_order) {
+            if (parallel_exe) {
+                buildNodesParallel(runnables, 0, nullptr);
+            } else {
+                buildNodesNonParallel(runnables, nullptr);
+            }
+        }
     }
 
     return true;
 }
 
-bool FaseCore::run() {
+const std::map<std::string, ResultReport>& FaseCore::run() {
     for (auto& f : pipeline) {
         f();
     }
-    return true;
+    return report_box;
 }
 
 }  // namespace fase

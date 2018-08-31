@@ -22,6 +22,7 @@ struct Link {
 struct Node {
     std::string func_repr;    // Corresponding to function representation
     std::vector<Link> links;  // size == |args|
+    std::vector<std::vector<Link>> rev_links;  // size == |args|
     std::vector<std::string> arg_reprs;  // size == |args|
     std::vector<Variable> arg_values;    // size == |args|
     int priority;
@@ -71,9 +72,8 @@ public:
 
     const std::map<std::string, Node>& getNodes() const;
 
-    bool build(std::map<std::string, ResultReport>* report_box = nullptr,
-               bool parallel_exe = false);
-    bool run();
+    bool build(bool parallel_exe = false, bool profile = false);
+    const std::map<std::string, ResultReport>& run();
 
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
@@ -98,6 +98,8 @@ private:
     // Built pipeline
     std::vector<std::function<void()>> pipeline;
     std::map<std::string, std::vector<Variable>> output_variables;
+
+    std::map<std::string, ResultReport> report_box;
 };
 
 }  // namespace fase
