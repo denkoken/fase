@@ -1052,6 +1052,10 @@ public:
             if (ImGui::MenuItem(label("Delete"))) {
                 core->delNode(selected_node_name);
             }
+            // TODO
+            if (ImGui::MenuItem(label("Rename"))) {
+                core->delNode(selected_node_name);
+            }
             ImGui::EndPopup();
         }
 
@@ -1098,10 +1102,10 @@ public:
 
         ImGui::BeginMenuBar();
 
-        if (ImGui::MenuItem(label("Nodes"))) {
+        if (ImGui::MenuItem(label("Nodes"), NULL, view == View::Nodes)) {
             view = View::Nodes;
         }
-        if (ImGui::MenuItem(label("Steps"))) {
+        if (ImGui::MenuItem(label("Steps"), NULL, view == View::Steps)) {
             view = View::Steps;
         }
 
@@ -1114,8 +1118,16 @@ public:
 
         for (auto& report : reports) {
             float v = getSec(std::get<1>(report));
-            ImGui::SliderFloat(std::get<0>(report).c_str(), &v, 0.f, vmaxf,
-                               "%.5f sec");
+            if (std::get<0>(report) == TotalTimeStr()) {
+                ImGui::Text("total :  %.3f msec", v * 1e3f);
+                continue;
+            }
+            char buf[32];
+            ImGui::ProgressBar(v / vmaxf, ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
+            ImGui::SameLine();
+            ImGui::Text(std::get<0>(report).c_str());
+            ImGui::SameLine();
+            ImGui::Text(" : %.3f msec", v * 1e3f);
         }
 
         ImGui::End();
@@ -1127,7 +1139,7 @@ private:
         Steps,
     };
     LabelWrapper& label;
-    View view;
+    View view = View::Nodes;
 
     std::function<bool(const std::pair<std::string, ResultReport>&)>
     getFilter() {
@@ -1162,7 +1174,7 @@ private:
         return std::chrono::duration_cast<std::chrono::microseconds>(
                        repo.execution_time)
                        .count() *
-               10e-6f;
+               1e-6f;
     }
 };
 

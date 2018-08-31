@@ -51,6 +51,23 @@ std::vector<Variable*> BindVariables(
 
 }  // anonymous namespace
 
+bool FaseCore::checkNodeName(const std::string& name) {
+    if (name.empty()) {
+        return false;
+    }
+
+    if (name.find(ReportHeaderStr()) != std::string::npos) {
+        return false;
+    }
+
+    // check uniqueness of name.
+    if (exists(nodes, name)) {
+        return false;
+    }
+
+    return true;
+}
+
 FaseCore::FaseCore() {
     // TODO
     // nodes[ReportHeaderStr() + std::string("__input")] = {
@@ -64,21 +81,13 @@ FaseCore::FaseCore() {
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
                        const int& priority) {
-    if (name.empty()) {
-        return false;
-    }
-
-    if (name.find(ReportHeaderStr()) != std::string::npos) {
+    // check uniqueness of name and...
+    if (!checkNodeName(name)) {
         return false;
     }
 
     // check defined function name.
     if (!exists(functions, func_repr)) {
-        return false;
-    }
-
-    // check uniqueness of name.
-    if (exists(nodes, name)) {
         return false;
     }
 
@@ -111,9 +120,21 @@ void FaseCore::delNode(const std::string& node_name) noexcept {
             }
         }
     }
+    // TODO fix bug.
+    // TODO del rev_links
 
     // Remove node
     nodes.erase(node_name);
+}
+
+bool FaseCore::renameNode(const std::string& old_name, const std::string& new_name) {
+    if (!exists(nodes, old_name) || !checkNodeName(new_name)) {
+        return false;
+    }
+    nodes[new_name] = std::move(nodes[old_name]);
+    nodes.erase(old_name);
+
+    return true;
 }
 
 bool FaseCore::addLink(const std::string& src_node_name,

@@ -56,6 +56,8 @@ public:
 
     void delNode(const std::string& node_name) noexcept;
 
+    bool renameNode(const std::string& old_name, const std::string& new_name);
+
     bool addLink(const std::string& src_node_name, const size_t& src_arg_idx,
                  const std::string& dst_node_name, const size_t& dst_arg_idx);
 
@@ -100,6 +102,8 @@ private:
     std::map<std::string, std::vector<Variable>> output_variables;
 
     std::map<std::string, ResultReport> report_box;
+
+    bool checkNodeName(const std::string& name);
 };
 
 }  // namespace fase
