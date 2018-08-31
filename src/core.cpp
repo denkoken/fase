@@ -153,7 +153,8 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
-    nodes[src_node_name].rev_links[src_arg_idx].push_back({dst_node_name, dst_arg_idx});
+    nodes[src_node_name].rev_links[src_arg_idx].push_back(
+            {dst_node_name, dst_arg_idx});
 
     // Test for loop link
     auto node_order = GetCallOrder(nodes);
@@ -180,8 +181,7 @@ void FaseCore::delLink(const std::string& dst_node_name,
     Link l = nodes[dst_node_name].links[dst_arg_idx];
     std::vector<Link>& rev_links = nodes[l.node_name].rev_links[l.arg_idx];
     for (auto r_l = std::begin(rev_links); r_l != std::end(rev_links); r_l++) {
-        if (r_l->node_name == dst_node_name &&
-                r_l->arg_idx == dst_arg_idx) {
+        if (r_l->node_name == dst_node_name && r_l->arg_idx == dst_arg_idx) {
             rev_links.erase(r_l);
             break;
         }
@@ -257,7 +257,7 @@ std::function<void()> FaseCore::buildNode(
 
 void FaseCore::buildNodesParallel(
         const std::set<std::string>& runnables,
-        const size_t& step, // for report.
+        const size_t& step,  // for report.
         std::map<std::string, ResultReport>* report_box) {
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
@@ -337,8 +337,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
             report_box[TotalTimeStr()].execution_time =
                     std::chrono::system_clock::now() - *start;
         });
-    }
-    else {
+    } else {
         for (auto& runnables : node_order) {
             if (parallel_exe) {
                 buildNodesParallel(runnables, 0, nullptr);

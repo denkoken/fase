@@ -54,7 +54,7 @@ private:
     std::string last_label;  // temporary storage to return char*
 };
 
-template<class T, class Filter>
+template <class T, class Filter>
 T SubGroup(const T& group, const Filter& f) {
     T dst;
     auto i = std::begin(group), end = std::end(group);
@@ -261,8 +261,11 @@ private:
 
 class RunPipelineGUI {
 public:
-    RunPipelineGUI(LabelWrapper& label, const bool& is_pipeline_updated, std::map<std::string, ResultReport>* p_reports)
-        : label(label), is_pipeline_updated(is_pipeline_updated), p_reports(p_reports){}
+    RunPipelineGUI(LabelWrapper& label, const bool& is_pipeline_updated,
+                   std::map<std::string, ResultReport>* p_reports)
+        : label(label),
+          is_pipeline_updated(is_pipeline_updated),
+          p_reports(p_reports) {}
 
     void draw(FaseCore* core) {
         if (!is_running && ImGui::BeginMenu("Run")) {
@@ -300,8 +303,7 @@ public:
                 }
             }
             ImGui::EndMenu();
-        }
-        else if (is_running) {
+        } else if (is_running) {
             if (ImGui::MenuItem(label("Stop!"))) {
                 // Stop
                 is_running = false;
@@ -410,7 +412,8 @@ public:
 
             float baseline_y = 0;
             float x = 10, y = 10, maxy = 0;
-            ImVec2 component_size = ImGui::GetWindowSize() - ImGui::GetItemRectSize();
+            ImVec2 component_size =
+                    ImGui::GetWindowSize() - ImGui::GetItemRectSize();
             for (auto& name_set : names) {
                 float maxx = 0;
                 for (auto& name : name_set) {
@@ -1084,7 +1087,6 @@ private:
 
 class ReportWindow {
 public:
-
     ReportWindow(LabelWrapper& label) : label(label) {}
 
     void draw(const std::map<std::string, ResultReport>& report_box) {
@@ -1105,27 +1107,20 @@ public:
 
         ImGui::EndMenuBar();
 
-        std::map<std::string, ResultReport> reports = SubGroup(report_box, getFilter());
+        std::map<std::string, ResultReport> reports =
+                SubGroup(report_box, getFilter());
 
-        long long vmax = 0;
-        for (auto& report : reports) {
-            vmax = std::max(vmax, std::chrono::duration_cast<
-                                     std::chrono::microseconds>(
-                                     std::get<1>(report).execution_time)
-                                     .count());
-        }
-        const float vmaxf = 10e-6f * float(vmax);
+        const float vmaxf = getTotalTime(reports);
 
         for (auto& report : reports) {
-            float v = float(std::chrono::duration_cast<
-                                     std::chrono::microseconds>(
-                                     std::get<1>(report).execution_time)
-                                     .count()) * 10e-6f;
-            ImGui::SliderFloat(std::get<0>(report).c_str(), &v, 0.f, vmaxf, "%.5f sec");
+            float v = getSec(std::get<1>(report));
+            ImGui::SliderFloat(std::get<0>(report).c_str(), &v, 0.f, vmaxf,
+                               "%.5f sec");
         }
 
         ImGui::End();
     }
+
 private:
     enum class View {
         Nodes,
@@ -1134,17 +1129,40 @@ private:
     LabelWrapper& label;
     View view;
 
-    std::function<bool(const std::pair<std::string, ResultReport>&)> getFilter() {
+    std::function<bool(const std::pair<std::string, ResultReport>&)>
+    getFilter() {
         if (view == View::Nodes) {
             return [](const auto& v) {
-                return std::get<0>(v).find(ReportHeaderStr()) == std::string::npos;
+                return std::get<0>(v).find(ReportHeaderStr()) ==
+                       std::string::npos;
             };
         } else if (view == View::Steps) {
             return [](const auto& v) {
-                return std::get<0>(v).find(ReportHeaderStr()) != std::string::npos;
+                return std::get<0>(v).find(ReportHeaderStr()) !=
+                       std::string::npos;
             };
         }
-        return [](const auto&){ return false; };
+        return [](const auto&) { return false; };
+    }
+
+    float getTotalTime(const std::map<std::string, ResultReport>& reports) {
+        if (view == View::Nodes) {
+            float total = 0.f;
+            for (const auto& report : reports) {
+                total += getSec(std::get<1>(report));
+            }
+            return total;
+        } else if (view == View::Steps) {
+            return getSec(reports.at(TotalTimeStr()));
+        }
+        return 0.f;
+    }
+
+    float getSec(const ResultReport& repo) {
+        return std::chrono::duration_cast<std::chrono::microseconds>(
+                       repo.execution_time)
+                       .count() *
+               10e-6f;
     }
 };
 
