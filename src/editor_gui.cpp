@@ -69,6 +69,15 @@ T SubGroup(const T& group, const Filter& f) {
     return dst;
 }
 
+template <typename Key, typename T>
+std::vector<Key> GetKeys(const std::map<Key, T>& map) {
+    std::vector<Key> keys;
+    for (const auto& pair : map) {
+        keys.push_back(std::get<0>(pair));
+    }
+    return keys;
+}
+
 // Extend ImGui's operator
 inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
     return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
@@ -1111,21 +1120,40 @@ public:
 
         ImGui::EndMenuBar();
 
+        // for sort rule
+        ImGui::Text("Sort rule : ");
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Name", sort_rule == SortRule::Name)) {
+            sort_rule = SortRule::Name;
+        };
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Time", sort_rule == SortRule::Time)) {
+            sort_rule = SortRule::Time;
+        }
+
+        // apply view filter
         std::map<std::string, ResultReport> reports =
                 SubGroup(report_box, getFilter());
 
+        // sort
+        auto keys = GetKeys(reports);
+        std::sort(std::begin(keys), std::end(keys), getSorter(reports));
+
         const float vmaxf = getTotalTime(reports);
 
-        for (auto& report : reports) {
-            float v = getSec(std::get<1>(report));
-            if (std::get<0>(report) == TotalTimeStr()) {
+        // view
+        for (auto& key : keys) {
+            float v = getSec(reports.at(key));
+            if (key == TotalTimeStr()) {
                 ImGui::Text("total :  %.3f msec", v * 1e3f);
                 continue;
             }
             char buf[32];
-            ImGui::ProgressBar(v / vmaxf, ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
+            ImGui::ProgressBar(
+                    v / vmaxf,
+                    ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
             ImGui::SameLine();
-            ImGui::Text(std::get<0>(report).c_str());
+            ImGui::Text(key.c_str());
             ImGui::SameLine();
             ImGui::Text(" : %.3f msec", v * 1e3f);
         }
@@ -1138,8 +1166,13 @@ private:
         Nodes,
         Steps,
     };
+    enum class SortRule : int {
+        Name,
+        Time,
+    };
     LabelWrapper& label;
     View view = View::Nodes;
+    SortRule sort_rule = SortRule::Name;
 
     std::function<bool(const std::pair<std::string, ResultReport>&)>
     getFilter() {
@@ -1155,6 +1188,19 @@ private:
             };
         }
         return [](const auto&) { return false; };
+    }
+
+    std::function<bool(const std::string&, const std::string&)> getSorter(
+            std::map<std::string, ResultReport>& reports) {
+        if (sort_rule == SortRule::Name) {
+            return [](const auto& a, const auto& b) { return a < b; };
+        } else if (sort_rule == SortRule::Time) {
+            return [&reports](const auto& a, const auto& b) {
+                return reports.at(a).execution_time >
+                       reports.at(b).execution_time;
+            };
+        }
+        return [](const auto&, const auto&) { return false; };
     }
 
     float getTotalTime(const std::map<std::string, ResultReport>& reports) {

@@ -127,7 +127,8 @@ void FaseCore::delNode(const std::string& node_name) noexcept {
     nodes.erase(node_name);
 }
 
-bool FaseCore::renameNode(const std::string& old_name, const std::string& new_name) {
+bool FaseCore::renameNode(const std::string& old_name,
+                          const std::string& new_name) {
     if (!exists(nodes, old_name) || !checkNodeName(new_name)) {
         return false;
     }
