@@ -38,7 +38,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warning_options "-Wall -Wextra -Wconversion")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(warning_options "-Wall -Wextra -Wconversion")
+	set(warning_options "-Wall -Wextra -Wcast-align -Wcast-qual \
+                         -Wctor-dtor-privacy -Wdisabled-optimization \
+                         -Wformat=2 -Winit-self \
+                         -Wmissing-declarations -Wmissing-include-dirs \
+                         -Wold-style-cast -Woverloaded-virtual \
+                         -Wredundant-decls -Wshadow -Wsign-conversion \
+                         -Wsign-promo \
+                         -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
                          -Wctor-dtor-privacy -Wdisabled-optimization \

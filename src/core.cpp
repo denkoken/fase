@@ -111,6 +111,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
+                   .rev_links = std::vector<std::tuple<size_t, Link>>(),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
                    .arg_values = arg_values,
                    .priority = priority};
@@ -304,10 +305,10 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
 
 std::function<void()> FaseCore::buildNode(
         const std::string& node_name, const std::vector<Variable*>& args,
-        std::map<std::string, ResultReport>* report_box) const {
+        std::map<std::string, ResultReport>* report_box_) const {
     const Function& func = functions.at(nodes.at(node_name).func_repr);
-    if (report_box != nullptr) {
-        return func.builder->build(args, &(*report_box)[node_name]);
+    if (report_box_ != nullptr) {
+        return func.builder->build(args, &(*report_box_)[node_name]);
     } else {
         return func.builder->build(args);
     }
@@ -316,7 +317,7 @@ std::function<void()> FaseCore::buildNode(
 void FaseCore::buildNodesParallel(
         const std::set<std::string>& runnables,
         const size_t& step,  // for report.
-        std::map<std::string, ResultReport>* report_box) {
+        std::map<std::string, ResultReport>* report_box_) {
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
         variable_ps[runnable] = BindVariables(nodes[runnable], output_variables,
@@ -327,10 +328,10 @@ void FaseCore::buildNodesParallel(
     std::vector<std::function<void()>> funcs;
     for (auto& runnable : runnables) {
         funcs.emplace_back(
-                buildNode(runnable, variable_ps[runnable], report_box));
+                buildNode(runnable, variable_ps[runnable], report_box_));
     }
-    if (report_box != nullptr) {
-        pipeline.push_back([funcs, report_box, step] {
+    if (report_box_ != nullptr) {
+        pipeline.push_back([funcs, report_box_, step] {
             auto start = std::chrono::system_clock::now();
             std::vector<std::thread> ths;
             for (auto& func : funcs) {
@@ -339,7 +340,7 @@ void FaseCore::buildNodesParallel(
             for (auto& th : ths) {
                 th.join();
             }
-            (*report_box)[StepStr(step)].execution_time =
+            (*report_box_)[StepStr(step)].execution_time =
                     std::chrono::system_clock::now() - start;
         });
     } else {
@@ -357,14 +358,15 @@ void FaseCore::buildNodesParallel(
 
 void FaseCore::buildNodesNonParallel(
         const std::set<std::string>& runnables,
-        std::map<std::string, ResultReport>* report_box) {
+        std::map<std::string, ResultReport>* report_box_) {
     for (auto& runnable : runnables) {
         const Node& node = nodes[runnable];
         auto bound_variables = BindVariables(node, output_variables,
                                              &output_variables[runnable]);
 
         // Build
-        pipeline.emplace_back(buildNode(runnable, bound_variables, report_box));
+        pipeline.emplace_back(
+                buildNode(runnable, bound_variables, report_box_));
     }
 }
 
