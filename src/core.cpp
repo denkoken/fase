@@ -125,18 +125,37 @@ void FaseCore::delNode(const std::string& node_name) noexcept {
     }
     // Remove connected links
     for (auto& r_l : nodes[node_name].rev_links) {
+        if (!exists(nodes, std::get<1>(r_l).node_name)) {
+            std::cerr << "err" << std::endl;
+            std::cerr << std::get<1>(r_l).node_name << std::endl;
+            continue;
+        }
         nodes[std::get<1>(r_l).node_name].links[std::get<1>(r_l).arg_idx] = {};
     }
     // Remove connected reverse links
-    for (auto& link : nodes[node_name].links) {
+    for (size_t i = 0; i < nodes[node_name].links.size(); i++) {
+        auto& link = nodes[node_name].links[i];
         if (link.node_name.empty()) {
             continue;
         }
-        del({node_name, link.arg_idx}, &nodes[link.node_name].rev_links);
+        del({node_name, i}, &nodes[link.node_name].rev_links);
     }
 
     // Remove node
     nodes.erase(node_name);
+
+    // std::cout << "///////" << std::endl;
+    // // for debug
+    // for (auto& pair : nodes) {
+    //     auto& rev_links = std::get<1>(pair).rev_links;
+    //
+    //     std::cout << std::get<0>(pair) << std::endl;
+    //     for (auto& tup : rev_links) {
+    //         std::cout << "    " << std::get<0>(tup) << " : "
+    //                   << std::get<1>(tup).node_name << "  "
+    //                   << std::get<1>(tup).arg_idx << std::endl;
+    //     }
+    // }
 }
 
 bool FaseCore::renameNode(const std::string& old_name,
@@ -158,19 +177,6 @@ bool FaseCore::renameNode(const std::string& old_name,
         addLink(new_name, std::get<0>(r_l), std::get<1>(r_l).node_name,
                 std::get<1>(r_l).arg_idx);
     }
-
-    // std::cout << "///////" << std::endl;
-    // // for debug
-    // for (auto& pair : nodes) {
-    //     auto& rev_links = std::get<1>(pair).rev_links;
-    //
-    //     std::cout << std::get<0>(pair) << std::endl;
-    //     for (auto& tup : rev_links) {
-    //         std::cout << "    " << std::get<0>(tup) << " : "
-    //                   << std::get<1>(tup).node_name << "  "
-    //                   << std::get<1>(tup).arg_idx << std::endl;
-    //     }
-    // }
 
     return true;
 }

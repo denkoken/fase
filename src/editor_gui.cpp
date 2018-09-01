@@ -190,7 +190,7 @@ public:
     NodeAddingGUI(LabelWrapper& label, bool& request_add_node)
         : label(label), request_add_node(request_add_node) {}
 
-    void draw(FaseCore* core) {
+    void draw(FaseCore* core, const std::function<void()>& updater) {
         if (ImGui::MenuItem(label("Add node")) || request_add_node) {
             request_add_node = false;  // Clear request
             // Set default name
@@ -220,6 +220,7 @@ public:
                 // Create new node
                 if (core->addNode(name_buf, func_reprs[size_t(curr_idx)])) {
                     closePopup();  // Success
+                    updater();
                 } else {
                     error_msg = "Failed to create a new node";  // Failed
                 }
@@ -1012,7 +1013,7 @@ public:
           is_hovered_slot_input(is_hovered_slot_input),
           request_add_node(request_add_node) {}
 
-    void draw(FaseCore* core) {
+    void draw(FaseCore* core, const std::function<void()>& updater) {
         // Right click
         if (ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) &&
             ImGui::IsMouseClicked(1)) {
@@ -1063,6 +1064,7 @@ public:
             if (ImGui::MenuItem(label("Delete"))) {
                 // TODO fix segfo bug
                 core->delNode(selected_node_name);
+                updater();
             }
             // TODO
             bool rename = false;
@@ -1074,7 +1076,7 @@ public:
                 ImGui::OpenPopup(label("Popup: Rename node"));
             }
         }
-        renamePopUp("Popup: Rename node", core);
+        renamePopUp("Popup: Rename node", core, updater);
 
         // Node menu
         if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
@@ -1107,7 +1109,8 @@ private:
 
     char new_node_name[64];
 
-    void renamePopUp(const char* popup_name, FaseCore* core) {
+    void renamePopUp(const char* popup_name, FaseCore* core,
+                     const std::function<void()>& updater) {
         bool opened = true;
         if (ImGui::BeginPopupModal(label(popup_name), &opened,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -1120,6 +1123,7 @@ private:
 
             if (ImGui::Button("OK")) {
                 core->renameNode(selected_node_name, new_node_name);
+                updater();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -1355,11 +1359,19 @@ private:
         // Detect changes by the numbers of nodes and links
         if (nodes_str != prev_nodes_str) {
             is_pipeline_updated = true;
-            prev_nodes_str = nodes_str;
+            prev_nodes_str = std::move(nodes_str);
             // Remove unused GUI nodes
-            for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
-                if (nodes.count(it->first) == 0) {
-                    gui_nodes.erase(it++ --);
+            while (true) {
+                bool ok_f = true;
+                for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
+                    if (nodes.count(it->first) == 0) {
+                        gui_nodes.erase(it);
+                        ok_f = false;
+                        break;
+                    }
+                }
+                if (ok_f) {
+                    break;
                 }
             }
             // Update node order
@@ -1387,12 +1399,14 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     // Update label suffix
     label.setSuffix(label_suffix);
 
+    std::function<void()> updater = [this, core]() { updateGuiNodes(core); };
+
     // Menu bar
     if (ImGui::BeginMenuBar()) {
         preference_menu_gui.draw();
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to add new node
-        node_adding_gui.draw(core);
+        node_adding_gui.draw(core, updater);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to run
         run_pipeline_gui.draw(core);
@@ -1450,7 +1464,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
     }
 
     // Context menu
-    context_menu_gui.draw(core);
+    context_menu_gui.draw(core, updater);
 
     ImGui::End();  // End window
 
