@@ -20,6 +20,16 @@ void extractKeys(const std::map<std::string, T>& src_map,
     }
 }
 
+void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
+    for (auto i = std::begin(*rev_links); i != std::end(*rev_links); i++) {
+        auto& r_l = std::get<1>(*i);
+        if (r_l.node_name == l.node_name && r_l.arg_idx == l.arg_idx) {
+            rev_links->erase(i);
+            return;
+        }
+    }
+}
+
 std::vector<Variable*> BindVariables(
         const Node& node,
         const std::map<std::string, std::vector<Variable>>& exists_variables,
@@ -101,7 +111,6 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
     nodes[name] = {.func_repr = func_repr,
                    .links = std::vector<Link>(n_args),
-                   .rev_links = std::vector<std::vector<Link>>(n_args),
                    .arg_reprs = functions[func_repr].default_arg_reprs,
                    .arg_values = arg_values,
                    .priority = priority};
@@ -111,16 +120,18 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
 void FaseCore::delNode(const std::string& node_name) noexcept {
     // Remove connected links
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
-        Node& node = it->second;
-        for (Link& link : node.links) {
-            if (link.node_name == node_name) {
-                // Remove
-                link = {};
-            }
-        }
+    if (!exists(nodes, node_name)) {
+        return;
     }
-    // TODO fix bug.
+    for (auto& r_l : nodes[node_name].rev_links) {
+        nodes[std::get<1>(r_l).node_name].links[std::get<1>(r_l).arg_idx] = {};
+    }
+    for (auto& link : nodes[node_name].links) {
+        if (link.node_name.empty()) {
+            continue;
+        }
+        del({node_name, link.arg_idx}, &nodes[link.node_name].rev_links);
+    }
     // TODO del rev_links
 
     // Remove node
@@ -132,8 +143,33 @@ bool FaseCore::renameNode(const std::string& old_name,
     if (!exists(nodes, old_name) || !checkNodeName(new_name)) {
         return false;
     }
-    nodes[new_name] = std::move(nodes[old_name]);
-    nodes.erase(old_name);
+
+    Node buf = nodes[old_name];
+    delNode(old_name);
+    nodes[new_name] = buf;
+    // Links
+    for (size_t i = 0; i < buf.links.size(); i++) {
+        addLink(buf.links[i].node_name, buf.links[i].arg_idx, new_name, i);
+    }
+    // Reverce Links
+    nodes[new_name].rev_links.clear();
+    for (auto& r_l : buf.rev_links) {
+        addLink(new_name, std::get<0>(r_l), std::get<1>(r_l).node_name,
+                std::get<1>(r_l).arg_idx);
+    }
+
+    // std::cout << "///////" << std::endl;
+    // // for debug
+    // for (auto& pair : nodes) {
+    //     auto& rev_links = std::get<1>(pair).rev_links;
+    //
+    //     std::cout << std::get<0>(pair) << std::endl;
+    //     for (auto& tup : rev_links) {
+    //         std::cout << "    " << std::get<0>(tup) << " : "
+    //                   << std::get<1>(tup).node_name << "  "
+    //                   << std::get<1>(tup).arg_idx << std::endl;
+    //     }
+    // }
 
     return true;
 }
@@ -175,15 +211,15 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
-    nodes[src_node_name].rev_links[src_arg_idx].push_back(
-            {dst_node_name, dst_arg_idx});
+    nodes[src_node_name].rev_links.push_back(
+            {src_arg_idx, {dst_node_name, dst_arg_idx}});
 
     // Test for loop link
     auto node_order = GetCallOrder(nodes);
     if (node_order.empty()) {
         // Revert registration
         nodes[dst_node_name].links[dst_arg_idx] = {};
-        nodes[src_node_name].rev_links[src_arg_idx].pop_back();
+        nodes[src_node_name].rev_links.pop_back();
         return false;
     }
 
@@ -201,10 +237,10 @@ void FaseCore::delLink(const std::string& dst_node_name,
 
     // Delete
     Link l = nodes[dst_node_name].links[dst_arg_idx];
-    std::vector<Link>& rev_links = nodes[l.node_name].rev_links[l.arg_idx];
-    for (auto r_l = std::begin(rev_links); r_l != std::end(rev_links); r_l++) {
-        if (r_l->node_name == dst_node_name && r_l->arg_idx == dst_arg_idx) {
-            rev_links.erase(r_l);
+    auto& r_ls = nodes[l.node_name].rev_links;
+    for (auto iter = std::begin(r_ls); iter != std::end(r_ls); iter++) {
+        if (std::get<1>(*iter).arg_idx == dst_arg_idx) {
+            r_ls.erase(iter);
             break;
         }
     }

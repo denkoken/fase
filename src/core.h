@@ -22,9 +22,9 @@ struct Link {
 struct Node {
     std::string func_repr;    // Corresponding to function representation
     std::vector<Link> links;  // size == |args|
-    std::vector<std::vector<Link>> rev_links;  // size == |args|
-    std::vector<std::string> arg_reprs;        // size == |args|
-    std::vector<Variable> arg_values;          // size == |args|
+    std::vector<std::tuple<size_t, Link>> rev_links;
+    std::vector<std::string> arg_reprs;  // size == |args|
+    std::vector<Variable> arg_values;    // size == |args|
     int priority;
 };
 

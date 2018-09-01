@@ -1061,14 +1061,20 @@ public:
             ImGui::Text("Node \"%s\"", selected_node_name.c_str());
             ImGui::Separator();
             if (ImGui::MenuItem(label("Delete"))) {
+                // TODO fix segfo bug
                 core->delNode(selected_node_name);
             }
             // TODO
+            bool rename = false;
             if (ImGui::MenuItem(label("Rename"))) {
-                core->delNode(selected_node_name);
+                rename = true;
             }
             ImGui::EndPopup();
+            if (rename) {
+                ImGui::OpenPopup(label("Popup: Rename node"));
+            }
         }
+        renamePopUp("Popup: Rename node", core);
 
         // Node menu
         if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
@@ -1098,6 +1104,28 @@ private:
     std::string selected_slot_name;
     size_t selected_slot_idx = 0;
     bool is_selected_slot_input = false;
+
+    char new_node_name[64];
+
+    void renamePopUp(const char* popup_name, FaseCore* core) {
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label(popup_name), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+
+            ImGui::InputText(label("New node name (ID)"), new_node_name,
+                             sizeof(new_node_name));
+
+            if (ImGui::Button("OK")) {
+                core->renameNode(selected_node_name, new_node_name);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
 };
 
 class PreferenceMenuGUI {
