@@ -54,6 +54,10 @@ private:
     std::string last_label;  // temporary storage to return char*
 };
 
+struct GUIPreference {
+    bool auto_layout = false;
+};
+
 template <class T, class Filter>
 T SubGroup(const T& group, const Filter& f) {
     T dst;
@@ -293,23 +297,11 @@ public:
                     }
                 }
             }
-            if (multi) {
-                if (ImGui::MenuItem(label("Multi Build (On)"))) {
-                    multi = false;
-                }
-            } else {
-                if (ImGui::MenuItem(label("Multi Build (Off)"))) {
-                    multi = true;
-                }
+            if (ImGui::MenuItem(label("Multi Build"), NULL, multi)) {
+                multi = !multi;
             }
-            if (report) {
-                if (ImGui::MenuItem(label("Reporting (On)"))) {
-                    report = false;
-                }
-            } else {
-                if (ImGui::MenuItem(label("Reporting (Off)"))) {
-                    report = true;
-                }
+            if (ImGui::MenuItem(label("Reporting"), NULL, report)) {
+                report = !report;
             }
             ImGui::EndMenu();
         } else if (is_running) {
@@ -415,32 +407,9 @@ public:
                       std::map<std::string, GuiNode>& gui_nodes)
         : label(label), gui_nodes(gui_nodes), destinations() {}
 
-    void draw(FaseCore* core) {
-        if (ImGui::MenuItem(label("Optimize layout"))) {
-            auto names = GetCallOrder(core->getNodes());
-
-            float baseline_y = 0;
-            float x = 10, y = 10, maxy = 0;
-            ImVec2 component_size =
-                    ImGui::GetWindowSize() - ImGui::GetItemRectSize();
-            for (auto& name_set : names) {
-                float maxx = 0;
-                for (auto& name : name_set) {
-                    maxx = std::max(maxx, gui_nodes[name].size.x);
-                }
-                if (x + maxx > component_size.x) {
-                    x = 10;
-                    baseline_y = maxy + 20 + baseline_y;
-                }
-                for (auto& name : name_set) {
-                    destinations[name].y = y + baseline_y;
-                    destinations[name].x = x;
-                    y += gui_nodes[name].size.y + 30.0;
-                }
-                maxy = std::max(maxy, y);
-                y = 10;
-                x += maxx + 50;
-            }
+    void draw(FaseCore* core, bool auto_layout) {
+        if (ImGui::MenuItem(label("Optimize layout")) || auto_layout) {
+            SetDestinations(core);
         }
 
         for (auto& pair : gui_nodes) {
@@ -465,6 +434,33 @@ private:
     std::map<std::string, GuiNode>& gui_nodes;
 
     std::map<std::string, ImVec2> destinations;
+
+    void SetDestinations(FaseCore* core) {
+        auto names = GetCallOrder(core->getNodes());
+
+        float baseline_y = 0;
+        float x = 10, y = 10, maxy = 0;
+        ImVec2 component_size =
+                ImGui::GetWindowSize() - ImGui::GetItemRectSize();
+        for (auto& name_set : names) {
+            float maxx = 0;
+            for (auto& name : name_set) {
+                maxx = std::max(maxx, gui_nodes[name].size.x);
+            }
+            if (x + maxx > component_size.x) {
+                x = 10;
+                baseline_y = maxy + 20 + baseline_y;
+            }
+            for (auto& name : name_set) {
+                destinations[name].y = y + baseline_y;
+                destinations[name].x = x;
+                y += gui_nodes[name].size.y + 30.0;
+            }
+            maxy = std::max(maxy, y);
+            y = 10;
+            x += maxx + 50;
+        }
+    }
 };
 
 // FaseCore saver
@@ -963,7 +959,7 @@ public:
 private:
     const ImU32 LINK_COLOR = IM_COL32(200, 200, 100, 255);
     const float SLOT_HOVER_RADIUS = 8.f;
-    const float ARROW_BEZIER_SIZE = 80.f;
+    // const float ARROW_BEZIER_SIZE = 80.f;
     const float ARROW_HEAD_SIZE = 15.f;
     const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;
 
@@ -982,10 +978,16 @@ private:
     // Private methods
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        const ImVec2 s_pos_2 = s_pos + ImVec2(ARROW_BEZIER_SIZE, 0.f);
-        const ImVec2 d_pos_2 = d_pos - ImVec2(ARROW_BEZIER_SIZE, 0.f);
-        draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2, d_pos, LINK_COLOR,
-                                  3.0f);
+        float x_d = std::abs(d_pos.x - s_pos.x) * .7f;
+        if (d_pos.x < s_pos.x) {
+            x_d = std::pow(s_pos.x - d_pos.x, .7f) * 3.f;
+        }
+        float y_d = (d_pos.y - s_pos.y) * .2f;
+        const ImVec2 s_pos_2 = s_pos + ImVec2(x_d, y_d);
+        const ImVec2 d_pos_2 = d_pos - ImVec2(x_d, y_d);
+        draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
+                                  d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
+                                  LINK_COLOR, 3.0f);
         // Arrow's triangle
         const ImVec2 t_pos_1 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
@@ -1098,6 +1100,26 @@ private:
     bool is_selected_slot_input = false;
 };
 
+class PreferenceMenuGUI {
+public:
+    PreferenceMenuGUI(LabelWrapper& label, GUIPreference& preference)
+        : label(label), preference(preference) {}
+
+    void draw() {
+        if (ImGui::BeginMenu("Preferences")) {
+            if (ImGui::MenuItem(label("Auto Layout Sorting"), NULL,
+                                preference.auto_layout)) {
+                preference.auto_layout = !preference.auto_layout;
+            }
+            ImGui::EndMenu();
+        }
+    }
+
+private:
+    LabelWrapper& label;
+    GUIPreference& preference;
+};
+
 class ReportWindow {
 public:
     ReportWindow(LabelWrapper& label) : label(label) {}
@@ -1148,12 +1170,11 @@ public:
                 ImGui::Text("total :  %.3f msec", v * 1e3f);
                 continue;
             }
-            char buf[32];
             ImGui::ProgressBar(
                     v / vmaxf,
                     ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
             ImGui::SameLine();
-            ImGui::Text(key.c_str());
+            ImGui::Text("%s", key.c_str());
             ImGui::SameLine();
             ImGui::Text(" : %.3f msec", v * 1e3f);
         }
@@ -1247,6 +1268,7 @@ public:
           context_menu_gui(label, selected_node_name, hovered_node_name,
                            hovered_slot_name, hovered_slot_idx,
                            is_hovered_slot_input, request_add_node),
+          preference_menu_gui(label, preference),
           report_window(label) {}
 
     bool run(FaseCore* core, const std::string& win_title,
@@ -1264,11 +1286,13 @@ private:
     LinksGUI links_gui;
     NodeBoxesGUI node_boxes_gui;
     ContextMenuGUI context_menu_gui;
+    PreferenceMenuGUI preference_menu_gui;
 
     ReportWindow report_window;
 
     // Common status
     LabelWrapper label;  // Label wrapper for suffix to generate unique label
+    GUIPreference preference;
     std::vector<std::string> node_order;
     std::string selected_node_name;
     std::string hovered_node_name;
@@ -1337,6 +1361,8 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
 
     // Menu bar
     if (ImGui::BeginMenuBar()) {
+        preference_menu_gui.draw();
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to add new node
         node_adding_gui.draw(core);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
@@ -1347,12 +1373,12 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         native_code_gui.draw(core);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to optimize the node layout
-        layout_optimize_gui.draw(core);
-
+        layout_optimize_gui.draw(core, preference.auto_layout);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
+
         save_gui.draw(core);
-
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
+
         load_gui.draw(core);
 
         ImGui::EndMenuBar();
