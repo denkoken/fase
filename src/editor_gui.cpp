@@ -409,7 +409,10 @@ public:
         : label(label), gui_nodes(gui_nodes), destinations() {}
 
     void draw(FaseCore* core, bool auto_layout) {
-        if (ImGui::MenuItem(label("Optimize layout")) || auto_layout) {
+        if (auto_layout) {
+            SetDestinations(core);
+        }
+        else if (ImGui::MenuItem(label("Optimize layout"))) {
             SetDestinations(core);
         }
 
