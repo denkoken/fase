@@ -436,11 +436,16 @@ private:
 
     std::map<std::string, ImVec2> destinations;
 
+    static constexpr float START_X = 30;
+    static constexpr float START_Y = 10;
+    static constexpr float INTERVAL_X = 50;
+    static constexpr float INTERVAL_Y = 10;
+
     void SetDestinations(FaseCore* core) {
         auto names = GetCallOrder(core->getNodes());
 
         float baseline_y = 0;
-        float x = 10, y = 10, maxy = 0;
+        float x = START_X, y = START_Y, maxy = 0;
         ImVec2 component_size =
                 ImGui::GetWindowSize() - ImGui::GetItemRectSize();
         for (auto& name_set : names) {
@@ -449,17 +454,17 @@ private:
                 maxx = std::max(maxx, gui_nodes[name].size.x);
             }
             if (x + maxx > component_size.x) {
-                x = 10;
-                baseline_y = maxy + 20 + baseline_y;
+                x = START_X;
+                baseline_y = maxy + INTERVAL_Y * 0.7f + baseline_y;
             }
             for (auto& name : name_set) {
                 destinations[name].y = y + baseline_y;
                 destinations[name].x = x;
-                y += gui_nodes[name].size.y + 30.0;
+                y += gui_nodes[name].size.y + INTERVAL_Y;
             }
             maxy = std::max(maxy, y);
-            y = 10;
-            x += maxx + 50;
+            y = START_Y;
+            x += maxx + INTERVAL_X;
         }
     }
 };

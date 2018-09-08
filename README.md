@@ -21,12 +21,14 @@ You need glfw3 separately.
 	> mkdir build
 	> cd build
 	> cmake -DBUILD_GLFW=OFF ..
+	> make
 
 ### Linux
 
 	> mkdir build
 	> cd build
 	> cmake ..
+	> make
 
 ### Windows
 
