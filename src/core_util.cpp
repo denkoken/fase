@@ -203,11 +203,14 @@ std::vector<std::vector<Link>> getReverseLinks(
 
 std::vector<std::set<std::string>> GetCallOrder(
         const std::map<std::string, Node>& nodes) {
-    std::vector<std::set<std::string>> dst;
+    std::vector<std::set<std::string>> dst = {{InputNodeStr()}};
 
     std::set<std::string> unused_node_names;
 
     for (const auto& pair : nodes) {
+        if (std::get<0>(pair) == InputNodeStr()) {
+            continue;
+        }
         unused_node_names.insert(std::get<0>(pair));
     }
 

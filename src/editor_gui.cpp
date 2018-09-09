@@ -935,7 +935,7 @@ public:
           gui_nodes(gui_nodes),
           is_link_creating(is_link_creating) {}
 
-    void draw(FaseCore* core) {
+    void draw(FaseCore* core, std::function<void()>& updater) {
         const std::map<std::string, Node>& nodes = core->getNodes();
 
         // Draw links
@@ -1016,6 +1016,7 @@ public:
                                       hovered_slot_idx_prev, hovered_slot_name,
                                       hovered_slot_idx);
                     }
+                    updater();
                 }
                 is_link_creating = false;
             }
@@ -1535,7 +1536,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
             // Draw grid canvas
             DrawCanvas(scroll_pos, 64.f);
             // Draw links
-            links_gui.draw(core);
+            links_gui.draw(core, updater);
             // Draw nodes
             node_boxes_gui.draw(core);
 

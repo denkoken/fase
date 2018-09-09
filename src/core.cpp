@@ -238,6 +238,14 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
         nodes[InputNodeStr()].arg_values[src_arg_idx] =
                 nodes[dst_node_name].arg_values[dst_arg_idx].clone();
+
+        for (auto& pair : nodes[InputNodeStr()].rev_links) {
+            if (std::get<0>(pair) != src_arg_idx) {
+                continue;
+            };
+            auto& link = std::get<1>(pair);
+            delLink(link.node_name, link.arg_idx);
+        }
     } else if (dst_node_name == OutputNodeStr() &&
                !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
                        nodes[src_node_name].arg_values[src_arg_idx])) {
@@ -456,6 +464,9 @@ std::function<void()> FaseCore::buildNode(
         const std::string& node_name, const std::vector<Variable*>& args,
         std::map<std::string, ResultReport>* report_box_) const {
     const Function& func = functions.at(nodes.at(node_name).func_repr);
+    if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
+        return [] {};
+    }
     if (report_box_ != nullptr) {
         return func.builder->build(args, &(*report_box_)[node_name]);
     } else {
