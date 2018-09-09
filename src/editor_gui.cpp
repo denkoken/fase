@@ -585,7 +585,7 @@ class LoadGUI {
 public:
     LoadGUI(LabelWrapper& label) : label(label) {}
 
-    void draw(FaseCore* core) {
+    void draw(FaseCore* core, std::function<void()>& updater) {
         if (ImGui::MenuItem(label("Load"))) {
             ImGui::OpenPopup(label("Popup: Load pipeline"));
         }
@@ -608,6 +608,7 @@ public:
                 if (LoadFaseCore(filename_buf, core)) {
                     ImGui::CloseCurrentPopup();
                     error_msg = "";
+                    updater();
                 } else {
                     error_msg = "Failed to load pipeline";  // Failed
                 }
@@ -1512,7 +1513,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         save_gui.draw(core);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
 
-        load_gui.draw(core);
+        load_gui.draw(core, updater);
 
         ImGui::EndMenuBar();
     }

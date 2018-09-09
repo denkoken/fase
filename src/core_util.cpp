@@ -8,6 +8,7 @@
 
 namespace {
 
+constexpr char INOUT_HEADER[] = "INOUT";
 constexpr char NODE_HEADER[] = "NODE";
 constexpr char LINK_HEADER[] = "LINK";
 
@@ -66,13 +67,35 @@ namespace fase {
 std::string CoreToString(const FaseCore& core) {
     std::stringstream sstream;
 
+    // Inputs and Outputs
+    sstream << std::string(INOUT_HEADER) << std::endl;
+
+    const Function& in_f = core.getFunctions().at(InputFuncStr());
+    for (const std::string& name : in_f.arg_names) {
+        sstream << " " << name;
+    }
+    sstream << std::endl;
+
+    const Function& out_f = core.getFunctions().at(OutputFuncStr());
+    for (const std::string& name : out_f.arg_names) {
+        sstream << " " << name;
+    }
+    sstream << std::endl;
+
+    // Nodes
     sstream << std::string(NODE_HEADER) << std::endl;
 
     for (const auto& pair : core.getNodes()) {
+        if (std::get<0>(pair) == InputNodeStr() ||
+            std::get<0>(pair) == OutputNodeStr()) {
+            continue;
+        }
+
         sstream << std::get<1>(pair).func_repr << " " << std::get<0>(pair)
                 << std::endl;
     }
 
+    // Links
     sstream << std::string(LINK_HEADER) << std::endl;
 
     for (const auto& pair : core.getNodes()) {
@@ -97,8 +120,29 @@ bool StringToCore(const std::string& str, FaseCore* core) {
 
     auto linep = std::begin(lines);
 
-    if (*linep != std::string(NODE_HEADER)) {
+    if (*linep != std::string(INOUT_HEADER)) {
         return false;
+    }
+
+    linep++;
+
+    {
+        auto words = split(*linep, ' ');
+        for (auto& word : words) {
+            if (!word.empty()) {
+                core->addInput(word);
+            }
+        }
+        linep++;
+    }
+    {
+        auto words = split(*linep, ' ');
+        for (auto& word : words) {
+            if (!word.empty()) {
+                core->addOutput(word);
+            }
+        }
+        linep++;
     }
 
     linep++;
