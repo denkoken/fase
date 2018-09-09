@@ -401,6 +401,68 @@ private:
     }
 };
 
+// Draw button and pop up window for native code
+class AddInOutputGUI {
+public:
+    AddInOutputGUI(LabelWrapper& label,
+                   const std::map<const std::type_info*, GuiGeneratorFunc>&
+                           var_generators)
+        : label(label), var_generators(var_generators) {}
+
+    void draw(FaseCore* core, std::function<void()>& updater) {
+        if (ImGui::MenuItem(label("Add input/output"))) {
+            // Open pop up window
+            ImGui::OpenPopup(label("Popup: AddInOutputGUI"));
+        }
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label("Popup: AddInOutputGUI"), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+
+            ImGui::InputText(label("Name"), buf, sizeof(buf));
+
+            if (!error_msg.empty()) {
+                ImGui::TextColored(ImVec4(255, 0, 0, 255), "%s",
+                                   error_msg.c_str());
+            }
+
+            if (ImGui::Button(label("Make input"))) {
+                if (core->addInput(buf)) {
+                    ImGui::CloseCurrentPopup();
+                    updater();
+                    error_msg = "";
+                } else {
+                    error_msg = "Invalid Name";  // Failed
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(label("Make output"))) {
+                if (core->addOutput(buf)) {
+                    ImGui::CloseCurrentPopup();
+                    updater();
+                    error_msg = "";
+                } else {
+                    error_msg = "Invalid Name";  // Failed
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+private:
+    const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
+
+    // Reference to the parent's
+    LabelWrapper& label;
+    const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
+
+    char buf[64];
+    std::string error_msg;
+};
+
 // Layout optimizer
 class LayoutOptimizeGUI {
 public:
@@ -411,8 +473,7 @@ public:
     void draw(FaseCore* core, bool auto_layout) {
         if (auto_layout) {
             SetDestinations(core);
-        }
-        else if (ImGui::MenuItem(label("Optimize layout"))) {
+        } else if (ImGui::MenuItem(label("Optimize layout"))) {
             SetDestinations(core);
         }
 
@@ -586,6 +647,11 @@ public:
             const std::string& node_name = node_order[order_idx];
             const Node& node = nodes.at(node_name);
 
+            if (node.func_repr == OutputFuncStr() ||
+                node.func_repr == InputFuncStr()) {
+                continue;
+            }
+
             // List component
             ImGui::PushID(label(node_name));
             std::stringstream view_ss;
@@ -753,8 +819,14 @@ private:
                          const Node& node, GuiNode& gui_node,
                          const size_t order_idx) {
         ImGui::BeginGroup();  // Lock horizontal position
-        ImGui::Text("%zu) [%s] %s", order_idx, node.func_repr.c_str(),
-                    node_name.c_str());
+        if (node.func_repr == InputFuncStr()) {
+            ImGui::Text("Input");
+        } else if (node.func_repr == OutputFuncStr()) {
+            ImGui::Text("Output");
+        } else {
+            ImGui::Text("%zu) [%s] %s", order_idx, node.func_repr.c_str(),
+                        node_name.c_str());
+        }
         ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
 
         const size_t n_args = node.links.size();
@@ -799,8 +871,13 @@ private:
                 }
             } else {
                 // No GUI for editing
-                ImGui::Text("%s [default:%s]", arg_name.c_str(),
-                            arg_repr.c_str());
+                if (node.func_repr == OutputFuncStr() ||
+                    node.func_repr == InputFuncStr()) {
+                    ImGui::Text("%s : Unset", arg_name.c_str());
+                } else {
+                    ImGui::Text("%s [default:%s]", arg_name.c_str(),
+                                arg_repr.c_str());
+                }
             }
 
             ImGui::SameLine();
@@ -1309,6 +1386,7 @@ public:
                            hovered_slot_name, hovered_slot_idx,
                            is_hovered_slot_input, request_add_node),
           preference_menu_gui(label, preference),
+          add_inoutput_menu_gui(label, var_generators),
           report_window(label) {}
 
     bool run(FaseCore* core, const std::string& win_title,
@@ -1327,6 +1405,7 @@ private:
     NodeBoxesGUI node_boxes_gui;
     ContextMenuGUI context_menu_gui;
     PreferenceMenuGUI preference_menu_gui;
+    AddInOutputGUI add_inoutput_menu_gui;
 
     ReportWindow report_window;
 
@@ -1424,6 +1503,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const std::string& win_title,
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
         // Menu to optimize the node layout
         layout_optimize_gui.draw(core, preference.auto_layout);
+        ImGui::Dummy(ImVec2(5, 0));  // Spacing
+
+        add_inoutput_menu_gui.draw(core, updater);
         ImGui::Dummy(ImVec2(5, 0));  // Spacing
 
         save_gui.draw(core);

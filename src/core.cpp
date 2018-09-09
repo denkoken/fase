@@ -79,14 +79,27 @@ bool FaseCore::checkNodeName(const std::string& name) {
 }
 
 FaseCore::FaseCore() {
-    // TODO
-    // nodes[ReportHeaderStr() + std::string("__input")] = {
-    //     .func_repr="",
-    //     .links = std::vector<Link>(),
-    //     .arg_reprs = std::vector<std::string>(),
-    //     .arg_values = std::vector<Variable>(),
-    //     .phase = INT_MIN
-    // };
+    // make dummy functions
+    std::function<void()> dummy = [] {};
+    addFunctionBuilder(InputFuncStr(), dummy, {}, {}, {}, {});
+    addFunctionBuilder(OutputFuncStr(), dummy, {}, {}, {}, {});
+
+    // make input node and output node.
+    nodes[InputNodeStr()] = {
+            .func_repr = InputFuncStr(),
+            .links = std::vector<Link>(),
+            .rev_links = std::vector<std::tuple<size_t, Link>>(),
+            .arg_reprs = std::vector<std::string>(),
+            .arg_values = std::vector<Variable>(),
+            .priority = INT_MIN};
+
+    nodes[OutputNodeStr()] = {
+            .func_repr = OutputFuncStr(),
+            .links = std::vector<Link>(),
+            .rev_links = std::vector<std::tuple<size_t, Link>>(),
+            .arg_reprs = std::vector<std::string>(),
+            .arg_values = std::vector<Variable>(),
+            .priority = INT_MAX};
 }
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
@@ -204,15 +217,49 @@ bool FaseCore::addLink(const std::string& src_node_name,
         return false;
     }
 
+    // Check link existence
+    if (!nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
+        return false;
+    }
+
+    if (src_node_name == InputNodeStr() &&
+        !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
+                nodes[src_node_name].arg_values[src_arg_idx])) {
+        const Function& dst_func = functions[nodes[dst_node_name].func_repr];
+        Function& func = functions[InputFuncStr()];
+
+        func.arg_type_reprs[src_arg_idx] = dst_func.arg_type_reprs[dst_arg_idx];
+        func.arg_types[src_arg_idx] = dst_func.arg_types[dst_arg_idx];
+        func.default_arg_reprs[src_arg_idx] =
+                dst_func.default_arg_reprs[dst_arg_idx];
+
+        func.default_arg_values[src_arg_idx] =
+                dst_func.default_arg_values[dst_arg_idx].clone();
+
+        nodes[InputNodeStr()].arg_values[src_arg_idx] =
+                nodes[dst_node_name].arg_values[dst_arg_idx].clone();
+    } else if (dst_node_name == OutputNodeStr() &&
+               !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
+                       nodes[src_node_name].arg_values[src_arg_idx])) {
+        const Function& src_func = functions[nodes[src_node_name].func_repr];
+        Function& func = functions[OutputFuncStr()];
+
+        func.arg_type_reprs[dst_arg_idx] = src_func.arg_type_reprs[src_arg_idx];
+        func.arg_types[dst_arg_idx] = src_func.arg_types[src_arg_idx];
+        func.default_arg_reprs[dst_arg_idx] =
+                src_func.default_arg_reprs[src_arg_idx];
+
+        func.default_arg_values[dst_arg_idx] =
+                src_func.default_arg_values[src_arg_idx].clone();
+
+        nodes[OutputNodeStr()].arg_values[dst_arg_idx] =
+                nodes[src_node_name].arg_values[src_arg_idx].clone();
+    }
+
     // Check types
     if (!nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
                 nodes[src_node_name].arg_values[src_arg_idx])) {
         std::cerr << "Invalid types to create link" << std::endl;
-        return false;
-    }
-
-    // Check link existence
-    if (!nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
         return false;
     }
 
@@ -301,6 +348,102 @@ void FaseCore::clearNodeArg(const std::string& node_name,
     node.arg_values[arg_idx] = functions[func_repr].default_arg_values[arg_idx];
 }
 
+bool FaseCore::addInput(const std::string& name) {
+    if (name.empty()) {
+        return false;
+    }
+
+    if (exists(functions[InputFuncStr()].arg_names, name)) {
+        return false;
+    }
+
+    Function& func = functions[InputFuncStr()];
+    func.arg_type_reprs.push_back("");
+    func.arg_types.push_back(nullptr);
+    func.default_arg_reprs.push_back("");
+    func.arg_names.push_back(name);
+    func.default_arg_values.push_back(Variable());
+    func.is_input_args.push_back(false);
+
+    Node& node = nodes[InputNodeStr()];
+
+    node.arg_reprs.push_back(name);
+    node.links.push_back({});
+    node.arg_values.push_back(Variable());
+
+    return true;
+}
+
+bool FaseCore::delInput(const size_t& idx) {
+    if (idx >= functions[InputFuncStr()].arg_names.size()) {
+        return false;
+    }
+
+    Function& func = functions[InputFuncStr()];
+    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
+    func.arg_types.erase(std::begin(func.arg_types) + idx);
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + idx);
+    func.arg_names.erase(std::begin(func.arg_names) + idx);
+    func.default_arg_values.erase(std::begin(func.default_arg_values) + idx);
+    func.is_input_args.erase(std::begin(func.is_input_args) + idx);
+
+    Node& node = nodes[InputNodeStr()];
+
+    node.arg_reprs.erase(std::begin(node.arg_reprs) + idx);
+    node.links.erase(std::begin(node.links) + idx);
+    node.arg_values.erase(std::begin(node.arg_values) + idx);
+
+    return true;
+}
+
+bool FaseCore::addOutput(const std::string& name) {
+    if (name.empty()) {
+        return false;
+    }
+
+    if (exists(functions[OutputFuncStr()].arg_names, name)) {
+        return false;
+    }
+
+    Function& func = functions[OutputFuncStr()];
+    func.arg_type_reprs.push_back("");
+    func.arg_types.push_back(nullptr);
+    func.default_arg_reprs.push_back("");
+    func.arg_names.push_back(name);
+    func.default_arg_values.push_back(Variable());
+    func.is_input_args.push_back(true);
+
+    Node& node = nodes[OutputNodeStr()];
+
+    node.arg_reprs.push_back(name);
+    node.links.push_back({});
+    node.arg_values.push_back(Variable());
+
+    return true;
+}
+
+bool FaseCore::delOutput(const size_t& idx) {
+    if (idx >= functions[OutputFuncStr()].arg_names.size()) {
+        return false;
+    }
+
+    Function& func = functions[OutputFuncStr()];
+    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
+    func.arg_types.erase(std::begin(func.arg_types) + idx);
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + idx);
+    func.arg_names.erase(std::begin(func.arg_names) + idx);
+    func.default_arg_values.erase(std::begin(func.default_arg_values) + idx);
+    func.is_input_args.erase(std::begin(func.is_input_args) + idx);
+
+    Node& node = nodes[OutputNodeStr()];
+
+    node.arg_reprs.erase(std::begin(node.arg_reprs) + idx);
+    node.links.erase(std::begin(node.links) + idx);
+    node.arg_values.erase(std::begin(node.arg_values) + idx);
+
+    return true;
+}
+
 const std::map<std::string, Node>& FaseCore::getNodes() const {
     return nodes;
 }
@@ -380,6 +523,8 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
     pipeline.clear();
     output_variables.clear();
     report_box.clear();
+
+    // TODO input/output
 
     // Build running order.
     auto node_order = GetCallOrder(nodes);

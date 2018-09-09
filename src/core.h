@@ -42,6 +42,7 @@ class FaseCore {
 public:
     FaseCore();
 
+    // ## Setup ##
     template <typename... Args>
     bool addFunctionBuilder(
             const std::string& func_repr,
@@ -51,6 +52,7 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
 
+    // ## Editing nodes ##
     bool addNode(const std::string& node_name, const std::string& func_repr,
                  const int& priority = 0);
 
@@ -58,24 +60,36 @@ public:
 
     bool renameNode(const std::string& old_name, const std::string& new_name);
 
+    bool setPriority(const std::string& node_name, const int& priority);
+
+    void clearNodeArg(const std::string& node_name, const size_t arg_idx);
+
+    bool setNodeArg(const std::string& node_name, const size_t arg_idx,
+                    const std::string& arg_repr, const Variable& arg_val);
+
+    // ## Editing links ##
     bool addLink(const std::string& src_node_name, const size_t& src_arg_idx,
                  const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
-    bool setPriority(const std::string& node_name, const int& priority);
+    // ## Editing Input/Output node ##
+    bool addInput(const std::string& name);
 
-    bool setNodeArg(const std::string& node_name, const size_t arg_idx,
-                    const std::string& arg_repr, const Variable& arg_val);
+    bool delInput(const size_t& idx);
 
-    void clearNodeArg(const std::string& node_name, const size_t arg_idx);
+    bool addOutput(const std::string& name);
 
+    bool delOutput(const size_t& idx);
+
+    // ## Building, Running ##
+    bool build(bool parallel_exe = false, bool profile = false);
+    const std::map<std::string, ResultReport>& run();
+
+    // ## Getters ##
     const std::map<std::string, Function>& getFunctions() const;
 
     const std::map<std::string, Node>& getNodes() const;
-
-    bool build(bool parallel_exe = false, bool profile = false);
-    const std::map<std::string, ResultReport>& run();
 
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,

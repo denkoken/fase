@@ -39,6 +39,22 @@ inline std::string TotalTimeStr() {
     return ReportHeaderStr() + std::string("__tatal_time");
 }
 
+inline std::string InputFuncStr() {
+    return ReportHeaderStr() + std::string("__input_f");
+}
+
+inline std::string OutputFuncStr() {
+    return ReportHeaderStr() + std::string("__output_f");
+}
+
+inline std::string InputNodeStr() {
+    return ReportHeaderStr() + std::string("__input");
+}
+
+inline std::string OutputNodeStr() {
+    return ReportHeaderStr() + std::string("__output");
+}
+
 }  // namespace fase
 
 #endif  // CORE_UTIL_H_20180824
