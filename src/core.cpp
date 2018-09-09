@@ -221,6 +221,16 @@ bool FaseCore::addLink(const std::string& src_node_name,
     if (!nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
         return false;
     }
+    if (dst_node_name == InputNodeStr() && src_node_name == OutputNodeStr()) {
+        // TODO add recursive link
+        return false;
+    }
+    if (dst_node_name == InputNodeStr()) {
+        return false;
+    }
+    else if (src_node_name == OutputNodeStr()) {
+        return false;
+    }
 
     if (src_node_name == InputNodeStr() &&
         !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
