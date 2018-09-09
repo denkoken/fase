@@ -56,7 +56,8 @@ std::string removeReprRef(const std::string& type_repr) {
 
 std::string genVarDeclaration(const std::string& type_repr,
                               const std::string& val_repr,
-                              const std::string& name) {
+                              const std::string& name,
+                              const std::string& footer = ";") {
     // Add declaration code (Remove reference for declaration)
     std::stringstream ss;
     ss << removeReprConst(removeReprRef(type_repr)) << " " << name;
@@ -64,7 +65,7 @@ std::string genVarDeclaration(const std::string& type_repr,
         // Add variable initialization
         ss << " = " << val_repr;
     }
-    ss << ";" << std::endl;
+    ss << footer;
     return ss.str();
 }
 
@@ -94,15 +95,57 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
     // Stack for finding runnable node
     auto node_order = GetCallOrder(core.getNodes());
 
-    if (!entry_name.empty()) {
-        native_code << "void " << entry_name << "() {" << std::endl;
+    std::string func_name = entry_name;
+    if (func_name.empty()) {
+        func_name = "Pipeline";
     }
+
+    native_code << "void " << func_name << "(";
+    // Input Arguments
+    if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+        const std::vector<std::string>& arg_type_reprs =
+                core.getFunctions().at(InputFuncStr()).arg_type_reprs;
+        const std::vector<std::string>& names =
+                core.getFunctions().at(InputFuncStr()).arg_names;
+        size_t n_args = core.getNodes().at(InputNodeStr()).links.size();
+
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            native_code << genVarDeclaration(arg_type_reprs[arg_idx], "",
+                                             names[arg_idx], "");
+            if (arg_idx != n_args - 1) {
+                native_code << ", ";
+            }
+        }
+    }
+    // Output Arguments
+    if (!core.getFunctions().at(OutputFuncStr()).arg_names.empty()) {
+        const Function& out_f = core.getFunctions().at(OutputFuncStr());
+        size_t n_args = out_f.arg_names.size();
+
+        if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+            native_code << ", ";
+        }
+
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            native_code << removeReprConst(
+                                   removeReprRef(out_f.arg_type_reprs[arg_idx]))
+                        << "& " << out_f.arg_names[arg_idx];
+            if (arg_idx != n_args - 1) {
+                native_code << ", ";
+            }
+        }
+    }
+    native_code << ") {" << std::endl;
 
     while (true) {
         // Find runnable node
         const std::string node_name = PopFront(node_order);
         if (node_name.empty()) {
             break;
+        }
+
+        if (node_name.find(ReportHeaderStr()) != std::string::npos) {
+            continue;
         }
 
         const Node& node = core.getNodes().at(node_name);
@@ -129,10 +172,18 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
                 native_code << indent;
                 native_code << genVarDeclaration(arg_type_reprs[arg_idx],
                                                  arg_reprs[arg_idx],
-                                                 var_names.back());
+                                                 var_names.back())
+                            << std::endl;
             } else {
                 // Case 2: Use output variable
-                var_names.push_back(genVarName(link.node_name, link.arg_idx));
+                if (link.node_name == InputNodeStr()) {
+                    var_names.push_back(core.getFunctions()
+                                                .at(InputFuncStr())
+                                                .arg_names.at(link.arg_idx));
+                } else {
+                    var_names.push_back(
+                            genVarName(link.node_name, link.arg_idx));
+                }
             }
         }
 
@@ -142,9 +193,22 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
     }
     assert(node_order.empty());
 
-    if (!entry_name.empty()) {
-        native_code << "}";
+    // Set output
+    if (!core.getFunctions().at(OutputFuncStr()).arg_names.empty()) {
+        const Function& out_f = core.getFunctions().at(OutputFuncStr());
+        size_t n_args = out_f.arg_names.size();
+        const Node& node = core.getNodes().at(OutputNodeStr());
+
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            auto& link = node.links[arg_idx];
+            native_code << indent;
+            native_code << out_f.arg_names[arg_idx] << " = "
+                        << genVarName(link.node_name, link.arg_idx) << ";"
+                        << std::endl;
+        }
     }
+
+    native_code << "}";
 
     return native_code.str();
 }
