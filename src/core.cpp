@@ -227,8 +227,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
     }
     if (dst_node_name == InputNodeStr()) {
         return false;
-    }
-    else if (src_node_name == OutputNodeStr()) {
+    } else if (src_node_name == OutputNodeStr()) {
         return false;
     }
 

@@ -12,7 +12,7 @@ std::string GenNativeCode(const FaseCore& core,
                           const std::string& entry_name = "Pipeline",
                           const std::string& indent = "    ");
 
-std::string CoreToString(const FaseCore& core);
+std::string CoreToString(const FaseCore& core, bool val = false);
 
 bool StringToCore(const std::string& str, FaseCore* core);
 

@@ -3,6 +3,8 @@
 
 #include <sstream>
 
+namespace fase {
+
 namespace {
 
 template <typename T>
@@ -85,8 +87,6 @@ std::string genFunctionCall(const std::string& func_repr,
 }
 
 }  // namespace
-
-namespace fase {
 
 std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
                           const std::string& indent) {
