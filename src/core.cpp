@@ -91,7 +91,7 @@ FaseCore::FaseCore() {
             .rev_links = std::vector<std::tuple<size_t, Link>>(),
             .arg_reprs = std::vector<std::string>(),
             .arg_values = std::vector<Variable>(),
-            .priority = INT_MIN};
+            .priority = std::numeric_limits<int>::min()};
 
     nodes[OutputNodeStr()] = {
             .func_repr = OutputFuncStr(),
@@ -99,7 +99,7 @@ FaseCore::FaseCore() {
             .rev_links = std::vector<std::tuple<size_t, Link>>(),
             .arg_reprs = std::vector<std::string>(),
             .arg_values = std::vector<Variable>(),
-            .priority = INT_MAX};
+            .priority = std::numeric_limits<int>::max()};
 }
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
