@@ -56,6 +56,8 @@ private:
 
 struct GUIPreference {
     bool auto_layout = false;
+    int priority_min = -10;
+    int priority_max = 10;
 };
 
 template <class T, class Filter>
@@ -334,10 +336,8 @@ private:
 // Draw button and pop up window for native code
 class NativeCodeGUI {
 public:
-    NativeCodeGUI(LabelWrapper& label,
-                  const std::map<const std::type_info*, GuiGeneratorFunc>&
-                          var_generators)
-        : label(label), var_generators(var_generators) {}
+    NativeCodeGUI(LabelWrapper& label)
+        : label(label) {}
 
     void draw(FaseCore* core, const TypeUtils& utils) {
         if (ImGui::MenuItem(label("Show code"))) {
@@ -368,41 +368,10 @@ private:
 
     // Reference to the parent's
     LabelWrapper& label;
-    const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
     std::map<const std::type_info*, VarEditor> var_editors;
 
     // Private status
     std::string native_code;
-
-    // Private methods
-    void updateAllArgs(FaseCore* core) {
-        const std::map<std::string, Function>& functions = core->getFunctions();
-        const std::map<std::string, Node>& nodes = core->getNodes();
-        for (auto it = nodes.begin(); it != nodes.end(); it++) {
-            const std::string& node_name = it->first;
-            const Node& node = it->second;
-            const Function& function = functions.at(node.func_repr);
-            const size_t n_args = node.links.size();
-            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-                const std::string& arg_name = function.arg_names[arg_idx];
-                const std::type_info* arg_type = function.arg_types[arg_idx];
-                if (var_editors.count(arg_type)) {
-                    auto& func = var_editors.at(arg_type);
-                    // if (var_generators.count(arg_type)) {
-                    //     auto& func = var_generators.at(arg_type);
-                    const Variable& var = node.arg_values[arg_idx];
-                    // Get expression using GUI
-                    std::string expr;
-                    func(label(arg_name), var);
-                    // func(label(arg_name), var, expr);
-                    // Update forcibly
-                    core->setNodeArg(node_name, arg_idx, expr, var);
-                } else {
-                    // No GUI but no method for users to know the value changing
-                }
-            }
-        }
-    }
 };
 
 // Draw button and pop up window for native code
@@ -690,8 +659,6 @@ public:
                  std::string& hovered_node_name,
                  std::map<std::string, GuiNode>& gui_nodes,
                  const ImVec2& scroll_pos, const bool& is_link_creating,
-                 // const std::map<const std::type_info*, GuiGeneratorFunc>&
-                 //         var_generators,
                  const std::map<const std::type_info*, VarEditor>& var_editors)
         : label(label),
           node_order(node_order),
@@ -700,10 +667,9 @@ public:
           gui_nodes(gui_nodes),
           scroll_pos(scroll_pos),
           is_link_creating(is_link_creating),
-          // var_generators(var_generators),
           var_editors(var_editors) {}
 
-    void draw(FaseCore* core) {
+    void draw(FaseCore* core, const GUIPreference& preference) {
         const ImVec2 canvas_offset = ImGui::GetCursorScreenPos() + scroll_pos;
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -724,7 +690,7 @@ public:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContent(core, node_name, node, gui_node, order_idx);
+            drawNodeContent(core, node_name, node, gui_node, order_idx, preference);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -776,7 +742,6 @@ private:
     std::map<std::string, GuiNode>& gui_nodes;
     const ImVec2& scroll_pos;
     const bool& is_link_creating;
-    // const std::map<const std::type_info*, GuiGeneratorFunc>& var_generators;
     const std::map<const std::type_info*, VarEditor>& var_editors;
 
     // Private status
@@ -822,8 +787,9 @@ private:
 
     void drawNodeContent(FaseCore* core, const std::string& node_name,
                          const Node& node, GuiNode& gui_node,
-                         const size_t order_idx) {
+                         const size_t order_idx, const GUIPreference& preference) {
         ImGui::BeginGroup();  // Lock horizontal position
+        bool s_flag = node.func_repr == OutputFuncStr() || node.func_repr == InputFuncStr();
         if (node.func_repr == InputFuncStr()) {
             ImGui::Text("Input");
         } else if (node.func_repr == OutputFuncStr()) {
@@ -863,17 +829,12 @@ private:
             if (!node.links[arg_idx].node_name.empty()) {
                 // Link exists
                 ImGui::Text("%s", arg_name.c_str());
-                // } else if (var_generators.count(arg_type)) {
-                //     // Call registered GUI for editing
-                //     auto& func = var_generators.at(arg_type);
             } else if (var_editors.count(arg_type)) {
                 // Call registered GUI for editing
                 auto& func = var_editors.at(arg_type);
                 const Variable& var = node.arg_values[arg_idx];
                 std::string expr;
                 const std::string view_label = arg_name + "##" + node_name;
-                // ImGui::Text(label(view_label));
-                // ImGui::SameLine();
                 Variable v = func(label(view_label), var);
                 if (v) {
                     // Update argument
@@ -881,8 +842,7 @@ private:
                 }
             } else {
                 // No GUI for editing
-                if (node.func_repr == OutputFuncStr() ||
-                    node.func_repr == InputFuncStr()) {
+                if (s_flag) {
                     ImGui::Text("%s : Unset", arg_name.c_str());
                 } else {
                     ImGui::Text("%s [default:%s]", arg_name.c_str(),
@@ -892,6 +852,15 @@ private:
 
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
+        }
+        if (!s_flag) {
+            int priority = node.priority;
+            ImGui::SliderInt(label("priority"), &priority, preference.priority_min, preference.priority_max);
+            priority = std::min(priority, preference.priority_max);
+            priority = std::max(priority, preference.priority_min);
+            if (priority != node.priority) {
+                core->setPriority(node_name, priority);
+            }
         }
         ImGui::EndGroup();
     }
@@ -1234,18 +1203,48 @@ public:
         : label(label), preference(preference) {}
 
     void draw() {
+        bool priority_f = false;
         if (ImGui::BeginMenu("Preferences")) {
             if (ImGui::MenuItem(label("Auto Layout Sorting"), NULL,
                                 preference.auto_layout)) {
                 preference.auto_layout = !preference.auto_layout;
             }
+            if (ImGui::MenuItem(label("Priority Settings"), NULL)) {
+                priority_f = true;
+            }
             ImGui::EndMenu();
         }
+        if (priority_f) {
+            ImGui::OpenPopup(label("Popup: Priority setting"));
+        }
+        priorityPopUp("Popup: Priority setting");
     }
 
 private:
     LabelWrapper& label;
     GUIPreference& preference;
+
+    void priorityPopUp(const char* popup_name) {
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label(popup_name), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+
+            constexpr int v_min = std::numeric_limits<int>::min();
+            constexpr int v_max = std::numeric_limits<int>::max();
+            constexpr float v_speed = 0.5;
+            ImGui::DragInt(label("priority min"), &preference.priority_min, v_speed, v_min, preference.priority_max);
+            ImGui::DragInt(label("priority max"), &preference.priority_max, v_speed, preference.priority_min, v_max);
+
+            if (ImGui::Button("OK")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
 };
 
 class ReportWindow {
@@ -1462,12 +1461,11 @@ void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
 
 class GUIEditor::Impl {
 public:
-    Impl(const std::map<const std::type_info*, GuiGeneratorFunc>&
-                 var_generators)
+    Impl()
         // Module dependencies are written here
         : node_adding_gui(label, request_add_node),
           run_pipeline_gui(label, is_pipeline_updated, &reports),
-          native_code_gui(label, var_generators),
+          native_code_gui(label),
           layout_optimize_gui(label, gui_nodes),
           save_gui(label),
           load_gui(label),
@@ -1640,7 +1638,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& type_utils,
             // Draw links
             links_gui.draw(core, updater);
             // Draw nodes
-            node_boxes_gui.draw(core);
+            node_boxes_gui.draw(core, preference);
 
             // Canvas scroll
             if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
@@ -1672,7 +1670,7 @@ bool GUIEditor::Impl::addVarEditor(const std::type_info* p, VarEditor&& f) {
 }
 
 // ------------------------------- pImpl pattern -------------------------------
-GUIEditor::GUIEditor() : impl(new GUIEditor::Impl(var_generators)) {}
+GUIEditor::GUIEditor() : impl(new GUIEditor::Impl()) {}
 bool GUIEditor::addVarEditor(const std::type_info* p, VarEditor&& f) {
     return impl->addVarEditor(p, std::forward<VarEditor>(f));
 }
