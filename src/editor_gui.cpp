@@ -418,6 +418,39 @@ public:
                 }
             }
 
+            if (core->getNodes().at(InputNodeStr()).links.size() > 0) {
+                if (ImGui::Button(label("del Input"))) {
+                    size_t idx = core->getNodes().at(InputNodeStr()).links.size() - 1;
+                    core->delInput(idx);
+                    updater();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(label("Reset Input"))) {
+                    const size_t arg_n = core->getNodes().at(InputNodeStr()).links.size();
+                    for (size_t i = arg_n - 1; i < arg_n; i--) {
+                        core->delInput(arg_n);
+                    }
+                    updater();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            if (core->getNodes().at(OutputNodeStr()).links.size() > 0) {
+                if (ImGui::Button(label("del Output"))) {
+                    size_t idx = core->getNodes().at(OutputNodeStr()).links.size() - 1;
+                    core->delOutput(idx);
+                    updater();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(label("Reset Output"))) {
+                    const size_t arg_n = core->getNodes().at(OutputNodeStr()).links.size();
+                    for (size_t i = arg_n - 1; i < arg_n; i--) {
+                        core->delOutput(arg_n);
+                    }
+                    updater();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+
             ImGui::EndPopup();
         }
     }

@@ -30,6 +30,23 @@ void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
     }
 }
 
+void delRevLink(const Node& node, const size_t& idx, FaseCore* core) {
+    while(true) {
+        bool f = true;
+        for (auto& pair : node.rev_links) {
+            auto link = std::get<1>(pair);
+
+            if (std::get<0>(pair) != idx) {
+                continue;
+            };
+            core->delLink(link.node_name, link.arg_idx);
+            f = false;
+            break;
+        }
+        if (f) break;
+    }
+}
+
 std::vector<Variable*> BindVariables(
         const Node& node,
         const std::map<std::string, std::vector<Variable>>& exists_variables,
@@ -248,13 +265,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
         nodes[InputNodeStr()].arg_values[src_arg_idx] =
                 nodes[dst_node_name].arg_values[dst_arg_idx].clone();
 
-        for (auto& pair : nodes[InputNodeStr()].rev_links) {
-            if (std::get<0>(pair) != src_arg_idx) {
-                continue;
-            };
-            auto& link = std::get<1>(pair);
-            delLink(link.node_name, link.arg_idx);
-        }
+        delRevLink(nodes[InputNodeStr()], src_arg_idx, this);
     } else if (dst_node_name == OutputNodeStr() &&
                !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
                        nodes[src_node_name].arg_values[src_arg_idx])) {
@@ -310,7 +321,8 @@ void FaseCore::delLink(const std::string& dst_node_name,
     Link l = nodes[dst_node_name].links[dst_arg_idx];
     auto& r_ls = nodes[l.node_name].rev_links;
     for (auto iter = std::begin(r_ls); iter != std::end(r_ls); iter++) {
-        if (std::get<1>(*iter).arg_idx == dst_arg_idx) {
+        if (std::get<1>(*iter).arg_idx == dst_arg_idx &&
+            std::get<1>(*iter).node_name == dst_node_name) {
             r_ls.erase(iter);
             break;
         }
@@ -396,15 +408,19 @@ bool FaseCore::delInput(const size_t& idx) {
         return false;
     }
 
+    //TODO
+
+    Node& node = nodes[InputNodeStr()];
     Function& func = functions[InputFuncStr()];
+
+    delRevLink(node, idx, this);
+
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
     func.arg_types.erase(std::begin(func.arg_types) + idx);
     func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + idx);
     func.arg_names.erase(std::begin(func.arg_names) + idx);
     func.default_arg_values.erase(std::begin(func.default_arg_values) + idx);
     func.is_input_args.erase(std::begin(func.is_input_args) + idx);
-
-    Node& node = nodes[InputNodeStr()];
 
     node.arg_reprs.erase(std::begin(node.arg_reprs) + idx);
     node.links.erase(std::begin(node.links) + idx);
@@ -443,6 +459,9 @@ bool FaseCore::delOutput(const size_t& idx) {
     if (idx >= functions[OutputFuncStr()].arg_names.size()) {
         return false;
     }
+    //TODO
+
+    delLink(OutputFuncStr(), idx);
 
     Function& func = functions[OutputFuncStr()];
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
