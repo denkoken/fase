@@ -44,7 +44,7 @@ TEST_CASE("Core test") {
         // REQUIRE(core.run());
         core.run();
         REQUIRE(core.getOutput<int>("square1", 1) == 2500);  // (30 + 20) ** 2
-        std::cout << GenNativeCode(core) << std::endl;
+        std::cout << GenNativeCode(core, {}) << std::endl;
     }
 
     SECTION("Duplicate AddFunctionBuilder") {

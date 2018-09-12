@@ -88,6 +88,10 @@ public:
         return v;
     }
 
+    explicit operator bool() const noexcept {
+        return type != &typeid(void);
+    }
+
 private:
     std::shared_ptr<void> data;
     const std::type_info *type = &typeid(void);

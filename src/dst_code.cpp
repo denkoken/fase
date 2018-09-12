@@ -86,9 +86,19 @@ std::string genFunctionCall(const std::string& func_repr,
     return ss.str();
 }
 
+std::string getValStr(const Variable& v, const TypeUtils& utils) {
+    for (const auto& pair : utils.checkers) {
+        if (std::get<1>(pair)(v)) {
+            return utils.def_makers.at(std::get<0>(pair))(v);
+        }
+    }
+    return "";
+}
+
 }  // namespace
 
-std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
+std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
+                          const std::string& entry_name,
                           const std::string& indent) {
     std::stringstream native_code;
 
@@ -159,7 +169,10 @@ std::string GenNativeCode(const FaseCore& core, const std::string& entry_name,
         // Argument representations
         const std::vector<std::string>& arg_type_reprs =
                 core.getFunctions().at(node.func_repr).arg_type_reprs;
-        const std::vector<std::string>& arg_reprs = node.arg_reprs;
+        std::vector<std::string> arg_reprs;
+        for (const auto& v : node.arg_values) {
+            arg_reprs.emplace_back(getValStr(v, utils));
+        }
 
         // Collect argument names
         std::vector<std::string> var_names;

@@ -2,6 +2,7 @@
 #define EDITOR_H_20180628
 
 #include "core.h"
+#include "type_utils.h"
 
 namespace fase {
 
@@ -42,7 +43,7 @@ public:
         }
     }
 
-    bool run(FaseCore *core);
+    bool run(FaseCore *core, const TypeUtils &);
 
     auto getVarGenerators() {
         return var_generators;
@@ -58,6 +59,8 @@ private:
 // ------------------------------------ GUI ------------------------------------
 using GuiGeneratorFunc =
         std::function<bool(const char *, const Variable &, std::string &)>;
+
+using VarEditor = std::function<Variable(const char *, const Variable &)>;
 
 class GUIEditor : public EditorBase<GUIEditor> {
 public:
@@ -80,7 +83,10 @@ public:
         }
     }
 
-    bool run(FaseCore *core, const std::string &win_title = "Fase Editor",
+    bool addVarEditor(const std::type_info *p, VarEditor &&f);
+
+    bool run(FaseCore *core, const TypeUtils &type_utils,
+             const std::string &win_title = "Fase Editor",
              const std::string &label_suffix = "##fase");
 
 private:

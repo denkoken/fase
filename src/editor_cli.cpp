@@ -134,7 +134,7 @@ void commandSetArg(fase::FaseCore* core, CLIEditor* cli_editor,
 void commandShow(fase::FaseCore* core, CLIEditor* cli_editor,
                  const std::vector<std::string>& input) {
     (void)input, (void)cli_editor;
-    std::cout << GenNativeCode(*core) << std::endl;
+    std::cout << GenNativeCode(*core, {}) << std::endl;
 }
 
 void commandRun(fase::FaseCore* core, CLIEditor* cli_editor,
@@ -152,7 +152,7 @@ void commandRun(fase::FaseCore* core, CLIEditor* cli_editor,
 
 }  // anonymous namespace
 
-bool CLIEditor::run(FaseCore* core) {
+bool CLIEditor::run(FaseCore* core, const TypeUtils&) {
     using Command = std::function<void(FaseCore*, CLIEditor*,
                                        const std::vector<std::string>&)>;
 

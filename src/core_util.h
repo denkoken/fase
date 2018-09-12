@@ -5,20 +5,24 @@
 #include <string>
 
 #include "core.h"
+#include "type_utils.h"
 
 namespace fase {
 
-std::string GenNativeCode(const FaseCore& core,
+std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                           const std::string& entry_name = "Pipeline",
                           const std::string& indent = "    ");
 
-std::string CoreToString(const FaseCore& core, bool val = false);
+std::string CoreToString(const FaseCore& core, const TypeUtils& utils);
 
-bool StringToCore(const std::string& str, FaseCore* core);
+bool StringToCore(const std::string& str, FaseCore* core,
+                  const TypeUtils& utils);
 
-bool SaveFaseCore(const std::string& filename, const FaseCore& core);
+bool SaveFaseCore(const std::string& filename, const FaseCore& core,
+                  const TypeUtils& utils);
 
-bool LoadFaseCore(const std::string& filename, FaseCore* core);
+bool LoadFaseCore(const std::string& filename, FaseCore* core,
+                  const TypeUtils& utils);
 
 std::vector<std::vector<Link>> getReverseLinks(
         const std::string& node, const std::map<std::string, Node>& nodes);

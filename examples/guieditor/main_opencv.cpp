@@ -36,33 +36,29 @@ void Random(int& v, const int& min_v, const int& max_v) {
 
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::GUIEditor> fase;
+    fase::Fase<fase::GUIEditor> app;
 
     // Register functions
-    FaseAddFunctionBuilder(fase, LoadImage, (const std::string&, cv::Mat&),
+    FaseAddFunctionBuilder(app, LoadImage, (const std::string&, cv::Mat&),
                            ("filename", "img"));
-    FaseAddFunctionBuilder(fase, BlurImage, (const cv::Mat&, cv::Mat&, int),
+    FaseAddFunctionBuilder(app, BlurImage, (const cv::Mat&, cv::Mat&, int),
                            ("in", "out", "ksize"), cv::Mat(), cv::Mat(), 3);
-    FaseAddFunctionBuilder(fase, Random, (int&, const int&, const int&),
+    FaseAddFunctionBuilder(app, Random, (int&, const int&, const int&),
                            ("out", "min", "max"), 0, 0, 256);
 
     // Register for argument editing
-    FaseInstallBasicGuiGenerators(fase);
+    FaseInstallBasicGuiGenerators(app);
     //   <cv::Mat>
     std::map<std::string, std::tuple<GLuint, int, int>> tex_ids;
-    fase.addVarGenerator(
-            cv::Mat(), fase::GuiGeneratorFunc([&](const char* label,
-                                                  const fase::Variable& v,
-                                                  std::string& expr) {
-                (void)expr;
-                cv::Mat& img = *v.getReader<cv::Mat>();
+    FaseAddConstructAndEditor(app, cv::Mat, [](const cv::Mat&) -> std::string { return ""; },
+                                          [&](const char* label, const cv::Mat& img) -> std::unique_ptr<cv::Mat> {
                 if (img.empty()) {
                     ImGui::Text("Empty");
-                    return false;
+                    return {};
                 }
                 if (img.type() != CV_8UC3 || img.channels() != 3) {
                     ImGui::Text("Not uint8 BGR image");
-                    return false;
+                    return {};
                 }
                 const bool exist = tex_ids.count(label);
                 auto& ctr = tex_ids[label];
@@ -90,8 +86,8 @@ int main() {
                         reinterpret_cast<void*>(static_cast<intptr_t>(id));
                 ImGui::Image(tex_id, ImVec2(200.f, 200.f * img.rows / img.cols),
                              ImVec2(0, 0), ImVec2(1, 1));
-                return false;
-            }));
+                return {};
+            });
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example with OpenCV");
@@ -105,7 +101,7 @@ int main() {
     // Start main loop
     RunRenderingLoop(window, [&]() {
         // Draw Fase's interface
-        return fase.runEditing("Fase Editor", "##fase");
+        return app.runEditing("Fase Editor", "##app");
     });
 
     return 0;

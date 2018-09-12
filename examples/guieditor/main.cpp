@@ -17,16 +17,23 @@ void Print(const int& in) {
 
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::GUIEditor> fase;
+    fase::Fase<fase::GUIEditor> app;
 
     // Register functions
-    FaseAddFunctionBuilder(fase, Add, (const int&, const int&, int&),
+    FaseAddFunctionBuilder(app, Add, (const int&, const int&, int&),
                            ("in1", "in2", "out"));
-    FaseAddFunctionBuilder(fase, Square, (const int&, int&), ("in", "out"));
-    FaseAddFunctionBuilder(fase, Print, (const int&), ("in"));
+    FaseAddFunctionBuilder(app, Square, (const int&, int&), ("in", "out"));
+    FaseAddFunctionBuilder(app, Print, (const int&), ("in"));
+
+    app.registerTextIO<int>("int", [](const int& a) { return std::to_string(a); },
+                        [](const std::string& str) { return std::stoi(str); });
+
+    // app.registerConstructorAndVieweditor<int>("int",
+    //                     [](const int& a) { return std::to_string(a); },
+    //                     [](const char*, const int&) -> std::unique_ptr<int> { return {}; });
 
     // Register for argument editing
-    FaseInstallBasicGuiGenerators(fase);
+    FaseInstallBasicGuiGenerators(app);
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");
@@ -40,7 +47,7 @@ int main() {
     // Start main loop
     RunRenderingLoop(window, [&]() {
         // Draw Fase's interface
-        return fase.runEditing("Fase Editor", "##fase");
+        return app.runEditing("Fase Editor", "##fase");
     });
 
     return 0;

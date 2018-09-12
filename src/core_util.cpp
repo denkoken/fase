@@ -6,18 +6,7 @@
 #include <sstream>
 #include <string>
 
-#define ADD_TYPE_CHECKER(map, type)                         \
-    map[replace(#type, " ", "_")] = [](const Variable& v) { \
-        return v.isSameType<type>();                        \
-    }
-#define ADD_CONV(map, type, conv_f) \
-    map[replace(#type, " ", "_")] = genConverter<type>(conv_f);
-#define ADD_TO_STRING(map, type)                            \
-    map[replace(#type, " ", "_")] = [](const Variable& v) { \
-        std::stringstream sstream;                          \
-        sstream << *v.getReader<type>();                    \
-        return sstream.str();                               \
-    }
+#include "fase.h"
 
 namespace fase {
 
@@ -35,14 +24,6 @@ std::string replace(std::string str, const std::string& fr,
     }
 
     return str;
-}
-
-template <typename T>
-std::function<void(Variable&, const std::string&)> genConverter(
-        const std::function<T(const std::string&)>& conv_f) {
-    return [conv_f](Variable& v, const std::string& str) {
-        v.create<T>(conv_f(str));
-    };
 }
 
 std::vector<std::string> split(const std::string& str, const char& sp) {
@@ -93,92 +74,31 @@ std::vector<std::string> FindRunnableNodes(
     return dst;
 }
 
-std::string getTypeStr(const Variable& v) {
-    static std::map<std::string, std::function<bool(const Variable&)>>
-            type_check_map;
-    if (type_check_map.empty()) {
-        ADD_TYPE_CHECKER(type_check_map, bool);
-        ADD_TYPE_CHECKER(type_check_map, char);
-        ADD_TYPE_CHECKER(type_check_map, unsigned char);
-        ADD_TYPE_CHECKER(type_check_map, short);
-        ADD_TYPE_CHECKER(type_check_map, unsigned short);
-        ADD_TYPE_CHECKER(type_check_map, int);
-        ADD_TYPE_CHECKER(type_check_map, unsigned int);
-        ADD_TYPE_CHECKER(type_check_map, long);
-        ADD_TYPE_CHECKER(type_check_map, unsigned long);
-        ADD_TYPE_CHECKER(type_check_map, long long);
-        ADD_TYPE_CHECKER(type_check_map, unsigned long long);
-        ADD_TYPE_CHECKER(type_check_map, float);
-        ADD_TYPE_CHECKER(type_check_map, double);
-        ADD_TYPE_CHECKER(type_check_map, long double);
-
-        ADD_TYPE_CHECKER(type_check_map, std::string);
-    }
-
-    for (auto& pair : type_check_map) {
+std::string getTypeStr(const Variable& v, const TypeUtils& utils) {
+    for (auto& pair : utils.checkers) {
         if (std::get<1>(pair)(v)) {
-            return std::get<0>(pair);
+            return replace(std::get<0>(pair), " ", "_");
         }
     }
     return "";
 }
 
-bool strToVar(const std::string& val, const std::string& type, Variable* v) {
-    using S = const std::string&;
-    static std::map<std::string, std::function<void(Variable&, S)>> cm;
-
-    if (cm.empty()) {
-        ADD_CONV(cm, bool, [](S s) { return std::stoi(s); });
-        ADD_CONV(cm, char, [](S s) { return *s.c_str(); });
-        ADD_CONV(cm, unsigned char, [](S s) { return std::stoi(s); });
-        ADD_CONV(cm, short, [](S s) { return std::stoi(s); });
-        ADD_CONV(cm, unsigned short, [](S s) { return std::stoi(s); });
-        ADD_CONV(cm, int, [](S s) { return std::stoi(s); });
-        ADD_CONV(cm, unsigned int, [](S s) { return std::stol(s); });
-        ADD_CONV(cm, long, [](S s) { return std::stol(s); });
-        ADD_CONV(cm, unsigned long, [](S s) { return std::stoul(s); });
-        ADD_CONV(cm, long long, [](S s) { return std::stoll(s); });
-        ADD_CONV(cm, unsigned long long, [](S s) { return std::stoull(s); });
-        ADD_CONV(cm, float, [](S s) { return std::stof(s); });
-        ADD_CONV(cm, double, [](S s) { return std::stod(s); });
-        ADD_CONV(cm, long double, [](S s) { return std::stold(s); });
-
-        ADD_CONV(cm, std::string, [](S s) { return s; });
+bool strToVar(const std::string& val, const std::string& type,
+              const TypeUtils& utils, Variable* v) {
+    for (const auto& pair : utils.deserializers) {
+        if (type == replace(std::get<0>(pair), " ", "_")) {
+            std::get<1>(pair)(*v, val);
+            return true;
+        }
     }
 
-    if (!exists(cm, type)) {
-        return false;
-    }
-    cm[type](*v, val);
-
-    return true;
+    return false;
 }
 
-std::string toString(const std::string& type, const Variable& v) {
-    static std::map<std::string, std::function<std::string(const Variable&)>>
-            cm;
-
-    if (cm.empty()) {
-        ADD_TO_STRING(cm, bool);
-        ADD_TO_STRING(cm, char);
-        ADD_TO_STRING(cm, unsigned char);
-        ADD_TO_STRING(cm, short);
-        ADD_TO_STRING(cm, unsigned short);
-        ADD_TO_STRING(cm, int);
-        ADD_TO_STRING(cm, unsigned int);
-        ADD_TO_STRING(cm, long);
-        ADD_TO_STRING(cm, unsigned long);
-        ADD_TO_STRING(cm, long long);
-        ADD_TO_STRING(cm, unsigned long long);
-        ADD_TO_STRING(cm, float);
-        ADD_TO_STRING(cm, double);
-        ADD_TO_STRING(cm, long double);
-
-        ADD_TO_STRING(cm, std::string);
-    }
-
-    if (exists(cm, type)) {
-        return cm[type](v);
+std::string toString(const std::string& type, const Variable& v,
+                     const TypeUtils& utils) {
+    if (exists(utils.serializers, type)) {
+        return replace(utils.serializers.at(type)(v), " ", "_");
     }
 
     return "";
@@ -186,7 +106,7 @@ std::string toString(const std::string& type, const Variable& v) {
 
 }  // namespace
 
-std::string CoreToString(const FaseCore& core, bool val) {
+std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     std::stringstream sstream;
 
     // Inputs and Outputs
@@ -214,13 +134,11 @@ std::string CoreToString(const FaseCore& core, bool val) {
         }
 
         sstream << std::get<1>(pair).func_repr << " " << std::get<0>(pair);
-        if (val) {
-            sstream << " ";
-            for (size_t i = 0; i < std::get<1>(pair).arg_values.size(); i++) {
-                const Variable& var = std::get<1>(pair).arg_values[i];
-                std::string type = getTypeStr(var);
-                sstream << type << " " << toString(type, var) << " ";
-            }
+        sstream << " ";
+        for (size_t i = 0; i < std::get<1>(pair).arg_values.size(); i++) {
+            const Variable& var = std::get<1>(pair).arg_values[i];
+            std::string type = getTypeStr(var, utils);
+            sstream << type << " " << toString(type, var, utils) << " ";
         }
 
         sstream << std::endl;
@@ -246,7 +164,8 @@ std::string CoreToString(const FaseCore& core, bool val) {
     return sstream.str();
 }
 
-bool StringToCore(const std::string& str, FaseCore* core) {
+bool StringToCore(const std::string& str, FaseCore* core,
+                  const TypeUtils& utils) {
     std::vector<std::string> lines = split(str, '\n');
 
     auto linep = std::begin(lines);
@@ -293,11 +212,15 @@ bool StringToCore(const std::string& str, FaseCore* core) {
         if (!core->addNode(words.at(1), words.at(0))) {
             return false;
         }
+
         if (words.size() > 2) {
-            for (size_t i = 0; i < core->getNodes().at(words[1]).links.size();
-                 i++) {
+            const size_t& arg_n = core->getNodes().at(words[1]).links.size();
+            for (size_t i = 0; i < arg_n; i++) {
+                if (words[i * 2 + 3].empty()) {
+                    continue;
+                }
                 Variable v;
-                strToVar(words[i * 2 + 3], words[i * 2 + 2], &v);
+                strToVar(words[i * 2 + 3], words[i * 2 + 2], utils, &v);
                 core->setNodeArg(words[1], i, words[i * 2 + 3], v);
             }
         }
@@ -328,11 +251,12 @@ bool StringToCore(const std::string& str, FaseCore* core) {
     return true;
 }
 
-bool SaveFaseCore(const std::string& filename, const FaseCore& core) {
+bool SaveFaseCore(const std::string& filename, const FaseCore& core,
+                  const TypeUtils& utils) {
     try {
         std::ofstream output(filename);
 
-        output << CoreToString(core, true);
+        output << CoreToString(core, utils);
 
         output.close();
 
@@ -343,7 +267,8 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core) {
     }
 }
 
-bool LoadFaseCore(const std::string& filename, FaseCore* core) {
+bool LoadFaseCore(const std::string& filename, FaseCore* core,
+                  const TypeUtils& utils) {
     try {
         std::ifstream input(filename);
 
@@ -359,7 +284,7 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core) {
             ss << buf << std::endl;
         }
 
-        StringToCore(ss.str(), core);
+        StringToCore(ss.str(), core, utils);
 
         input.close();
 
