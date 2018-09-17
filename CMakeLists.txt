@@ -153,6 +153,7 @@ add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
     ${CMAKE_SOURCE_DIR}/src/editor_gui.cpp
     ${CMAKE_SOURCE_DIR}/src/editor_gui_view.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor_gui_menus.cpp
 )
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
@@ -172,10 +173,10 @@ endif()
 # ---------------------------------- examples ----------------------------------
 if (BUILD_EXAMPLE)
     # CLI Editor
-    add_executable(clieditor
-        ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
-    )
-    setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    # add_executable(clieditor
+    #     ${CMAKE_SOURCE_DIR}/examples/clieditor/main.cpp
+    # )
+    # setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
     # GUI Editor
     add_executable(guieditor

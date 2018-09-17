@@ -19,6 +19,7 @@ enum class IssuePattern {
 };
 
 struct Issue {
+    std::string id;
     IssuePattern issue;
     Variable var;
 };

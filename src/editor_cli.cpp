@@ -4,6 +4,7 @@
 
 #include "core_util.h"
 
+#if 0
 namespace fase {
 
 namespace {
@@ -185,3 +186,5 @@ bool CLIEditor::run(FaseCore* core, const TypeUtils&) {
 }
 
 }  // namespace fase
+
+#endif

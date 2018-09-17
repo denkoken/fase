@@ -1507,26 +1507,33 @@ void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
 #if 1
 class GUIEditor::Impl {
 public:
-    Impl() {}
+    Impl(FaseCore* core, const TypeUtils& utils)
+        : view(*core, utils), core(core), utils(utils) {}
 
-    bool run(FaseCore* core, const TypeUtils& utils,
-             const std::string& win_title, const std::string& label_suffix);
+    bool run(const std::string& win_title, const std::string& label_suffix);
 
     bool addVarEditor(const std::type_info* p, VarEditor&& f);
 
 private:
     View view;
+    FaseCore* core;
+    const TypeUtils& utils;
 
     std::map<std::string, ResultReport> reports;
     std::map<const std::type_info*, VarEditor> var_editors;
+    std::map<std::string, Variable> response;
 };
 
-bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& utils,
-                          const std::string& win_title,
+bool GUIEditor::Impl::run(const std::string& win_title,
                           const std::string& label_suffix) {
-    const std::vector<Issue> issues = view.draw(*core, win_title, label_suffix);
+    std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
 
+    response.clear();
     for (const Issue& issue : issues) {
+        if (issue.issue == IssuePattern::Save) {
+            const std::string& filename = *issue.var.getReader<std::string>();
+            response[issue.id] = SaveFaseCore(filename, *core, utils);
+        }
         // TODO
     }
 
@@ -1746,15 +1753,15 @@ bool GUIEditor::Impl::addVarEditor(const std::type_info* p, VarEditor&& f) {
 }
 
 // ------------------------------- pImpl pattern -------------------------------
-GUIEditor::GUIEditor() : impl(new GUIEditor::Impl()) {}
+GUIEditor::GUIEditor(FaseCore* core, const TypeUtils& utils)
+    : impl(new GUIEditor::Impl(core, utils)) {}
 bool GUIEditor::addVarEditor(const std::type_info* p, VarEditor&& f) {
     return impl->addVarEditor(p, std::forward<VarEditor>(f));
 }
 GUIEditor::~GUIEditor() {}
-bool GUIEditor::run(FaseCore* core, const TypeUtils& utils,
-                    const std::string& win_title,
+bool GUIEditor::run(const std::string& win_title,
                     const std::string& label_suffix) {
-    return impl->run(core, utils, win_title, label_suffix);
+    return impl->run(win_title, label_suffix);
 }
 
 }  // namespace fase

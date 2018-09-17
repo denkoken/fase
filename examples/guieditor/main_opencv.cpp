@@ -89,6 +89,8 @@ int main() {
                 return {};
             });
 
+    app.setupEditor();
+
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example with OpenCV");
     if (!window) {

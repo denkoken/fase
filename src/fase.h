@@ -37,7 +37,8 @@ public:
 
     template <typename... Gen>
     bool addVarGenerator(Gen&&... gen) {
-        return editor.addVarGenerator(std::forward<Gen>(gen)...);
+        // return editor.addVarGenerator(std::forward<Gen>(gen)...);
+        return true;
     }
 
     template <typename T>
@@ -64,12 +65,13 @@ public:
             return def_makers(*v.getReader<T>());
         };
 
-        editor.addVarEditor(&typeid(T), [f = view_editor](const char* label,
-                                                          const Variable& v) {
-            auto p = f(label, *v.getReader<T>());
-            if (p) return Variable(std::move(*p));
-            return Variable();
-        });
+        var_editor_buffer.push_back(
+                {&typeid(T),
+                 [f = view_editor](const char* label, const Variable& v) {
+                     auto p = f(label, *v.getReader<T>());
+                     if (p) return Variable(std::move(*p));
+                     return Variable();
+                 }});
 
         type_utils.checkers[name] = [](const Variable& v) {
             return v.isSameType<T>();
@@ -78,16 +80,29 @@ public:
         type_utils.names[&typeid(T)] = name;
     }
 
+    void setupEditor() {
+        editor = std::make_unique<Editor>(&core, type_utils);
+
+        for (auto& pair : var_editor_buffer) {
+            editor->addVarEditor(std::get<0>(pair),
+                                 std::move(std::get<1>(pair)));
+        }
+        var_editor_buffer.clear();
+    }
+
     template <typename... Args>
     bool runEditing(Args&&... args) {
-        return editor.run(&core, type_utils, std::forward<Args>(args)...);
+        assert(editor);
+        return editor->run(std::forward<Args>(args)...);
     }
 
 private:
     FaseCore core;
-    Editor editor;
+    std::unique_ptr<Editor> editor;
 
     TypeUtils type_utils;
+
+    std::vector<std::tuple<const std::type_info*, VarEditor>> var_editor_buffer;
 };
 
 }  // namespace fase

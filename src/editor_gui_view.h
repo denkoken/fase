@@ -34,35 +34,39 @@ private:
 
 class Menu {
 public:
-    Menu(LabelWrapper& label, GUIPreference& preference
-            // , const TypeUtils& utils
-            )
-        : label(label), preference(preference)
-          // , utils(utils) 
-    {}
+    Menu(const FaseCore& core, LabelWrapper& label, GUIPreference& preference,
+         const TypeUtils& utils)
+        : core(core), label(label), preference(preference), utils(utils) {}
     virtual ~Menu() = 0;
 
-    virtual std::vector<Issue> draw(const FaseCore& core) = 0;
+    virtual std::vector<Issue> draw(
+            const std::map<std::string, Variable>& response) = 0;
 
 protected:
+    const FaseCore& core;
+    // Reference to the parent's
     LabelWrapper& label;
     GUIPreference& preference;
-    // const TypeUtils& utils;
+    const TypeUtils& utils;
 };
 
 class View {
 public:
-    View();
+    View(const FaseCore&, const TypeUtils&);
 
-    std::vector<Issue> draw(const FaseCore& core, const std::string& win_title,
-                            const std::string& label_suffix);
+    std::vector<Issue> draw(const std::string& win_title,
+                            const std::string& label_suffix,
+                            const std::map<std::string, Variable>& response);
 
 private:
     std::vector<std::unique_ptr<Menu>> menus;  // Menu bar
 
+    const FaseCore& core;
     LabelWrapper label;
     GUIPreference preference;
-    // const TypeUtils& utils;
+    const TypeUtils& utils;
+
+    void setupMenus();
 };
 
 }  // namespace fase

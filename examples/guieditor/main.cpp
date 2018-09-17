@@ -32,8 +32,10 @@ int main() {
     //                     [](const int& a) { return std::to_string(a); },
     //                     [](const char*, const int&) -> std::unique_ptr<int> { return {}; });
 
+    app.setupEditor();
+
     // Register for argument editing
-    FaseInstallBasicGuiGenerators(app);
+    // FaseInstallBasicGuiGenerators(app);
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");

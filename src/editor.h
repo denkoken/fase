@@ -24,6 +24,7 @@ public:
     bool run(FaseCore *, Args...) {}
 };
 
+#if 0
 // ------------------------------------ CLI ------------------------------------
 class CLIEditor : public EditorBase<CLIEditor> {
 public:
@@ -43,7 +44,7 @@ public:
         }
     }
 
-    bool run(FaseCore *core, const TypeUtils &);
+    bool run();
 
     auto getVarGenerators() {
         return var_generators;
@@ -55,6 +56,7 @@ private:
              std::function<Variable(const std::string &)>>
             var_generators;
 };
+#endif
 
 // ------------------------------------ GUI ------------------------------------
 using GuiGeneratorFunc =
@@ -64,7 +66,7 @@ using VarEditor = std::function<Variable(const char *, const Variable &)>;
 
 class GUIEditor : public EditorBase<GUIEditor> {
 public:
-    GUIEditor();
+    GUIEditor(FaseCore *, const TypeUtils &);
     ~GUIEditor();
 
     ///
@@ -85,8 +87,7 @@ public:
 
     bool addVarEditor(const std::type_info *p, VarEditor &&f);
 
-    bool run(FaseCore *core, const TypeUtils &type_utils,
-             const std::string &win_title = "Fase Editor",
+    bool run(const std::string &win_title = "Fase Editor",
              const std::string &label_suffix = "##fase");
 
 private:
