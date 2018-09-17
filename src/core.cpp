@@ -83,7 +83,7 @@ bool FaseCore::checkNodeName(const std::string& name) {
         return false;
     }
 
-    if (name.find(ReportHeaderStr()) != std::string::npos) {
+    if (IsSpecialNodeName(name)) {
         return false;
     }
 

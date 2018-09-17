@@ -59,6 +59,14 @@ inline std::string OutputNodeStr() {
     return ReportHeaderStr() + std::string("__output");
 }
 
+inline bool IsSpecialNodeName(const std::string& name) {
+    return name.find(ReportHeaderStr()) != std::string::npos;
+}
+
+inline bool IsSpecialFuncName(const std::string& name) {
+    return name.find(ReportHeaderStr()) != std::string::npos;
+}
+
 }  // namespace fase
 
 #endif  // CORE_UTIL_H_20180824

@@ -18,6 +18,12 @@ enum class IssuePattern {
     Save,
 };
 
+/// For AddNode issue
+struct AddNodeInfo {
+    std::string name;
+    std::string func_repr;
+};
+
 struct Issue {
     std::string id;
     IssuePattern issue;

@@ -1526,11 +1526,17 @@ private:
 
 bool GUIEditor::Impl::run(const std::string& win_title,
                           const std::string& label_suffix) {
+
+    // Draw GUI and get issues.
     std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
 
+    // Do issue and make responses.
     response.clear();
     for (const Issue& issue : issues) {
-        if (issue.issue == IssuePattern::Save) {
+        if (issue.issue == IssuePattern::AddNode) {
+            const AddNodeInfo& info = *issue.var.getReader<AddNodeInfo>();
+            response[issue.id] = core->addNode(info.name, info.func_repr);
+        } else if (issue.issue == IssuePattern::Save) {
             const std::string& filename = *issue.var.getReader<std::string>();
             response[issue.id] = SaveFaseCore(filename, *core, utils);
         }
