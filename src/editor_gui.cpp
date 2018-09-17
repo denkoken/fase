@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "core_util.h"
+#include "editor_gui_view.h"
 
 namespace fase {
 
@@ -336,8 +337,7 @@ private:
 // Draw button and pop up window for native code
 class NativeCodeGUI {
 public:
-    NativeCodeGUI(LabelWrapper& label)
-        : label(label) {}
+    NativeCodeGUI(LabelWrapper& label) : label(label) {}
 
     void draw(FaseCore* core, const TypeUtils& utils) {
         if (ImGui::MenuItem(label("Show code"))) {
@@ -420,13 +420,16 @@ public:
 
             if (core->getNodes().at(InputNodeStr()).links.size() > 0) {
                 if (ImGui::Button(label("del Input"))) {
-                    size_t idx = core->getNodes().at(InputNodeStr()).links.size() - 1;
+                    size_t idx =
+                            core->getNodes().at(InputNodeStr()).links.size() -
+                            1;
                     core->delInput(idx);
                     updater();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button(label("Reset Input"))) {
-                    const size_t arg_n = core->getNodes().at(InputNodeStr()).links.size();
+                    const size_t arg_n =
+                            core->getNodes().at(InputNodeStr()).links.size();
                     for (size_t i = arg_n - 1; i < arg_n; i--) {
                         core->delInput(arg_n);
                     }
@@ -436,13 +439,16 @@ public:
             }
             if (core->getNodes().at(OutputNodeStr()).links.size() > 0) {
                 if (ImGui::Button(label("del Output"))) {
-                    size_t idx = core->getNodes().at(OutputNodeStr()).links.size() - 1;
+                    size_t idx =
+                            core->getNodes().at(OutputNodeStr()).links.size() -
+                            1;
                     core->delOutput(idx);
                     updater();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button(label("Reset Output"))) {
-                    const size_t arg_n = core->getNodes().at(OutputNodeStr()).links.size();
+                    const size_t arg_n =
+                            core->getNodes().at(OutputNodeStr()).links.size();
                     for (size_t i = arg_n - 1; i < arg_n; i--) {
                         core->delOutput(arg_n);
                     }
@@ -723,7 +729,8 @@ public:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContent(core, node_name, node, gui_node, order_idx, preference);
+            drawNodeContent(core, node_name, node, gui_node, order_idx,
+                            preference);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -820,9 +827,11 @@ private:
 
     void drawNodeContent(FaseCore* core, const std::string& node_name,
                          const Node& node, GuiNode& gui_node,
-                         const size_t order_idx, const GUIPreference& preference) {
+                         const size_t order_idx,
+                         const GUIPreference& preference) {
         ImGui::BeginGroup();  // Lock horizontal position
-        bool s_flag = node.func_repr == OutputFuncStr() || node.func_repr == InputFuncStr();
+        bool s_flag = node.func_repr == OutputFuncStr() ||
+                      node.func_repr == InputFuncStr();
         if (node.func_repr == InputFuncStr()) {
             ImGui::Text("Input");
         } else if (node.func_repr == OutputFuncStr()) {
@@ -888,7 +897,8 @@ private:
         }
         if (!s_flag) {
             int priority = node.priority;
-            ImGui::SliderInt(label("priority"), &priority, preference.priority_min, preference.priority_max);
+            ImGui::SliderInt(label("priority"), &priority,
+                             preference.priority_min, preference.priority_max);
             priority = std::min(priority, preference.priority_max);
             priority = std::max(priority, preference.priority_min);
             if (priority != node.priority) {
@@ -1268,8 +1278,10 @@ private:
             constexpr int v_min = std::numeric_limits<int>::min();
             constexpr int v_max = std::numeric_limits<int>::max();
             constexpr float v_speed = 0.5;
-            ImGui::DragInt(label("priority min"), &preference.priority_min, v_speed, v_min, preference.priority_max);
-            ImGui::DragInt(label("priority max"), &preference.priority_max, v_speed, preference.priority_min, v_max);
+            ImGui::DragInt(label("priority min"), &preference.priority_min,
+                           v_speed, v_min, preference.priority_max);
+            ImGui::DragInt(label("priority max"), &preference.priority_max,
+                           v_speed, preference.priority_min, v_max);
 
             if (ImGui::Button("OK")) {
                 ImGui::CloseCurrentPopup();
@@ -1492,6 +1504,36 @@ void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
 
 }  // anonymous namespace
 
+#if 1
+class GUIEditor::Impl {
+public:
+    Impl() {}
+
+    bool run(FaseCore* core, const TypeUtils& utils,
+             const std::string& win_title, const std::string& label_suffix);
+
+    bool addVarEditor(const std::type_info* p, VarEditor&& f);
+
+private:
+    View view;
+
+    std::map<std::string, ResultReport> reports;
+    std::map<const std::type_info*, VarEditor> var_editors;
+};
+
+bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& utils,
+                          const std::string& win_title,
+                          const std::string& label_suffix) {
+    const std::vector<Issue> issues = view.draw(*core, win_title, label_suffix);
+
+    for (const Issue& issue : issues) {
+        // TODO
+    }
+
+    return true;
+}
+
+#else
 class GUIEditor::Impl {
 public:
     Impl()
@@ -1696,6 +1738,7 @@ bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& type_utils,
 
     return true;
 }
+#endif
 
 bool GUIEditor::Impl::addVarEditor(const std::type_info* p, VarEditor&& f) {
     var_editors[p] = std::forward<VarEditor>(f);

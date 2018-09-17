@@ -31,7 +31,7 @@ void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
 }
 
 void delRevLink(const Node& node, const size_t& idx, FaseCore* core) {
-    while(true) {
+    while (true) {
         bool f = true;
         for (auto& pair : node.rev_links) {
             auto link = std::get<1>(pair);
@@ -408,7 +408,7 @@ bool FaseCore::delInput(const size_t& idx) {
         return false;
     }
 
-    //TODO
+    // TODO
 
     Node& node = nodes[InputNodeStr()];
     Function& func = functions[InputFuncStr()];
@@ -459,7 +459,7 @@ bool FaseCore::delOutput(const size_t& idx) {
     if (idx >= functions[OutputFuncStr()].arg_names.size()) {
         return false;
     }
-    //TODO
+    // TODO
 
     delLink(OutputFuncStr(), idx);
 
