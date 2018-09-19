@@ -1,4 +1,4 @@
-#include "editor.h"
+#include "../editor.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -6,8 +6,8 @@
 #include <cmath>
 #include <sstream>
 
-#include "core_util.h"
-#include "editor_gui_view.h"
+#include "../core_util.h"
+#include "view.h"
 
 namespace fase {
 
@@ -368,7 +368,6 @@ private:
 
     // Reference to the parent's
     LabelWrapper& label;
-    std::map<const std::type_info*, VarEditor> var_editors;
 
     // Private status
     std::string native_code;
@@ -1502,51 +1501,14 @@ void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
     EditorMaker<std::string>(*var_editors);
 }
 
-}  // anonymous namespace
-
-#if 1
-class GUIEditor::Impl {
-public:
-    Impl(FaseCore* core, const TypeUtils& utils)
-        : view(*core, utils), core(core), utils(utils) {}
-
-    bool run(const std::string& win_title, const std::string& label_suffix);
-
-    bool addVarEditor(const std::type_info* p, VarEditor&& f);
-
-private:
-    View view;
-    FaseCore* core;
-    const TypeUtils& utils;
-
-    std::map<std::string, ResultReport> reports;
-    std::map<const std::type_info*, VarEditor> var_editors;
-    std::map<std::string, Variable> response;
-};
-
-bool GUIEditor::Impl::run(const std::string& win_title,
-                          const std::string& label_suffix) {
-
-    // Draw GUI and get issues.
-    std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
-
-    // Do issue and make responses.
-    response.clear();
-    for (const Issue& issue : issues) {
-        if (issue.issue == IssuePattern::AddNode) {
-            const AddNodeInfo& info = *issue.var.getReader<AddNodeInfo>();
-            response[issue.id] = core->addNode(info.name, info.func_repr);
-        } else if (issue.issue == IssuePattern::Save) {
-            const std::string& filename = *issue.var.getReader<std::string>();
-            response[issue.id] = SaveFaseCore(filename, *core, utils);
-        }
-        // TODO
-    }
-
-    return true;
+template <typename T>
+inline const T& GetVar(const Issue& issue) {
+    return *issue.var.getReader<T>();
 }
 
-#else
+}  // anonymous namespace
+
+#if 0
 class GUIEditor::Impl {
 public:
     Impl()
@@ -1748,6 +1710,61 @@ bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& type_utils,
     ImGui::End();  // End window
 
     report_window.draw(reports);
+
+    return true;
+}
+#else
+class GUIEditor::Impl {
+public:
+    Impl(FaseCore* core, const TypeUtils& utils)
+        : view(*core, utils), core(core), utils(utils) {}
+
+    bool run(const std::string& win_title, const std::string& label_suffix);
+
+    bool addVarEditor(const std::type_info* p, VarEditor&& f);
+
+private:
+    View view;
+    FaseCore* core;
+    const TypeUtils& utils;
+
+    std::map<std::string, ResultReport> reports;
+    std::map<const std::type_info*, VarEditor> var_editors;
+    std::map<std::string, Variable> response;
+};
+
+bool GUIEditor::Impl::run(const std::string& win_title,
+                          const std::string& label_suffix) {
+    // Draw GUI and get issues.
+    std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
+
+    // Do issue and make responses.
+    response.clear();
+    for (const Issue& issue : issues) {
+        if (issue.issue == IssuePattern::AddNode) {
+            const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
+            response[issue.id] = core->addNode(info.name, info.func_repr);
+        } else if (issue.issue == IssuePattern::Save) {
+            const std::string& filename = GetVar<std::string>(issue);
+            response[issue.id] = SaveFaseCore(filename, *core, utils);
+        } else if (issue.issue == IssuePattern::Load) {
+            const std::string& filename = GetVar<std::string>(issue);
+            response[issue.id] = LoadFaseCore(filename, core, utils);
+        } else if (issue.issue == IssuePattern::AddInput) {
+            const std::string& name = GetVar<std::string>(issue);
+            response[issue.id] = core->addInput(name);
+        } else if (issue.issue == IssuePattern::AddOutput) {
+            const std::string& name = GetVar<std::string>(issue);
+            response[issue.id] = core->addOutput(name);
+        } else if (issue.issue == IssuePattern::DelInput) {
+            const size_t& idx = GetVar<size_t>(issue);
+            response[issue.id] = core->delInput(idx);
+        } else if (issue.issue == IssuePattern::DelOutput) {
+            const size_t& idx = GetVar<size_t>(issue);
+            response[issue.id] = core->delOutput(idx);
+        }
+        // TODO
+    }
 
     return true;
 }

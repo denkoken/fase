@@ -151,9 +151,9 @@ add_library(fase SHARED
     ${CMAKE_SOURCE_DIR}/src/type_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/dst_code.cpp
     ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor_gui.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor_gui_view.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor_gui_menus.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
 )
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
