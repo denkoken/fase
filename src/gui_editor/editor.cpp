@@ -1744,6 +1744,17 @@ bool GUIEditor::Impl::run(const std::string& win_title,
         if (issue.issue == IssuePattern::AddNode) {
             const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
             response[issue.id] = core->addNode(info.name, info.func_repr);
+        } else if (issue.issue == IssuePattern::DelNode) {
+            // TODO
+        }
+        if (issue.issue == IssuePattern::AddLink) {
+            const auto& info = GetVar<AddLinkInfo>(issue);
+            response[issue.id] = core->addLink(info.src_nodename, info.src_idx,
+                                               info.dst_nodename, info.dst_idx);
+        } else if (issue.issue == IssuePattern::DelLink) {
+            const auto& info = GetVar<DelLinkInfo>(issue);
+            core->delLink(info.src_nodename, info.src_idx);
+            response[issue.id] = true;
         } else if (issue.issue == IssuePattern::Save) {
             const std::string& filename = GetVar<std::string>(issue);
             response[issue.id] = SaveFaseCore(filename, *core, utils);

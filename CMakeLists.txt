@@ -111,6 +111,7 @@ endif()
 add_library(imgui SHARED
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
@@ -161,13 +162,13 @@ list(APPEND FASE_LIBRARY fase)
 
 # ----------------------------------- tests ------------------------------------
 if (BUILD_TEST)
-    add_executable(test
+    add_executable(fase_test
         ${CMAKE_SOURCE_DIR}/test/test.cpp
         ${CMAKE_SOURCE_DIR}/test/test_variable.cpp
         ${CMAKE_SOURCE_DIR}/test/test_function.cpp
         ${CMAKE_SOURCE_DIR}/test/test_core.cpp
     )
-    setup_target(test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    setup_target(fase_test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()
 
 # ---------------------------------- examples ----------------------------------

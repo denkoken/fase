@@ -1,8 +1,8 @@
 
 #include "view.h"
 
-#include <sstream>
 #include <cmath>
+#include <sstream>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -12,6 +12,17 @@
 namespace fase {
 
 namespace {
+
+template <typename T>
+bool erase(std::vector<T>& vec, const T& item) {
+    for (auto iter = std::begin(vec); iter != std::end(vec); iter++) {
+        if (item == *iter) {
+            vec.erase(iter);
+            return true;
+        }
+    }
+    return false;
+}
 
 // Visible GUI node
 struct GuiNode {
@@ -43,6 +54,15 @@ struct GuiNode {
 inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
     return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
 }
+inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
+    return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+}
+inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
+    return ImVec2(lhs.x * rhs, lhs.y * rhs);
+}
+inline float Length(const ImVec2& v) {
+    return std::sqrt(v.x * v.x + v.y * v.y);
+}
 
 // Additional ImGui components
 bool IsItemActivePreviousFrame() {
@@ -66,7 +86,8 @@ public:
     CanvasController(const char* label) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, IM_COL32(60, 60, 70, 200));
+        ImGui::PushStyleColor(ImGuiCol_ChildWindowBg,
+                              IM_COL32(60, 60, 70, 200));
         ImGui::BeginChild(label, ImVec2(0, 0), true,
                           ImGuiWindowFlags_NoScrollbar |
                                   ImGuiWindowFlags_NoScrollWithMouse |
@@ -78,8 +99,12 @@ public:
         ImGui::EndChild();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
-        ImGui::EndChild();
     }
+};
+
+struct CanvasState {
+    ImVec2 scroll_pos;
+    std::map<std::string, GuiNode> gui_nodes;
 };
 
 void DrawCanvas(const ImVec2& scroll_pos, float size) {
@@ -96,6 +121,70 @@ void DrawCanvas(const ImVec2& scroll_pos, float size) {
                            ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
     }
 }
+
+class GUINodePositionOptimizer {
+public:
+    GUINodePositionOptimizer(const FaseCore& core,
+                             std::map<std::string, GuiNode>& gui_nodes)
+        : core(core), gui_nodes(gui_nodes) {}
+
+    void operator()(bool opt) {
+        if (opt) {
+            setDestinations();
+        }
+        for (auto& pair : gui_nodes) {
+            if (!fase::exists(destinations, std::get<0>(pair))) {
+                continue;
+            }
+            std::get<1>(pair).pos = destinations[std::get<0>(pair)] * .3f +
+                                    std::get<1>(pair).pos * .7f;
+
+            if (std::abs(destinations[std::get<0>(pair)].x -
+                         std::get<1>(pair).pos.x) < 1.f &&
+                std::abs(destinations[std::get<0>(pair)].y -
+                         std::get<1>(pair).pos.y) < 1.f) {
+                destinations.erase(std::get<0>(pair));
+            }
+        }
+    }
+
+private:
+    static constexpr float START_X = 30;
+    static constexpr float START_Y = 10;
+    static constexpr float INTERVAL_X = 50;
+    static constexpr float INTERVAL_Y = 10;
+
+    const FaseCore& core;
+
+    std::map<std::string, ImVec2> destinations;
+    std::map<std::string, GuiNode>& gui_nodes;
+
+    void setDestinations() {
+        auto names = GetCallOrder(core.getNodes());
+
+        float baseline_y = 0;
+        float x = START_X, y = START_Y, maxy = 0;
+        ImVec2 component_size = ImGui::GetWindowSize();
+        for (auto& name_set : names) {
+            float maxx = 0;
+            for (auto& name : name_set) {
+                maxx = std::max(maxx, gui_nodes.at(name).size.x);
+            }
+            if (x + maxx > component_size.x) {
+                x = START_X;
+                baseline_y = maxy + INTERVAL_Y * 0.7f + baseline_y;
+            }
+            for (auto& name : name_set) {
+                destinations[name].y = y + baseline_y;
+                destinations[name].x = x;
+                y += gui_nodes.at(name).size.y + INTERVAL_Y;
+            }
+            maxy = std::max(maxy, y);
+            y = START_Y;
+            x += maxx + INTERVAL_X;
+        }
+    }
+};
 
 }  // namespace
 
@@ -135,9 +224,8 @@ void NodeListView::main() {
                               exists(state.selected_nodes, node_name))) {
             if (IsKeyPressed(ImGuiKey_Space)) {
                 state.selected_nodes.push_back(node_name);
-            }
-            else {
-                state.selected_nodes = { node_name };
+            } else {
+                state.selected_nodes = {node_name};
             }
         }
         if (ImGui::IsItemHovered()) {
@@ -148,50 +236,538 @@ void NodeListView::main() {
     ImGui::EndChild();
 }
 
+class LinksView : public Content {
+public:
+    template <class... Args>
+    LinksView(CanvasState& canvas_state, Args&&... args)
+        : Content(args...), gui_nodes(canvas_state.gui_nodes) {}
+    ~LinksView() {}
+
+private:
+    constexpr static ImU32 LINK_COLOR = IM_COL32(200, 200, 100, 255);
+    constexpr static float SLOT_HOVER_RADIUS = 8.f;
+    // const float ARROW_BEZIER_SIZE = 80.f;
+    constexpr static float ARROW_HEAD_SIZE = 15.f;
+    const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;
+
+    std::map<std::string, GuiNode>& gui_nodes;
+
+    std::string hovered_slot_name;
+    size_t hovered_slot_idx;
+    char is_hovered_slot_input;
+    bool is_link_creating;
+
+    std::string hovered_slot_name_prev;
+    size_t hovered_slot_idx_prev;
+    bool is_hovered_slot_input_prev;
+
+    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        float x_d = std::abs(d_pos.x - s_pos.x) * .7f;
+        if (d_pos.x < s_pos.x) {
+            x_d = std::pow(s_pos.x - d_pos.x, .7f) * 3.f;
+        }
+        float y_d = (d_pos.y - s_pos.y) * .2f;
+        const ImVec2 s_pos_2 = s_pos + ImVec2(x_d, y_d);
+        const ImVec2 d_pos_2 = d_pos - ImVec2(x_d, y_d);
+        draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
+                                  d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
+                                  LINK_COLOR, 3.0f);
+        // Arrow's triangle
+        const ImVec2 t_pos_1 =
+                d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
+        const ImVec2 t_pos_2 =
+                d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
+        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, LINK_COLOR);
+    }
+
+    void main() {
+        // TODO
+        const std::map<std::string, Node>& nodes = core.getNodes();
+
+        // Draw links
+        for (auto it = nodes.begin(); it != nodes.end(); it++) {
+            const std::string& node_name = it->first;
+            const Node& node = it->second;
+            if (!gui_nodes.count(node_name)) {
+                continue;  // Wait for creating GUI node
+            }
+            const size_t n_args = node.links.size();
+            for (size_t dst_idx = 0; dst_idx < n_args; dst_idx++) {
+                const std::string& src_name = node.links[dst_idx].node_name;
+                const size_t& src_idx = node.links[dst_idx].arg_idx;
+                if (src_name.empty() || !gui_nodes.count(src_name)) {
+                    continue;  // No link or Wait for creating GUI node
+                }
+                // Source
+                const ImVec2 s_pos =
+                        gui_nodes.at(src_name).getOutputSlot(src_idx);
+                // Destination
+                const ImVec2 d_pos =
+                        gui_nodes.at(node_name).getInputSlot(dst_idx);
+                drawLink(s_pos, d_pos);
+            }
+        }
+
+#if 0
+        // Search hovered slot
+        const ImVec2 mouse_pos = ImGui::GetMousePos();
+        for (auto it = nodes.begin(); it != nodes.end(); it++) {
+            const std::string& node_name = it->first;
+            const Node& node = it->second;
+            if (!gui_nodes.count(node_name)) {
+                continue;  // Wait for creating GUI node
+            }
+            GuiNode& gui_node = gui_nodes.at(node_name);
+            const size_t n_args = node.links.size();
+            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+                // Get slot position
+                const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx);
+                const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx);
+                // Get hovered conditions
+                char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
+                char& out_hov = gui_node.arg_out_hovered[arg_idx];
+                // Update hovered condition
+                inp_hov = (Length(mouse_pos - inp_slot) <= SLOT_HOVER_RADIUS);
+                out_hov = (Length(mouse_pos - out_slot) <= SLOT_HOVER_RADIUS);
+                if (inp_hov || out_hov) {
+                    // Save the last one
+                    hovered_slot_name = node_name;
+                    hovered_slot_idx = arg_idx;
+                    is_hovered_slot_input = inp_hov;
+                }
+            }
+        }
+
+        // Link creation
+        if (is_link_creating) {
+            if (ImGui::IsMouseDragging(0, 0.f)) {
+                // Editing
+                const GuiNode& gui_node = gui_nodes.at(hovered_slot_name_prev);
+                const size_t& arg_idx = hovered_slot_idx_prev;
+                if (is_hovered_slot_input_prev) {
+                    drawLink(mouse_pos, gui_node.getInputSlot(arg_idx));
+                } else {
+                    drawLink(gui_node.getOutputSlot(arg_idx), mouse_pos);
+                }
+            } else {
+                if (hovered_slot_name.empty() ||
+                    is_hovered_slot_input == is_hovered_slot_input_prev) {
+                    // Canceled
+                } else {
+                    // Create link
+                    bool success;
+                    AddLinkInfo info;
+                    if (is_hovered_slot_input_prev) {
+                        info = {
+                            hovered_slot_name,      hovered_slot_idx,
+                            hovered_slot_name_prev, hovered_slot_idx_prev
+                        };
+                    } else {
+                        info = {
+                            hovered_slot_name_prev, hovered_slot_idx_prev,
+                            hovered_slot_name,      hovered_slot_idx
+                        };
+                    }
+                    throwIssue(IssuePattern::AddLink, true,
+                               info, &success);
+                }
+                is_link_creating = false;
+            }
+        } else {
+            if (ImGui::IsMouseDown(0) && !ImGui::IsMouseDragging(0, 1.f) &&
+                !hovered_slot_name.empty()) {
+                // Start creating
+                is_link_creating = true;
+                const Link& link =
+                        nodes.at(hovered_slot_name).links[hovered_slot_idx];
+                if (link.node_name.empty() || !is_hovered_slot_input) {
+                    // New link
+                    hovered_slot_name_prev = hovered_slot_name;
+                    hovered_slot_idx_prev = hovered_slot_idx;
+                    is_hovered_slot_input_prev = is_hovered_slot_input;
+                } else {
+                    // Edit existing link
+                    hovered_slot_name_prev = link.node_name;
+                    hovered_slot_idx_prev = link.arg_idx;
+                    is_hovered_slot_input_prev = false;
+                    bool success;
+                    throwIssue(IssuePattern::DelLink, true,
+                               DelLinkInfo{hovered_slot_name, hovered_slot_idx},
+                               &success);
+                }
+            }
+        }
+#endif
+    }
+};
+
+class NodeBoxesView : public Content {
+public:
+    template <class... Args>
+    NodeBoxesView(CanvasState& c_state, Args&&... args)
+        : Content(args...), c_state(c_state) {}
+    ~NodeBoxesView() {}
+
+private:
+    const float SLOT_RADIUS = 4.f;
+    const float SLOT_SPACING = 3.f;
+    const ImVec2 NODE_WINDOW_PADDING = ImVec2(8.f, 6.f);
+    const ImU32 BORDER_COLOR = IM_COL32(100, 100, 100, 255);
+    const ImU32 BG_NML_COLOR = IM_COL32(60, 60, 60, 255);
+    const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
+    const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
+    const ImU32 SLOT_ACT_COLOR = IM_COL32(255, 255, 100, 255);
+    const float TITLE_COL_SCALE = 155.f;
+    const float TITLE_COL_OFFSET = 100.f;
+
+    CanvasState& c_state;
+
+    float getV(const int& idx) {
+        if (idx == 0)
+            return 0.f;
+        else if (idx == 1)
+            return 1.f;
+        else {
+            int i = std::pow(2, int(std::log2(idx - 1)));
+            return ((idx - i) * 2 - 1) / 2.f / float(i);
+        }
+    }
+
+    ImU32 genTitleColor(const size_t& idx) {
+        const float v = getV(idx);
+        // clang-format off
+        float r = (v <= 0.25f) ? 1.f :
+                  (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
+        float g = (v <= 0.25f) ? v / 0.25f :
+                  (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
+        float b = (v <= 0.50f) ? 0.f :
+                  (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+        // clang-format on
+        r = r * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
+        g = g * TITLE_COL_SCALE * 0.5f + TITLE_COL_OFFSET;
+        b = b * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
+        return IM_COL32(int(r), int(g), int(b), 200);
+    }
+
+    void drawInOutTag(bool in, bool simple = false) {
+        ImVec4 col;
+        std::string text;
+        if (in) {
+            col = ImVec4(.7f, .4f, .1f, 1.f);
+            if (simple) {
+                text = " ";
+            } else {
+                text = "  in  ";
+            }
+        } else {
+            col = ImVec4(.2f, .7f, .1f, 1.f);
+            if (simple) {
+                text = " ";
+            } else {
+                text = "in/out";
+            }
+        }
+        ImGui::PushStyleColor(ImGuiCol_Button, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+        ImGui::Button(text.c_str());
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+
+    std::string getTitleText(const std::string& node_name, const Node& node,
+                             const size_t& order_idx) {
+        if (node.func_repr == InputFuncStr()) {
+            return "Input";
+        } else if (node.func_repr == OutputFuncStr()) {
+            return "Output";
+        } else {
+            std::stringstream sstream;
+            sstream << "(" << order_idx << ") [" << node.func_repr << "] "
+                    << node_name;
+            return sstream.str();
+        }
+    }
+
+    void drawNodeContent(const std::string& node_name, const Node& node,
+                         GuiNode& gui_node, const size_t& order_idx) {
+        ImGui::BeginGroup();  // Lock horizontal position
+        bool s_flag = IsSpecialFuncName(node.func_repr);
+
+        ImGui::Text("%s", getTitleText(node_name, node, order_idx).c_str());
+
+        ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
+
+        const size_t n_args = node.links.size();
+        assert(gui_node.arg_poses.size() == n_args);
+
+        // Draw arguments
+        const std::map<std::string, Function>& functions = core.getFunctions();
+        const Function& function = functions.at(node.func_repr);
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            // Save argument position
+            const ImVec2 pos = ImGui::GetCursorScreenPos();
+            gui_node.arg_poses[arg_idx] =
+                    ImVec2(pos.x - NODE_WINDOW_PADDING.x,
+                           pos.y + ImGui::GetTextLineHeight() * 0.5f);
+            // Fetch from structures
+            const std::string& arg_name = function.arg_names[arg_idx];
+            const std::string& arg_repr = node.arg_reprs[arg_idx];
+            const std::type_info* arg_type = function.arg_types[arg_idx];
+
+            // start to draw one argument
+            ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
+
+            // draw input or inout.
+            ImGui::SameLine();
+            drawInOutTag(function.is_input_args[arg_idx]);
+
+            // draw default argument editing
+            ImGui::SameLine();
+            if (!node.links[arg_idx].node_name.empty()) {
+                // Link exists
+                ImGui::Text("%s", arg_name.c_str());
+#if 0
+            } else if (var_editors.count(arg_type)) {
+                // Call registered GUI for editing
+                auto& func = var_editors.at(arg_type);
+                const Variable& var = node.arg_values[arg_idx];
+                std::string expr;
+                const std::string view_label = arg_name + "##" + node_name;
+                Variable v = func(label(view_label), var);
+                if (v) {
+                    // Update argument
+                    core->setNodeArg(node_name, arg_idx, "", v);
+                }
+#endif
+            } else {
+                // No GUI for editing
+                if (s_flag) {
+                    ImGui::Text("%s : Unset", arg_name.c_str());
+                } else {
+                    ImGui::Text("%s [default:%s]", arg_name.c_str(),
+                                arg_repr.c_str());
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
+        }
+        if (!s_flag) {
+            int priority = node.priority;
+            ImGui::SliderInt(label("priority"), &priority,
+                             preference.priority_min, preference.priority_max);
+            priority = std::min(priority, preference.priority_max);
+            priority = std::max(priority, preference.priority_min);
+            if (priority != node.priority) {
+#if 0
+                core->setPriority(node_name, priority);
+#endif
+            }
+        }
+        ImGui::EndGroup();
+    }
+
+    void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
+                     const bool is_active, const size_t order_idx) {
+        const ImVec2 node_rect_max = node_rect_min + node_size;
+        ImGui::InvisibleButton(label("node"), node_size);
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        // Background
+        const ImU32 bg_col = is_active ? BG_ACT_COLOR : BG_NML_COLOR;
+        draw_list->AddRectFilled(node_rect_min, node_rect_max, bg_col, 4.f);
+        // Border
+        draw_list->AddRect(node_rect_min, node_rect_max, BORDER_COLOR, 4.f);
+        // Title
+        const float line_height = ImGui::GetTextLineHeight();
+        const float pad_height = NODE_WINDOW_PADDING.y * 2;
+        const ImVec2 node_title_rect_max =
+                node_rect_min + ImVec2(node_size.x, line_height + pad_height);
+        draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
+                                 genTitleColor(order_idx), 4.f);
+    }
+
+    void drawLinkSlots(const GuiNode& gui_node) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        const size_t n_args = gui_node.arg_poses.size();
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            // Get slot position
+            const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx);
+            const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx);
+            // Get hovered conditions
+            const char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
+            const char& out_hov = gui_node.arg_out_hovered[arg_idx];
+            // Draw
+            const ImU32 inp_col = inp_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
+            const ImU32 out_col = out_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
+            draw_list->AddCircleFilled(inp_slot, SLOT_RADIUS, inp_col);
+            draw_list->AddCircleFilled(out_slot, SLOT_RADIUS, out_col);
+        }
+    }
+
+    void main() {
+        const ImVec2 canvas_offset =
+                ImGui::GetCursorScreenPos() + c_state.scroll_pos;
+        auto& gui_nodes = c_state.gui_nodes;
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list->ChannelsSplit(2);
+        const std::map<std::string, Node>& nodes = core.getNodes();
+        for (size_t order_idx = 0; order_idx < state.node_order.size();
+             order_idx++) {
+            const std::string& node_name = state.node_order[order_idx];
+            const Node& node = nodes.at(node_name);
+            if (!gui_nodes.count(node_name)) {
+                continue;  // Wait for creating GUI node
+            }
+            GuiNode& gui_node = gui_nodes[node_name];
+
+            ImGui::PushID(label(node_name));
+            const ImVec2 node_rect_min = canvas_offset + gui_node.pos;
+            const bool any_active_old = ImGui::IsAnyItemActive();
+
+            // Draw node contents first
+            draw_list->ChannelsSetCurrent(1);  // Foreground
+            ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
+            drawNodeContent(node_name, node, gui_node, order_idx);
+
+            // Fit to content size
+            gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
+
+            // Draw node box
+            draw_list->ChannelsSetCurrent(0);  // Background
+            ImGui::SetCursorScreenPos(node_rect_min);
+            drawNodeBox(node_rect_min, gui_node.size,
+                        exists(state.selected_nodes, node_name), order_idx);
+
+            // Draw link slot
+            drawLinkSlots(gui_node);
+
+            // Selection
+            if (!any_active_old && ImGui::IsAnyItemActive()) {
+                if (IsKeyPressed(ImGuiKey_Space)) {
+                    state.selected_nodes.push_back(node_name);
+                } else {
+                    state.selected_nodes = {node_name};
+                }
+            }
+            if (ImGui::IsItemHovered()) {
+                state.hovered_node_name = node_name;
+            }
+            // Scroll
+            if (
+#if 0
+                    !is_link_creating &&
+#endif
+                    ImGui::IsItemActive() && ImGui::IsMouseDragging(0, 0.f)) {
+                gui_node.pos = gui_node.pos + ImGui::GetIO().MouseDelta;
+            }
+
+            ImGui::PopID();
+        }
+        draw_list->ChannelsMerge();
+    }
+};
+
 class NodeCanvasView : public Content {
 public:
     template <class... Args>
-    NodeCanvasView(Args&&... args) : Content(args...) {}
+    NodeCanvasView(Args&&... args)
+        : Content(args...),
+          links_view(c_state, args...),
+          node_boxes_view(c_state, args...),
+          position_optimizer(core, c_state.gui_nodes) {}
     ~NodeCanvasView() {}
 
 private:
-    ImVec2 scroll_pos;
+    // child contents
+    LinksView links_view;
+    NodeBoxesView node_boxes_view;
+
+    CanvasState c_state;
+    std::string prev_nodes_str;  // for check is updating core nodes.
+    GUINodePositionOptimizer position_optimizer;
+
+    void updateGuiNodes() {
+        auto& gui_nodes = c_state.gui_nodes;
+
+        const std::map<std::string, Node>& nodes = core.getNodes();
+        for (auto it = nodes.begin(); it != nodes.end(); it++) {
+            const std::string& node_name = it->first;
+            const size_t n_args = it->second.links.size();
+            // Check GUI node existence
+            if (!gui_nodes.count(node_name)) {
+                gui_nodes[node_name];
+                state.node_order.emplace_back(node_name);
+            }
+            if (gui_nodes[node_name].arg_size() != n_args) {
+                // Create new node and allocate for link slots
+                gui_nodes[node_name].alloc(n_args);
+            }
+        }
+        // Detect changes by the numbers of nodes and links
+        std::string nodes_str = CoreToString(core, {});
+        if (nodes_str != prev_nodes_str) {
+            prev_nodes_str = std::move(nodes_str);
+            // Remove unused GUI nodes
+            while (true) {
+                bool ok_f = true;
+                for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
+                    if (nodes.count(it->first) == 0) {
+                        erase(state.node_order, it->first);
+                        gui_nodes.erase(it);
+                        ok_f = false;
+                        break;
+                    }
+                }
+                if (ok_f) {
+                    break;
+                }
+            }
+        }
+
+        // optimize gui node positions
+        position_optimizer(preference.auto_layout);
+    }
+
     void main();
 };
 
 void NodeCanvasView::main() {
-    // TODO
-    ImGui::BeginChild(label("right canvas"));
-    {
-        ImGui::Text("Hold middle mouse button to scroll (%f, %f)", scroll_pos.x,
-                    scroll_pos.y);
-        CanvasController cc(label("scrolling_region"));
+    updateGuiNodes();
 
-        // Draw grid canvas
-        DrawCanvas(scroll_pos, 64.f);
-        // Draw links
-        // links_gui.draw(core, updater);
-        // // Draw nodes
-        // node_boxes_gui.draw(core, preference);
+    ImGui::Text("Hold middle mouse button to scroll (%f, %f)",
+                c_state.scroll_pos.x, c_state.scroll_pos.y);
+    CanvasController cc(label("scrolling_region"));
 
-        // Canvas scroll
-        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-            ImGui::IsMouseDragging(2, 0.f)) {
-            scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
-        }
-        // Clear selected node
-        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-            ImGui::IsMouseClicked(0)) {
-            state.selected_nodes.clear();
-        }
+    // Draw grid canvas
+    DrawCanvas(c_state.scroll_pos, 64.f);
+    // Draw links
+    drawChild(links_view);
+    // Draw nodes
+    drawChild(node_boxes_view);
+
+    // Canvas scroll
+    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+        ImGui::IsMouseDragging(2, 0.f)) {
+        c_state.scroll_pos = c_state.scroll_pos + ImGui::GetIO().MouseDelta;
+    }
+    // Clear selected node
+    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+        ImGui::IsMouseClicked(0)) {
+        state.selected_nodes.clear();
     }
 }
 
 View::View(const FaseCore& core, const TypeUtils& utils)
     : core(core), utils(utils) {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
-    node_list = std::make_unique<NodeListView>(core, label, state, utils, add_issue_function);
-    canvas = std::make_unique<NodeCanvasView>(core, label, state, utils, add_issue_function);
+    node_list = std::make_unique<NodeListView>(core, label, state, utils,
+                                               add_issue_function);
+    canvas = std::make_unique<NodeCanvasView>(core, label, state, utils,
+                                              add_issue_function);
     setupMenus(add_issue_function);
 }
 
@@ -219,53 +795,20 @@ std::vector<Issue> View::draw(const std::string& win_title,
         ImGui::EndMenuBar();
     }
 
-    state.node_order.clear();
-
-    for (const auto& pair : core.getNodes()) {
-        state.node_order.push_back(std::get<0>(pair));
-    }
-
     // Left side: Panel
     ImGui::BeginChild(label("left panel"), ImVec2(150, 0));
-    {
-        // Draw a list of nodes on the left side
-        node_list->draw(resp);
-        ImGui::EndChild();
-    }
+    // Draw a list of nodes on the left side
+    node_list->draw(resp);
+    ImGui::EndChild();
+
     ImGui::SameLine();
 
-    canvas->draw(resp);
-
-#if 0
-    // TODO
-    // Right side: Canvas
     ImGui::BeginChild(label("right canvas"));
-    {
-        ImGui::Text("Hold middle mouse button to scroll (%f, %f)", scroll_pos.x,
-                    scroll_pos.y);
-        BeginCanvas(label("scrolling_region"));
-        {
-            // Draw grid canvas
-            DrawCanvas(scroll_pos, 64.f);
-            // Draw links
-            links_gui.draw(core, updater);
-            // Draw nodes
-            node_boxes_gui.draw(core, preference);
+    canvas->draw(resp);
+    ImGui::EndChild();
 
-            // Canvas scroll
-            if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-                ImGui::IsMouseDragging(2, 0.f)) {
-                scroll_pos = scroll_pos + ImGui::GetIO().MouseDelta;
-            }
-            // Clear selected node
-            if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-                ImGui::IsMouseClicked(0)) {
-                selected_node_name.clear();
-            }
-        }
-        EndCanvas();
-    }
-
+    // TODO
+#if 0
     // Context menu
     context_menu_gui.draw(core, updater);
 #endif

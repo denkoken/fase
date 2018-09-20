@@ -64,7 +64,12 @@ static void InitImGui(GLFWwindow* window, const std::string& font_path) {
     io.Fonts->AddFontFromFileTTF(font_path.c_str(), 16.0f);
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
+#ifdef __APPLE__
+    ImGui_ImplOpenGL3_Init("#version 150");
+#else
+    // TODO check
     ImGui_ImplOpenGL3_Init();
+#endif
 
     // Setup style
     ImGui::StyleColorsDark();

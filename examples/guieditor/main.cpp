@@ -25,12 +25,14 @@ int main() {
     FaseAddFunctionBuilder(app, Square, (const int&, int&), ("in", "out"));
     FaseAddFunctionBuilder(app, Print, (const int&), ("in"));
 
-    app.registerTextIO<int>("int", [](const int& a) { return std::to_string(a); },
-                        [](const std::string& str) { return std::stoi(str); });
+    app.registerTextIO<int>(
+            "int", [](const int& a) { return std::to_string(a); },
+            [](const std::string& str) { return std::stoi(str); });
 
     // app.registerConstructorAndVieweditor<int>("int",
     //                     [](const int& a) { return std::to_string(a); },
-    //                     [](const char*, const int&) -> std::unique_ptr<int> { return {}; });
+    //                     [](const char*, const int&) -> std::unique_ptr<int> {
+    //                     return {}; });
 
     app.setupEditor();
 

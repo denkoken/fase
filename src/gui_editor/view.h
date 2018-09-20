@@ -8,8 +8,8 @@
 #include <imgui_internal.h>
 
 #include "../core.h"
-#include "utils.h"
 #include "../type_utils.h"
+#include "utils.h"
 
 namespace fase {
 
@@ -45,8 +45,8 @@ struct GUIState {
 
 class Content {
 public:
-    Content(const FaseCore& core, LabelWrapper& label,
-            GUIState& state, const TypeUtils& utils, const std::function<void(Issue)>& issue_f)
+    Content(const FaseCore& core, LabelWrapper& label, GUIState& state,
+            const TypeUtils& utils, const std::function<void(Issue)>& issue_f)
         : core(core),
           utils(utils),
           label(label),
@@ -95,6 +95,11 @@ protected:
                      const char* text, Args&&... args) {
         return throwIssue(pattern, ImGui::Button(label(text), args...), var,
                           ret, text);
+    }
+
+    template <class ChildContent>
+    void drawChild(ChildContent& child) {
+        child.draw(*response_p);
     }
 
     virtual void main() = 0;

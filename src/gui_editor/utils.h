@@ -28,6 +28,18 @@ struct AddNodeInfo {
     std::string func_repr;
 };
 
+struct AddLinkInfo {
+    std::string src_nodename;
+    size_t src_idx;
+    std::string dst_nodename;
+    size_t dst_idx;
+};
+
+struct DelLinkInfo {
+    std::string src_nodename;
+    size_t src_idx;
+};
+
 struct Issue {
     std::string id;
     IssuePattern issue;

@@ -83,7 +83,7 @@ private:
         bool priority_f = false;
         if (ImGui::BeginMenu("Preferences")) {
             ImGui::MenuItem(label("Auto Layout Sorting"), NULL,
-                                &preference.auto_layout);
+                            &preference.auto_layout);
             if (ImGui::MenuItem(label("Priority Settings"), NULL)) {
                 priority_f = true;
             }
@@ -426,14 +426,35 @@ private:
     }
 };
 
+class LayoutOptimizeMenu : public Content {
+public:
+    template <class... Args>
+    LayoutOptimizeMenu(Args&&... args) : Content(args...) {}
+
+    void main() {
+        if (f) {
+            preference.auto_layout = false;
+            f = false;
+        }
+        if (ImGui::MenuItem(label("Optimize layout"))) {
+            f = !preference.auto_layout;
+            preference.auto_layout = true;
+        }
+    }
+
+private:
+    bool f = false;
+};
+
 /// Dummy class. Don't use this without a calling SetupMenus().
 class Footer {};
 
 template <class Head, class... Tail>
-void SetupMenus(const FaseCore& core, LabelWrapper& label,
-                GUIState& state, const TypeUtils& utils, std::function<void(Issue)> issue_f,
+void SetupMenus(const FaseCore& core, LabelWrapper& label, GUIState& state,
+                const TypeUtils& utils, std::function<void(Issue)> issue_f,
                 std::vector<std::unique_ptr<Content>>* menus) {
-    menus->emplace_back(std::make_unique<Head>(core, label, state, utils, issue_f));
+    menus->emplace_back(
+            std::make_unique<Head>(core, label, state, utils, issue_f));
     SetupMenus<Tail...>(core, label, state, utils, issue_f, menus);
 }
 
@@ -455,8 +476,8 @@ int Content::id_counter = 0;
 void View::setupMenus(std::function<void(Issue)>&& issue_f) {
     // Setup Menu bar
     SetupMenus<PreferenceMenu, NativeCodeMenu, NodeAddingMenu, AddInOutputMenu,
-               SaveMenu, LoadMenu, Footer>(core, label, state, utils,issue_f,
-                                           &menus);
+               LayoutOptimizeMenu, SaveMenu, LoadMenu, Footer>(
+            core, label, state, utils, issue_f, &menus);
 }
 
 }  // namespace fase

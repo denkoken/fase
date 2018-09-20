@@ -50,8 +50,10 @@ int main() {
     FaseInstallBasicGuiGenerators(app);
     //   <cv::Mat>
     std::map<std::string, std::tuple<GLuint, int, int>> tex_ids;
-    FaseAddConstructAndEditor(app, cv::Mat, [](const cv::Mat&) -> std::string { return ""; },
-                                          [&](const char* label, const cv::Mat& img) -> std::unique_ptr<cv::Mat> {
+    FaseAddConstructAndEditor(
+            app, cv::Mat, [](const cv::Mat&) -> std::string { return ""; },
+            [&](const char* label,
+                const cv::Mat& img) -> std::unique_ptr<cv::Mat> {
                 if (img.empty()) {
                     ImGui::Text("Empty");
                     return {};
