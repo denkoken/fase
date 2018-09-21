@@ -79,12 +79,43 @@ private:
         }
     }
 
+    void nodeViewPopUp(const char* popup_name) {
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label(popup_name), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+            ImGui::Checkbox(label("Simple Node Boxes"),
+                            &preference.is_simple_node_box);
+
+            constexpr int v_min = 3;
+            constexpr int v_max = 64;
+            constexpr float v_speed = 0.5;
+            ImGui::DragInt(label("argument char max"),
+                           &preference.max_arg_name_chars, v_speed, v_min,
+                           v_max);
+
+            if (ImGui::Button("Done")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
     void main() {
         bool priority_f = false;
+        bool node_f = false;
         if (ImGui::BeginMenu("Preferences")) {
             ImGui::MenuItem(label("Auto Layout Sorting"), NULL,
                             &preference.auto_layout);
-            if (ImGui::MenuItem(label("Priority Settings"), NULL)) {
+            ImGui::MenuItem(label("Edit Panel View"), NULL,
+                            &preference.enable_edit_panel);
+            if (ImGui::MenuItem(label("Node View Settings.."), NULL)) {
+                node_f = true;
+            }
+            if (ImGui::MenuItem(label("Priority Settings.."), NULL)) {
                 priority_f = true;
             }
             ImGui::EndMenu();
@@ -92,7 +123,11 @@ private:
         if (priority_f) {
             ImGui::OpenPopup(label("Popup: Priority setting"));
         }
+        if (node_f) {
+            ImGui::OpenPopup(label("Popup: Node View setting"));
+        }
         priorityPopUp("Popup: Priority setting");
+        nodeViewPopUp("Popup: Node View setting");
     }
 };
 

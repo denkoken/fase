@@ -28,6 +28,11 @@ struct AddNodeInfo {
     std::string func_repr;
 };
 
+struct SetPriorityInfo {
+    std::string nodename;
+    int priority;
+};
+
 struct AddLinkInfo {
     std::string src_nodename;
     size_t src_idx;
@@ -38,6 +43,13 @@ struct AddLinkInfo {
 struct DelLinkInfo {
     std::string src_nodename;
     size_t src_idx;
+};
+
+struct SetArgValueInfo {
+    std::string node_name;
+    size_t arg_idx;
+    std::string arg_repr;
+    Variable var;
 };
 
 struct Issue {

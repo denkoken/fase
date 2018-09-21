@@ -24,6 +24,12 @@ bool erase(std::vector<T>& vec, const T& item) {
     return false;
 }
 
+template <typename T>
+inline size_t getIndex(const std::vector<T>& vec, const T& item) {
+    return size_t(std::find(std::begin(vec), std::end(vec), item) -
+                  std::begin(vec));
+}
+
 // Visible GUI node
 struct GuiNode {
     ImVec2 pos;
@@ -81,6 +87,106 @@ bool IsKeyPressedOnItem(ImGuiKey_ key, bool repeat = true) {
     return IsItemActivePreviousFrame() && IsKeyPressed(key, repeat);
 };
 
+const Function& getFunction(const FaseCore& core,
+                            const std::string& node_name) {
+    return core.getFunctions().at(core.getNodes().at(node_name).func_repr);
+}
+
+std::string WrapNodeName(const std::string& node_name) {
+    if (node_name == InputNodeStr()) {
+        return "Input";
+    } else if (node_name == OutputNodeStr()) {
+        return "Output";
+    }
+    return node_name;
+}
+
+void DrawCanvas(const ImVec2& scroll_pos, float size) {
+    const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
+    const ImVec2 win_pos = ImGui::GetCursorScreenPos();
+    const ImVec2 canvas_sz = ImGui::GetWindowSize();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    for (float x = std::fmod(scroll_pos.x, size); x < canvas_sz.x; x += size) {
+        draw_list->AddLine(ImVec2(x, 0.0f) + win_pos,
+                           ImVec2(x, canvas_sz.y) + win_pos, GRID_COLOR);
+    }
+    for (float y = std::fmod(scroll_pos.y, size); y < canvas_sz.y; y += size) {
+        draw_list->AddLine(ImVec2(0.0f, y) + win_pos,
+                           ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
+    }
+}
+
+void DrawColTextBox(const ImU32& col, const char* text) {
+    ImGui::PushStyleColor(ImGuiCol_Button, col);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+    ImGui::Button(text);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+}
+
+void DrawColTextBox(const ImVec4& col, const char* text) {
+    ImGui::PushStyleColor(ImGuiCol_Button, col);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+    ImGui::Button(text);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+}
+
+void DrawInOutTag(bool in, bool simple = false) {
+    ImVec4 col;
+    std::string text;
+    if (in) {
+        col = ImVec4(.7f, .4f, .1f, 1.f);
+        if (simple) {
+            text = " ";
+        } else {
+            text = "  in  ";
+        }
+    } else {
+        col = ImVec4(.2f, .7f, .1f, 1.f);
+        if (simple) {
+            text = " ";
+        } else {
+            text = "in/out";
+        }
+    }
+    DrawColTextBox(col, text.c_str());
+}
+
+float GetVolume(const int& idx) {
+    if (idx == 0)
+        return 0.f;
+    else if (idx == 1)
+        return 1.f;
+    else {
+        int i = std::pow(2, int(std::log2(idx - 1)));
+        return ((idx - i) * 2 - 1) / 2.f / float(i);
+    }
+}
+
+constexpr float NODE_COL_SCALE = 155.f;
+constexpr float NODE_COL_OFFSET = 100.f;
+
+ImU32 GenNodeColor(const size_t& idx) {
+    const float v = GetVolume(idx);
+    // clang-format off
+    float r = (v <= 0.25f) ? 1.f :
+              (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
+    float g = (v <= 0.25f) ? v / 0.25f :
+              (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
+    float b = (v <= 0.50f) ? 0.f :
+              (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+    // clang-format on
+    r = r * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    g = g * NODE_COL_SCALE * 0.5f + NODE_COL_OFFSET;
+    b = b * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    return IM_COL32(int(r), int(g), int(b), 200);
+}
+
 class CanvasController {
 public:
     CanvasController(const char* label) {
@@ -106,21 +212,6 @@ struct CanvasState {
     ImVec2 scroll_pos;
     std::map<std::string, GuiNode> gui_nodes;
 };
-
-void DrawCanvas(const ImVec2& scroll_pos, float size) {
-    const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
-    const ImVec2 win_pos = ImGui::GetCursorScreenPos();
-    const ImVec2 canvas_sz = ImGui::GetWindowSize();
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    for (float x = std::fmod(scroll_pos.x, size); x < canvas_sz.x; x += size) {
-        draw_list->AddLine(ImVec2(x, 0.0f) + win_pos,
-                           ImVec2(x, canvas_sz.y) + win_pos, GRID_COLOR);
-    }
-    for (float y = std::fmod(scroll_pos.y, size); y < canvas_sz.y; y += size) {
-        draw_list->AddLine(ImVec2(0.0f, y) + win_pos,
-                           ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
-    }
-}
 
 class GUINodePositionOptimizer {
 public:
@@ -210,16 +301,18 @@ void NodeListView::main() {
         const std::string& node_name = state.node_order[idx];
         const Node& node = nodes.at(node_name);
 
-        if (node.func_repr == OutputFuncStr() ||
-            node.func_repr == InputFuncStr()) {
-            continue;
-        }
-
         // List component
-        ImGui::PushID(label(node_name));
+        ImGui::PushID(label(WrapNodeName(node_name)));
+
         std::stringstream view_ss;
-        view_ss << idx << ") " << node_name;
-        view_ss << " [" + node.func_repr + "]";
+        if (node.func_repr == OutputFuncStr()) {
+            view_ss << "Output";
+        } else if (node.func_repr == InputFuncStr()) {
+            view_ss << "Input";
+        } else {
+            view_ss << idx - 2 << ") " << node_name;
+            view_ss << " [" + node.func_repr + "]";
+        }
         if (ImGui::Selectable(label(view_ss.str()),
                               exists(state.selected_nodes, node_name))) {
             if (IsKeyPressed(ImGuiKey_Space)) {
@@ -261,7 +354,8 @@ private:
     size_t hovered_slot_idx_prev;
     bool is_hovered_slot_input_prev;
 
-    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos) {
+    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
+                  const size_t& order) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         float x_d = std::abs(d_pos.x - s_pos.x) * .7f;
         if (d_pos.x < s_pos.x) {
@@ -272,13 +366,14 @@ private:
         const ImVec2 d_pos_2 = d_pos - ImVec2(x_d, y_d);
         draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
                                   d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
-                                  LINK_COLOR, 3.0f);
+                                  GenNodeColor(order), 3.0f);
         // Arrow's triangle
         const ImVec2 t_pos_1 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
         const ImVec2 t_pos_2 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
-        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, LINK_COLOR);
+        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2,
+                                     GenNodeColor(order));
     }
 
     void main() {
@@ -286,9 +381,8 @@ private:
         const std::map<std::string, Node>& nodes = core.getNodes();
 
         // Draw links
-        for (auto it = nodes.begin(); it != nodes.end(); it++) {
-            const std::string& node_name = it->first;
-            const Node& node = it->second;
+        for (const std::string& node_name : state.node_order) {
+            const Node& node = nodes.at(node_name);
             if (!gui_nodes.count(node_name)) {
                 continue;  // Wait for creating GUI node
             }
@@ -305,7 +399,11 @@ private:
                 // Destination
                 const ImVec2 d_pos =
                         gui_nodes.at(node_name).getInputSlot(dst_idx);
-                drawLink(s_pos, d_pos);
+
+                const size_t src_node_idx = getIndex(
+                        state.node_order, node.links[dst_idx].node_name);
+
+                drawLink(s_pos, d_pos, src_node_idx);
             }
         }
 
@@ -405,8 +503,9 @@ private:
 class NodeBoxesView : public Content {
 public:
     template <class... Args>
-    NodeBoxesView(CanvasState& c_state, Args&&... args)
-        : Content(args...), c_state(c_state) {}
+    NodeBoxesView(const std::map<const std::type_info*, VarEditor>& var_editors,
+                  CanvasState& c_state, Args&&... args)
+        : Content(args...), var_editors(var_editors), c_state(c_state) {}
     ~NodeBoxesView() {}
 
 private:
@@ -421,61 +520,9 @@ private:
     const float TITLE_COL_SCALE = 155.f;
     const float TITLE_COL_OFFSET = 100.f;
 
+    const std::map<const std::type_info*, VarEditor>& var_editors;
+
     CanvasState& c_state;
-
-    float getV(const int& idx) {
-        if (idx == 0)
-            return 0.f;
-        else if (idx == 1)
-            return 1.f;
-        else {
-            int i = std::pow(2, int(std::log2(idx - 1)));
-            return ((idx - i) * 2 - 1) / 2.f / float(i);
-        }
-    }
-
-    ImU32 genTitleColor(const size_t& idx) {
-        const float v = getV(idx);
-        // clang-format off
-        float r = (v <= 0.25f) ? 1.f :
-                  (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
-        float g = (v <= 0.25f) ? v / 0.25f :
-                  (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
-        float b = (v <= 0.50f) ? 0.f :
-                  (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
-        // clang-format on
-        r = r * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
-        g = g * TITLE_COL_SCALE * 0.5f + TITLE_COL_OFFSET;
-        b = b * TITLE_COL_SCALE * 1.0f + TITLE_COL_OFFSET;
-        return IM_COL32(int(r), int(g), int(b), 200);
-    }
-
-    void drawInOutTag(bool in, bool simple = false) {
-        ImVec4 col;
-        std::string text;
-        if (in) {
-            col = ImVec4(.7f, .4f, .1f, 1.f);
-            if (simple) {
-                text = " ";
-            } else {
-                text = "  in  ";
-            }
-        } else {
-            col = ImVec4(.2f, .7f, .1f, 1.f);
-            if (simple) {
-                text = " ";
-            } else {
-                text = "in/out";
-            }
-        }
-        ImGui::PushStyleColor(ImGuiCol_Button, col);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-        ImGui::Button(text.c_str());
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-    }
 
     std::string getTitleText(const std::string& node_name, const Node& node,
                              const size_t& order_idx) {
@@ -485,14 +532,18 @@ private:
             return "Output";
         } else {
             std::stringstream sstream;
-            sstream << "(" << order_idx << ") [" << node.func_repr << "] "
-                    << node_name;
+            sstream << "(" << order_idx - 2 << ") ";
+            if (!preference.is_simple_node_box) {
+                sstream << "[" << node.func_repr << "] ";
+            }
+            sstream << node_name;
             return sstream.str();
         }
     }
 
     void drawNodeContent(const std::string& node_name, const Node& node,
-                         GuiNode& gui_node, const size_t& order_idx) {
+                         GuiNode& gui_node, const size_t& order_idx,
+                         bool simple) {
         ImGui::BeginGroup();  // Lock horizontal position
         bool s_flag = IsSpecialFuncName(node.func_repr);
 
@@ -522,11 +573,21 @@ private:
 
             // draw input or inout.
             ImGui::SameLine();
-            drawInOutTag(function.is_input_args[arg_idx]);
+            DrawInOutTag(function.is_input_args[arg_idx], simple);
 
             // draw default argument editing
             ImGui::SameLine();
-            if (!node.links[arg_idx].node_name.empty()) {
+            if (simple) {
+                if (int(arg_name.size()) > preference.max_arg_name_chars) {
+                    std::string view(std::begin(arg_name),
+                                     std::begin(arg_name) +
+                                             preference.max_arg_name_chars - 2);
+                    view += "..";
+                    ImGui::Text("%s", view.c_str());
+                } else {
+                    ImGui::Text("%s", arg_name.c_str());
+                }
+            } else if (!node.links[arg_idx].node_name.empty()) {
                 // Link exists
                 ImGui::Text("%s", arg_name.c_str());
 #if 0
@@ -545,7 +606,7 @@ private:
             } else {
                 // No GUI for editing
                 if (s_flag) {
-                    ImGui::Text("%s : Unset", arg_name.c_str());
+                    ImGui::Text("%s", arg_name.c_str());
                 } else {
                     ImGui::Text("%s [default:%s]", arg_name.c_str(),
                                 arg_repr.c_str());
@@ -555,16 +616,15 @@ private:
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
         }
-        if (!s_flag) {
+        if (!s_flag && !simple) {
             int priority = node.priority;
             ImGui::SliderInt(label("priority"), &priority,
                              preference.priority_min, preference.priority_max);
             priority = std::min(priority, preference.priority_max);
             priority = std::max(priority, preference.priority_min);
             if (priority != node.priority) {
-#if 0
-                core->setPriority(node_name, priority);
-#endif
+                throwIssue(IssuePattern::SetPriority, true,
+                           SetPriorityInfo{node_name, priority});
             }
         }
         ImGui::EndGroup();
@@ -586,10 +646,10 @@ private:
         const ImVec2 node_title_rect_max =
                 node_rect_min + ImVec2(node_size.x, line_height + pad_height);
         draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
-                                 genTitleColor(order_idx), 4.f);
+                                 GenNodeColor(order_idx), 4.f);
     }
 
-    void drawLinkSlots(const GuiNode& gui_node) {
+    void drawLinkSlots(const GuiNode& gui_node, const size_t& order_idx) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         const size_t n_args = gui_node.arg_poses.size();
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
@@ -600,6 +660,7 @@ private:
             const char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
             const char& out_hov = gui_node.arg_out_hovered[arg_idx];
             // Draw
+            const ImU32 SLOT_NML_COLOR = GenNodeColor(order_idx);
             const ImU32 inp_col = inp_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
             const ImU32 out_col = out_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
             draw_list->AddCircleFilled(inp_slot, SLOT_RADIUS, inp_col);
@@ -631,7 +692,8 @@ private:
             // Draw node contents first
             draw_list->ChannelsSetCurrent(1);  // Foreground
             ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-            drawNodeContent(node_name, node, gui_node, order_idx);
+            drawNodeContent(node_name, node, gui_node, order_idx,
+                            preference.is_simple_node_box);
 
             // Fit to content size
             gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
@@ -643,12 +705,14 @@ private:
                         exists(state.selected_nodes, node_name), order_idx);
 
             // Draw link slot
-            drawLinkSlots(gui_node);
+            drawLinkSlots(gui_node, order_idx);
 
             // Selection
             if (!any_active_old && ImGui::IsAnyItemActive()) {
                 if (IsKeyPressed(ImGuiKey_Space)) {
-                    state.selected_nodes.push_back(node_name);
+                    if (!exists(state.selected_nodes, node_name)) {
+                        state.selected_nodes.push_back(node_name);
+                    }
                 } else {
                     state.selected_nodes = {node_name};
                 }
@@ -674,10 +738,12 @@ private:
 class NodeCanvasView : public Content {
 public:
     template <class... Args>
-    NodeCanvasView(Args&&... args)
+    NodeCanvasView(
+            const std::map<const std::type_info*, VarEditor>& var_editors,
+            Args&&... args)
         : Content(args...),
           links_view(c_state, args...),
-          node_boxes_view(c_state, args...),
+          node_boxes_view(var_editors, c_state, args...),
           position_optimizer(core, c_state.gui_nodes) {}
     ~NodeCanvasView() {}
 
@@ -727,6 +793,19 @@ private:
                 }
             }
         }
+#if 0
+        // Save argument positions
+        const static ImVec2 NODE_WINDOW_PADDING = NODE_WINDOW_PADDING
+        for (auto& pair : gui_nodes) {
+            GuiNode& gui_node = std::get<1>(pair);
+            for (size_t arg_idx = 0; arg_idx < gui_node.arg_poses.size(); arg_idx++) {
+                const ImVec2 pos = ImGui::GetCursorScreenPos();
+                gui_node.arg_poses[arg_idx] =
+                        ImVec2(pos.x - NODE_WINDOW_PADDING.x,
+                               pos.y + ImGui::GetTextLineHeight() * 0.5f);
+            }
+        }
+#endif
 
         // optimize gui node positions
         position_optimizer(preference.auto_layout);
@@ -761,13 +840,127 @@ void NodeCanvasView::main() {
     }
 }
 
-View::View(const FaseCore& core, const TypeUtils& utils)
-    : core(core), utils(utils) {
+// For Left panel
+class NodeArgEditView : public Content {
+public:
+    template <class... Args>
+    NodeArgEditView(
+            const std::map<const std::type_info*, VarEditor>& var_editors,
+            Args&&... args)
+        : Content(args...), var_editors(var_editors) {}
+
+private:
+    // type and name
+    using argIdentiry = std::tuple<const std::type_info*, std::string, bool>;
+
+    const std::map<const std::type_info*, VarEditor>& var_editors;
+
+    std::vector<argIdentiry> getEdittingArgs() {
+        std::vector<argIdentiry> args;
+        {
+            const Node& node = core.getNodes().at(state.selected_nodes[0]);
+            const Function& function = core.getFunctions().at(node.func_repr);
+            for (size_t i = 0; i < node.arg_reprs.size(); i++) {
+                args.emplace_back(argIdentiry{function.arg_types[i],
+                                              function.arg_names[i],
+                                              function.is_input_args[i]});
+            }
+        }
+
+        for (size_t i = 1; i < state.selected_nodes.size(); i++) {
+            std::vector<argIdentiry> args_buf;
+            const Node& node = core.getNodes().at(state.selected_nodes[i]);
+            const Function& function = core.getFunctions().at(node.func_repr);
+            for (size_t j = 0; j < node.arg_reprs.size(); j++) {
+                argIdentiry arg = {function.arg_types[j], function.arg_names[j],
+                                   function.is_input_args[j]};
+                if (exists(args, arg)) {
+                    args_buf.emplace_back(std::move(arg));
+                }
+            }
+            args = args_buf;
+        }
+        return args;
+    }
+
+    void drawVarEditor(const argIdentiry& arg) {
+        const std::string arg_name = std::get<1>(arg);
+        const std::type_info* arg_type = std::get<0>(arg);
+        // Call registered GUI for editing
+        auto& func = var_editors.at(arg_type);
+        const Node& node = core.getNodes().at(state.selected_nodes[0]);
+        const Function& f = core.getFunctions().at(node.func_repr);
+        size_t arg_idx = getIndex(f.arg_names, arg_name);
+        const Variable& var = node.arg_values[arg_idx];
+        std::string expr;
+        const std::string view_label = arg_name;
+        Variable v = func(label(view_label), var);
+        for (const std::string& node_name : state.selected_nodes) {
+            const Function& f_ = getFunction(core, node_name);
+
+            size_t idx = getIndex(f_.arg_names, arg_name);
+
+            throwIssue(IssuePattern::SetArgValue, bool(v),
+                       SetArgValueInfo{node_name, idx, "", v});
+        }
+    }
+
+    void main() {
+        ImGui::Separator();
+        ImGui::Text("Argument Editor");
+        ImGui::Separator();
+
+        if (state.selected_nodes.empty()) {
+            return;
+        }
+
+        for (const std::string& node_name : state.selected_nodes) {
+            DrawColTextBox(GenNodeColor(getIndex(state.node_order, node_name)),
+                           label(WrapNodeName(node_name).c_str()));
+            ImGui::SameLine();
+        }
+        ImGui::Text("");
+        ImGui::Separator();
+
+        std::vector<argIdentiry> args = getEdittingArgs();
+
+        for (auto& arg : args) {
+            DrawInOutTag(std::get<2>(arg), false);
+            // draw default argument editing
+            if (var_editors.count(std::get<0>(arg))) {
+                ImGui::SameLine();
+                drawVarEditor(arg);
+            }
+            ImGui::SameLine();
+            ImGui::Text(": %s", std::get<1>(arg).c_str());
+        }
+
+        // Edit Priority
+        const Node& node = core.getNodes().at(state.selected_nodes[0]);
+        int priority = node.priority;
+        ImGui::SliderInt(label("priority"), &priority, preference.priority_min,
+                         preference.priority_max);
+        priority = std::min(priority, preference.priority_max);
+        priority = std::max(priority, preference.priority_min);
+        if (priority != node.priority) {
+            for (const auto& node_name : state.selected_nodes) {
+                throwIssue(IssuePattern::SetPriority, true,
+                           SetPriorityInfo{node_name, priority});
+            }
+        }
+    }
+};
+
+View::View(const FaseCore& core, const TypeUtils& utils,
+           const std::map<const std::type_info*, VarEditor>& var_editors)
+    : core(core), utils(utils), var_editors(var_editors) {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
     node_list = std::make_unique<NodeListView>(core, label, state, utils,
                                                add_issue_function);
-    canvas = std::make_unique<NodeCanvasView>(core, label, state, utils,
-                                              add_issue_function);
+    canvas = std::make_unique<NodeCanvasView>(var_editors, core, label, state,
+                                              utils, add_issue_function);
+    args_editor = std::make_unique<NodeArgEditView>(
+            var_editors, core, label, state, utils, add_issue_function);
     setupMenus(add_issue_function);
 }
 
@@ -800,6 +993,15 @@ std::vector<Issue> View::draw(const std::string& win_title,
     // Draw a list of nodes on the left side
     node_list->draw(resp);
     ImGui::EndChild();
+
+    if (state.preference.enable_edit_panel) {
+        ImGui::SameLine();
+
+        ImGui::BeginChild(label("center panel"), ImVec2(300, 0));
+        // Draw a list of nodes on the left side
+        args_editor->draw(resp);
+        ImGui::EndChild();
+    }
 
     ImGui::SameLine();
 

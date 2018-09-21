@@ -56,7 +56,7 @@ public:
     bool addNode(const std::string& node_name, const std::string& func_repr,
                  const int& priority = 0);
 
-    void delNode(const std::string& node_name) noexcept;
+    bool delNode(const std::string& node_name) noexcept;
 
     bool renameNode(const std::string& old_name, const std::string& new_name);
 

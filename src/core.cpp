@@ -149,9 +149,9 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
     return true;
 }
 
-void FaseCore::delNode(const std::string& node_name) noexcept {
-    if (!exists(nodes, node_name)) {
-        return;
+bool FaseCore::delNode(const std::string& node_name) noexcept {
+    if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
+        return false;
     }
     // Remove connected links
     for (auto& r_l : nodes[node_name].rev_links) {
@@ -186,6 +186,7 @@ void FaseCore::delNode(const std::string& node_name) noexcept {
     //                   << std::get<1>(tup).arg_idx << std::endl;
     //     }
     // }
+    return true;
 }
 
 bool FaseCore::renameNode(const std::string& old_name,
@@ -331,7 +332,7 @@ void FaseCore::delLink(const std::string& dst_node_name,
 }
 
 bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
-    if (!exists(nodes, node_name)) {
+    if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
         return false;
     }
     nodes[node_name].priority = priority;

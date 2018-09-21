@@ -33,6 +33,9 @@ struct GUIPreference {
     bool auto_layout = false;
     int priority_min = -10;
     int priority_max = 10;
+    bool is_simple_node_box = false;
+    int max_arg_name_chars = 16;
+    bool enable_edit_panel = false;
 };
 
 struct GUIState {
@@ -70,9 +73,9 @@ protected:
     GUIState& state;
     GUIPreference& preference;
 
-    template <typename Ret, typename T>
+    template <typename T, typename Ret = int>
     bool throwIssue(const IssuePattern& pattern, bool is_throw, T&& var,
-                    Ret* ret, std::string res_id_footer = "") {
+                    Ret* ret = nullptr, std::string res_id_footer = "") {
         std::string res_id = std::to_string(id) + "::" + res_id_footer;
         if (is_throw) {
             Issue issue = {
@@ -81,6 +84,10 @@ protected:
                     .var = var,
             };
             issue_f(std::move(issue));
+        }
+
+        if (ret == nullptr) {
+            return false;
         }
 
         if (exists(*response_p, res_id)) {
@@ -115,10 +122,14 @@ private:
 
 class NodeListView;
 class NodeCanvasView;
+class NodeArgEditView;
+
+using VarEditor = std::function<Variable(const char*, const Variable&)>;
 
 class View {
 public:
-    View(const FaseCore&, const TypeUtils&);
+    View(const FaseCore&, const TypeUtils&,
+         const std::map<const std::type_info*, VarEditor>&);
     ~View();
 
     std::vector<Issue> draw(const std::string& win_title,
@@ -128,6 +139,7 @@ public:
 private:
     const FaseCore& core;
     const TypeUtils& utils;
+    const std::map<const std::type_info*, VarEditor>& var_editors;
 
     LabelWrapper label;
     GUIState state;
@@ -138,6 +150,7 @@ private:
     std::vector<std::unique_ptr<Content>> menus;  // Menu bar
     std::unique_ptr<NodeListView> node_list;
     std::unique_ptr<NodeCanvasView> canvas;
+    std::unique_ptr<NodeArgEditView> args_editor;
 
     void setupMenus(std::function<void(Issue)>&&);
 };

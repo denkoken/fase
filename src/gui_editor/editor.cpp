@@ -1717,7 +1717,9 @@ bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& type_utils,
 class GUIEditor::Impl {
 public:
     Impl(FaseCore* core, const TypeUtils& utils)
-        : view(*core, utils), core(core), utils(utils) {}
+        : view(*core, utils, var_editors), core(core), utils(utils) {
+        SetUpVarEditors(&var_editors);
+    }
 
     bool run(const std::string& win_title, const std::string& label_suffix);
 
@@ -1745,9 +1747,12 @@ bool GUIEditor::Impl::run(const std::string& win_title,
             const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
             response[issue.id] = core->addNode(info.name, info.func_repr);
         } else if (issue.issue == IssuePattern::DelNode) {
-            // TODO
-        }
-        if (issue.issue == IssuePattern::AddLink) {
+            const std::string& name = GetVar<std::string>(issue);
+            response[issue.id] = core->delNode(name);
+        } else if (issue.issue == IssuePattern::SetPriority) {
+            const SetPriorityInfo& v = GetVar<SetPriorityInfo>(issue);
+            response[issue.id] = core->setPriority(v.nodename, v.priority);
+        } else if (issue.issue == IssuePattern::AddLink) {
             const auto& info = GetVar<AddLinkInfo>(issue);
             response[issue.id] = core->addLink(info.src_nodename, info.src_idx,
                                                info.dst_nodename, info.dst_idx);
@@ -1773,6 +1778,10 @@ bool GUIEditor::Impl::run(const std::string& win_title,
         } else if (issue.issue == IssuePattern::DelOutput) {
             const size_t& idx = GetVar<size_t>(issue);
             response[issue.id] = core->delOutput(idx);
+        } else if (issue.issue == IssuePattern::SetArgValue) {
+            const SetArgValueInfo& info = GetVar<SetArgValueInfo>(issue);
+            response[issue.id] = core->setNodeArg(info.node_name, info.arg_idx,
+                                                  info.arg_repr, info.var);
         }
         // TODO
     }
