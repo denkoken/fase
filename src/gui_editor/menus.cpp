@@ -118,6 +118,8 @@ private:
 
             ImGui::Checkbox(label("Edit Panel View"),
                             &preference.enable_edit_panel);
+            ImGui::Checkbox(label("Node List Panel View"),
+                            &preference.enable_node_list_panel);
 
             ImGui::DragInt(label("node list panel size"),
                            &preference.node_list_panel_size, v_speed, v_min,

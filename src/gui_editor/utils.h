@@ -55,6 +55,11 @@ struct SetArgValueInfo {
     Variable var;
 };
 
+struct RenameNodeInfo {
+    std::string old_name;
+    std::string new_name;
+};
+
 struct Issue {
     std::string id;
     IssuePattern issue;

@@ -36,3 +36,4 @@ You need glfw3 separately.
 ## Screenshot ##
 <img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss1.jpg">
 <img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss2.jpg">
+<img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss3.jpg">

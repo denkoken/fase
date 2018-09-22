@@ -38,6 +38,7 @@ struct GUIPreference {
     bool is_simple_node_box = false;
     int max_arg_name_chars = 16;
     bool enable_edit_panel = false;
+    bool enable_node_list_panel = true;
 
     int node_list_panel_size = 150;
     int edit_panel_size = 200;
@@ -111,7 +112,7 @@ protected:
         return false;
     }
 
-    template <typename Ret, typename T, typename... Args>
+    template <typename T, typename Ret, typename... Args>
     bool issueButton(const IssuePattern& pattern, T&& var, Ret* ret,
                      const char* text, Args&&... args) {
         return throwIssue(pattern, ImGui::Button(label(text), args...), var,
@@ -167,6 +168,7 @@ private:
     std::unique_ptr<NodeArgEditView> args_editor;
 
     void setupMenus(std::function<void(Issue)>&&);
+    void updateState();
 };
 
 }  // namespace fase

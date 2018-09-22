@@ -187,6 +187,24 @@ ImU32 GenNodeColor(const size_t& idx) {
     return IM_COL32(int(r), int(g), int(b), 200);
 }
 
+// Search connected output slots of Fase's node
+void FindConnectedOutSlots(const std::map<std::string, Node>& nodes,
+                           const std::string& node_name, const size_t& arg_idx,
+                           std::vector<std::pair<std::string, size_t>>& slots) {
+    slots.clear();
+    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+        const std::string& src_node_name = it->first;
+        const Node& src_node = it->second;
+        const size_t n_args = src_node.links.size();
+        for (size_t src_arg_idx = 0; src_arg_idx < n_args; src_arg_idx++) {
+            const Link& link = src_node.links[src_arg_idx];
+            if (link.node_name == node_name && link.arg_idx == arg_idx) {
+                slots.emplace_back(src_node_name, src_arg_idx);
+            }
+        }
+    }
+}
+
 class CanvasController {
 public:
     CanvasController(const char* label) {
@@ -734,6 +752,121 @@ private:
     }
 };
 
+class ContextMenu : public Content {
+public:
+
+    template <class... Args>
+    ContextMenu(CanvasState& c_state, Args&&... args)
+        : Content(args...), c_state(c_state) {}
+    ~ContextMenu() {}
+
+private:
+    // Reference to the parent's
+    CanvasState& c_state;
+
+    // Private status
+    std::string selected_slot_name;
+    size_t selected_slot_idx = 0;
+    bool is_selected_slot_input = false;
+
+    char new_node_name[64] = "";
+
+    void renamePopUp(const char* popup_name) {
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label(popup_name), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+
+            ImGui::InputText(label("New node name (ID)"), new_node_name,
+                             sizeof(new_node_name));
+
+            bool success;
+            if (issueButton(IssuePattern::RenameNode,
+                            RenameNodeInfo{state.selected_nodes[0], new_node_name},
+                            &success, "OK")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+    void main() {
+        // Right click
+        if (ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) &&
+            ImGui::IsMouseClicked(1)) {
+            if (!c_state.hovered_slot_name.empty()) {
+                // Open pop up window for a slot
+                state.selected_nodes = {c_state.hovered_slot_name};
+                selected_slot_name = c_state.hovered_slot_name;
+                selected_slot_idx = c_state.hovered_slot_idx;
+                is_selected_slot_input = c_state.is_hovered_slot_input;
+                ImGui::OpenPopup(label("Popup: Slot context menu"));
+            } else if (!state.hovered_node_name.empty()) {
+                // Open pop up window for a node
+                state.selected_nodes = {state.hovered_node_name};
+                ImGui::OpenPopup(label("Popup: Node context menu"));
+            } else {
+                // Open pop up window
+                ImGui::OpenPopup(label("Popup: Common context menu"));
+            }
+        }
+
+        // Slot menu
+        if (ImGui::BeginPopup(label("Popup: Slot context menu"))) {
+            ImGui::Text("Link \"%s[%d][%s]\"", selected_slot_name.c_str(),
+                        int(selected_slot_idx),
+                        is_selected_slot_input ? "in" : "out");
+            ImGui::Separator();
+            if (ImGui::MenuItem(label("Clear"))) {
+                if (is_selected_slot_input) {
+                    // Remove input link
+                    throwIssue(IssuePattern::DelLink, true,
+                               DelLinkInfo{selected_slot_name, selected_slot_idx});
+                } else {
+                    // Remove output links
+                    std::vector<std::pair<std::string, size_t>> slots;
+                    FindConnectedOutSlots(core.getNodes(), state.selected_nodes[0],
+                                          selected_slot_idx, slots);
+                    for (auto& it : slots) {
+                        throwIssue(IssuePattern::DelLink, true, DelLinkInfo{it.first, it.second});
+                    }
+                }
+            }
+            ImGui::EndPopup();
+        }
+
+        // Node menu
+        if (ImGui::BeginPopup(label("Popup: Node context menu"))) {
+            ImGui::Text("Node \"%s\"", state.selected_nodes[0].c_str());
+            ImGui::Separator();
+            throwIssue(IssuePattern::DelNode, ImGui::MenuItem(label("Delete")),
+                      state.selected_nodes[0]);
+            // TODO
+            bool rename = false;
+            if (ImGui::MenuItem(label("Rename"))) {
+                rename = true;
+            }
+            ImGui::EndPopup();
+            if (rename) {
+                ImGui::OpenPopup(label("Popup: Rename node"));
+            }
+        }
+        renamePopUp("Popup: Rename node");
+
+        // Node menu
+        if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
+            if (ImGui::MenuItem(label("Add node"))) {
+                // Call for another class `NodeAddingGUI`
+                // request_add_node = true;
+            }
+            ImGui::EndPopup();
+        }
+    }
+};
+
 class NodeCanvasView : public Content {
 public:
     template <class... Args>
@@ -743,6 +876,7 @@ public:
         : Content(args...),
           links_view(c_state, args...),
           node_boxes_view(var_editors, c_state, args...),
+          context_menu(c_state, args...),
           position_optimizer(core, c_state.gui_nodes) {}
     ~NodeCanvasView() {}
 
@@ -750,6 +884,7 @@ private:
     // child contents
     LinksView links_view;
     NodeBoxesView node_boxes_view;
+    ContextMenu context_menu;
 
     CanvasState c_state;
     std::string prev_nodes_str;  // for check is updating core nodes.
@@ -770,7 +905,6 @@ private:
             // Check GUI node existence
             if (!gui_nodes.count(node_name)) {
                 gui_nodes[node_name];
-                state.node_order.emplace_back(node_name);
             }
             if (gui_nodes[node_name].arg_size() != n_args) {
                 // Create new node and allocate for link slots
@@ -786,7 +920,6 @@ private:
                 bool ok_f = true;
                 for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
                     if (nodes.count(it->first) == 0) {
-                        erase(state.node_order, it->first);
                         gui_nodes.erase(it);
                         ok_f = false;
                         break;
@@ -824,25 +957,29 @@ void NodeCanvasView::main() {
 
     ImGui::Text("Hold middle mouse button to scroll (%f, %f)",
                 c_state.scroll_pos.x, c_state.scroll_pos.y);
-    CanvasController cc(label("scrolling_region"));
+    {
+        CanvasController cc(label("scrolling_region"));
 
-    // Draw grid canvas
-    DrawCanvas(c_state.scroll_pos, 64.f);
-    // Draw links
-    drawChild(links_view);
-    // Draw nodes
-    drawChild(node_boxes_view);
+        // Draw grid canvas
+        DrawCanvas(c_state.scroll_pos, 64.f);
+        // Draw links
+        drawChild(links_view);
+        // Draw nodes
+        drawChild(node_boxes_view);
 
-    // Canvas scroll
-    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-        ImGui::IsMouseDragging(2, 0.f)) {
-        c_state.scroll_pos = c_state.scroll_pos + ImGui::GetIO().MouseDelta;
+        // Canvas scroll
+        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+            ImGui::IsMouseDragging(2, 0.f)) {
+            c_state.scroll_pos = c_state.scroll_pos + ImGui::GetIO().MouseDelta;
+        }
+        // Clear selected node
+        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+            ImGui::IsMouseClicked(0)) {
+            state.selected_nodes.clear();
+        }
     }
-    // Clear selected node
-    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
-        ImGui::IsMouseClicked(0)) {
-        state.selected_nodes.clear();
-    }
+
+    drawChild(context_menu);
 }
 
 // For Left panel
@@ -853,6 +990,7 @@ public:
             const std::map<const std::type_info*, VarEditor>& var_editors,
             Args&&... args)
         : Content(args...), var_editors(var_editors) {}
+    ~NodeArgEditView() {}
 
 private:
     // type and name
@@ -974,10 +1112,49 @@ View::View(const FaseCore& core, const TypeUtils& utils,
 
 View::~View() = default;
 
+void View::updateState() {
+    // Update Node Order.
+    const std::map<std::string, Node>& nodes = core.getNodes();
+    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+        const std::string& node_name = it->first;
+        // Check GUI node existence
+        if (!exists(state.node_order, node_name)) {
+            state.node_order.emplace_back(node_name);
+        }
+    }
+    while (true) {
+        bool f = true;
+        for (const std::string& name : state.node_order) {
+            if (!nodes.count(name)) {
+                erase(state.node_order, name);
+                f = false;
+            }
+        }
+        if (f) {
+            break;
+        }
+    }
+
+    // reflesh state.selected_nodes
+    while (true) {
+        bool f = true;
+        for (const std::string& name : state.selected_nodes) {
+            if (!nodes.count(name)) {
+                erase(state.selected_nodes, name);
+                f = false;
+            }
+        }
+        if (f) {
+            break;
+        }
+    }
+}
+
 std::vector<Issue> View::draw(const std::string& win_title,
                               const std::string& label_suffix,
                               const std::map<std::string, Variable>& resp) {
     issues.clear();
+    updateState();
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(win_title.c_str(), NULL, ImGuiWindowFlags_MenuBar)) {
@@ -992,36 +1169,35 @@ std::vector<Issue> View::draw(const std::string& win_title,
         for (std::unique_ptr<Content>& menu : menus) {
             // draw menu.
             menu->draw(resp);
+            ImGui::Dummy(ImVec2(5, 0));  // Spacing
         }
         ImGui::EndMenuBar();
     }
 
-    // Left side: Panel
-    ImGui::BeginChild(label("left panel"), ImVec2(state.preference.node_list_panel_size, 0));
-    // Draw a list of nodes on the left side
-    node_list->draw(resp);
-    ImGui::EndChild();
-
-    if (state.preference.enable_edit_panel) {
+    // Left Panel
+    if (state.preference.enable_node_list_panel) {
+        ImGui::BeginChild(label("left panel"), ImVec2(state.preference.node_list_panel_size, 0));
+        // Draw a list of nodes on the left side
+        node_list->draw(resp);
+        ImGui::EndChild();
         ImGui::SameLine();
+    }
+
+    // Center Panel
+    if (state.preference.enable_edit_panel) {
 
         ImGui::BeginChild(label("center panel"), ImVec2(state.preference.edit_panel_size, 0));
         // Draw a list of nodes on the left side
         args_editor->draw(resp);
         ImGui::EndChild();
+
+        ImGui::SameLine();
     }
 
-    ImGui::SameLine();
-
+    // Right Panel
     ImGui::BeginChild(label("right canvas"));
     canvas->draw(resp);
     ImGui::EndChild();
-
-    // TODO
-#if 0
-    // Context menu
-    context_menu_gui.draw(core, updater);
-#endif
 
     ImGui::End();  // End window
 

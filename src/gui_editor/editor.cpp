@@ -1170,7 +1170,6 @@ public:
             ImGui::Text("Node \"%s\"", selected_node_name.c_str());
             ImGui::Separator();
             if (ImGui::MenuItem(label("Delete"))) {
-                // TODO fix segfo bug
                 core->delNode(selected_node_name);
                 updater();
             }
@@ -1850,6 +1849,14 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             }
             const std::string& name = GetVar<std::string>(issue);
             responses_[issue.id] = core->delNode(name);
+        } else if (issue.issue == IssuePattern::RenameNode) {
+            if (!isCoreUpdatable()) {
+                remains.emplace_back(std::move(issue));
+                continue;
+            }
+            const RenameNodeInfo& info = GetVar<RenameNodeInfo>(issue);
+            responses_[issue.id] = core->renameNode(info.old_name,
+                                                    info.new_name);
         } else if (issue.issue == IssuePattern::SetPriority) {
             if (!isCoreUpdatable()) {
                 remains.emplace_back(std::move(issue));
