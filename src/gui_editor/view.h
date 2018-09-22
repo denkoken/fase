@@ -138,6 +138,7 @@ private:
 class NodeListView;
 class NodeCanvasView;
 class NodeArgEditView;
+class ReportWindow;
 
 using VarEditor = std::function<Variable(const char*, const Variable&)>;
 
@@ -166,6 +167,7 @@ private:
     std::unique_ptr<NodeListView> node_list;
     std::unique_ptr<NodeCanvasView> canvas;
     std::unique_ptr<NodeArgEditView> args_editor;
+    std::unique_ptr<ReportWindow> report_window;
 
     void setupMenus(std::function<void(Issue)>&&);
     void updateState();

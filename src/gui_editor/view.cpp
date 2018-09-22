@@ -30,6 +30,30 @@ inline size_t getIndex(const std::vector<T>& vec, const T& item) {
                   std::begin(vec));
 }
 
+template <typename Key, typename T>
+std::vector<Key> getKeys(const std::map<Key, T>& map) {
+    std::vector<Key> keys;
+    for (const auto& pair : map) {
+        keys.push_back(std::get<0>(pair));
+    }
+    return keys;
+}
+
+template <class T, class Filter>
+T SubGroup(const T& group, const Filter& f) {
+    T dst;
+    auto i = std::begin(group), end = std::end(group);
+    while (i != end) {
+        i = std::find_if(i, end, f);
+
+        if (i != end) {
+            dst.insert(*i);
+            i++;
+        }
+    }
+    return dst;
+}
+
 // Visible GUI node
 struct GuiNode {
     ImVec2 pos;
@@ -301,6 +325,138 @@ private:
 };
 
 }  // namespace
+
+class ReportWindow : public Content {
+public:
+    template <class... Args>
+    ReportWindow(Args&&... args) : Content(args...) {}
+    ~ReportWindow() {}
+
+private:
+    enum class ViewList {
+        Nodes,
+        Steps,
+    };
+    enum class SortRule : int {
+        Name,
+        Time,
+    };
+    ViewList view = ViewList::Nodes;
+    SortRule sort_rule = SortRule::Name;
+    std::map<std::string, ResultReport> report_box;
+
+    std::function<bool(const std::pair<std::string, ResultReport>&)>
+    getFilter() {
+        if (view == ViewList::Nodes) {
+            return [](const auto& v) {
+                return std::get<0>(v).find(ReportHeaderStr()) ==
+                       std::string::npos;
+            };
+        } else if (view == ViewList::Steps) {
+            return [](const auto& v) {
+                return std::get<0>(v).find(ReportHeaderStr()) !=
+                       std::string::npos;
+            };
+        }
+        return [](const auto&) { return false; };
+    }
+
+    std::function<bool(const std::string&, const std::string&)> getSorter(
+            std::map<std::string, ResultReport>& reports) {
+        if (sort_rule == SortRule::Name) {
+            return [](const auto& a, const auto& b) { return a < b; };
+        } else if (sort_rule == SortRule::Time) {
+            return [&reports](const auto& a, const auto& b) {
+                return reports.at(a).execution_time >
+                       reports.at(b).execution_time;
+            };
+        }
+        return [](const auto&, const auto&) { return false; };
+    }
+
+    float getTotalTime(const std::map<std::string, ResultReport>& reports) {
+        if (view == ViewList::Nodes) {
+            float total = 0.f;
+            for (const auto& report : reports) {
+                total += getSec(std::get<1>(report));
+            }
+            return total;
+        } else if (view == ViewList::Steps) {
+            return getSec(reports.at(TotalTimeStr()));
+        }
+        return 0.f;
+    }
+
+    float getSec(const ResultReport& repo) {
+        return std::chrono::duration_cast<std::chrono::microseconds>(
+                       repo.execution_time)
+                       .count() *
+               1e-6f;
+    }
+
+    void main() {
+        std::map<std::string, ResultReport>* report_pp = nullptr;
+        if (getResponse(REPORT_RESPONSE_ID, &report_pp)) {
+            report_box = *report_pp;
+            ImGui::SetNextWindowFocus();
+        }
+        if (report_box.empty()) {
+            return;
+        }
+
+        ImGui::Begin("Report", NULL, ImGuiWindowFlags_MenuBar);
+
+        ImGui::BeginMenuBar();
+
+        if (ImGui::MenuItem(label("Nodes"), NULL, view == ViewList::Nodes)) {
+            view = ViewList::Nodes;
+        }
+        if (ImGui::MenuItem(label("Steps"), NULL, view == ViewList::Steps)) {
+            view = ViewList::Steps;
+        }
+
+        ImGui::EndMenuBar();
+
+        // for sort rule
+        ImGui::Text("Sort rule : ");
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Name", sort_rule == SortRule::Name)) {
+            sort_rule = SortRule::Name;
+        };
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Time", sort_rule == SortRule::Time)) {
+            sort_rule = SortRule::Time;
+        }
+
+        // apply view filter
+        std::map<std::string, ResultReport> reports =
+                SubGroup(report_box, getFilter());
+
+        // sort
+        auto keys = getKeys(reports);
+        std::sort(std::begin(keys), std::end(keys), getSorter(reports));
+
+        const float vmaxf = getTotalTime(reports);
+
+        // view
+        for (auto& key : keys) {
+            float v = getSec(reports.at(key));
+            if (key == TotalTimeStr()) {
+                ImGui::Text("total :  %.3f msec", v * 1e3f);
+                continue;
+            }
+            ImGui::ProgressBar(
+                    v / vmaxf,
+                    ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
+            ImGui::SameLine();
+            ImGui::Text("%s", key.c_str());
+            ImGui::SameLine();
+            ImGui::Text(" : %.3f msec", v * 1e3f);
+        }
+
+        ImGui::End();
+    }
+};
 
 Content::~Content() {}
 
@@ -1107,6 +1263,7 @@ View::View(const FaseCore& core, const TypeUtils& utils,
                                               utils, add_issue_function);
     args_editor = std::make_unique<NodeArgEditView>(
             var_editors, core, label, state, utils, add_issue_function);
+    report_window = std::make_unique<ReportWindow>(core, label, state, utils, add_issue_function);
     setupMenus(add_issue_function);
 }
 
@@ -1200,6 +1357,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
     ImGui::EndChild();
 
     ImGui::End();  // End window
+
+    report_window->draw(resp);
 
     return issues;
 }
