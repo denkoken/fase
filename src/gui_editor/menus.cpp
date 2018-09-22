@@ -104,30 +104,67 @@ private:
         }
     }
 
+    void panelPopUp(const char* popup_name) {
+        bool opened = true;
+        if (ImGui::BeginPopupModal(label(popup_name), &opened,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();  // Behavior of close button
+            }
+
+            constexpr int v_min = 0;
+            constexpr int v_max = std::numeric_limits<int>::max();
+            constexpr float v_speed = 0.5;
+
+            ImGui::Checkbox(label("Edit Panel View"),
+                            &preference.enable_edit_panel);
+
+            ImGui::DragInt(label("node list panel size"),
+                           &preference.node_list_panel_size, v_speed, v_min,
+                           v_max);
+
+            ImGui::DragInt(label("edit panel size"),
+                           &preference.edit_panel_size, v_speed, v_min,
+                           v_max);
+
+            if (ImGui::Button("Done")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
     void main() {
         bool priority_f = false;
         bool node_f = false;
+        bool panel_f = false;
         if (ImGui::BeginMenu("Preferences")) {
             ImGui::MenuItem(label("Auto Layout Sorting"), NULL,
                             &preference.auto_layout);
-            ImGui::MenuItem(label("Edit Panel View"), NULL,
-                            &preference.enable_edit_panel);
             if (ImGui::MenuItem(label("Node View Settings.."), NULL)) {
                 node_f = true;
             }
             if (ImGui::MenuItem(label("Priority Settings.."), NULL)) {
                 priority_f = true;
             }
+            if (ImGui::MenuItem(label("Panel Settings.."), NULL)) {
+                panel_f = true;
+            }
             ImGui::EndMenu();
-        }
-        if (priority_f) {
-            ImGui::OpenPopup(label("Popup: Priority setting"));
         }
         if (node_f) {
             ImGui::OpenPopup(label("Popup: Node View setting"));
         }
+        if (priority_f) {
+            ImGui::OpenPopup(label("Popup: Priority setting"));
+        }
+        if (panel_f) {
+            ImGui::OpenPopup(label("Popup: Panel setting"));
+        }
         priorityPopUp("Popup: Priority setting");
         nodeViewPopUp("Popup: Node View setting");
+        panelPopUp("Popup: Panel setting");
     }
 };
 

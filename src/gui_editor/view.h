@@ -38,6 +38,9 @@ struct GUIPreference {
     bool is_simple_node_box = false;
     int max_arg_name_chars = 16;
     bool enable_edit_panel = false;
+
+    int node_list_panel_size = 150;
+    int edit_panel_size = 200;
 };
 
 struct GUIState {

@@ -211,6 +211,11 @@ public:
 struct CanvasState {
     ImVec2 scroll_pos;
     std::map<std::string, GuiNode> gui_nodes;
+
+    std::string hovered_slot_name = "";
+    size_t hovered_slot_idx = 0;
+    bool is_hovered_slot_input = false;
+    bool is_link_creating = false;
 };
 
 class GUINodePositionOptimizer {
@@ -333,7 +338,9 @@ class LinksView : public Content {
 public:
     template <class... Args>
     LinksView(CanvasState& canvas_state, Args&&... args)
-        : Content(args...), gui_nodes(canvas_state.gui_nodes) {}
+        : Content(args...),
+          c_state(canvas_state),
+          gui_nodes(canvas_state.gui_nodes) {}
     ~LinksView() {}
 
 private:
@@ -343,16 +350,12 @@ private:
     constexpr static float ARROW_HEAD_SIZE = 15.f;
     const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;
 
+    CanvasState& c_state;
     std::map<std::string, GuiNode>& gui_nodes;
 
-    std::string hovered_slot_name;
-    size_t hovered_slot_idx;
-    char is_hovered_slot_input;
-    bool is_link_creating;
-
-    std::string hovered_slot_name_prev;
-    size_t hovered_slot_idx_prev;
-    bool is_hovered_slot_input_prev;
+    std::string hovered_slot_name_prev = "";
+    size_t hovered_slot_idx_prev = 0;
+    bool is_hovered_slot_input_prev = false;
 
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
                   const size_t& order) {
@@ -407,7 +410,6 @@ private:
             }
         }
 
-#if 0
         // Search hovered slot
         const ImVec2 mouse_pos = ImGui::GetMousePos();
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
@@ -430,60 +432,62 @@ private:
                 out_hov = (Length(mouse_pos - out_slot) <= SLOT_HOVER_RADIUS);
                 if (inp_hov || out_hov) {
                     // Save the last one
-                    hovered_slot_name = node_name;
-                    hovered_slot_idx = arg_idx;
-                    is_hovered_slot_input = inp_hov;
+                    c_state.hovered_slot_name = node_name;
+                    c_state.hovered_slot_idx = arg_idx;
+                    c_state.is_hovered_slot_input = inp_hov;
                 }
             }
         }
 
         // Link creation
-        if (is_link_creating) {
+        if (c_state.is_link_creating) {
             if (ImGui::IsMouseDragging(0, 0.f)) {
                 // Editing
                 const GuiNode& gui_node = gui_nodes.at(hovered_slot_name_prev);
                 const size_t& arg_idx = hovered_slot_idx_prev;
                 if (is_hovered_slot_input_prev) {
-                    drawLink(mouse_pos, gui_node.getInputSlot(arg_idx));
+                    drawLink(
+                            mouse_pos, gui_node.getInputSlot(arg_idx),
+                            getIndex(state.node_order, hovered_slot_name_prev));
                 } else {
-                    drawLink(gui_node.getOutputSlot(arg_idx), mouse_pos);
+                    drawLink(
+                            gui_node.getOutputSlot(arg_idx), mouse_pos,
+                            getIndex(state.node_order, hovered_slot_name_prev));
                 }
             } else {
-                if (hovered_slot_name.empty() ||
-                    is_hovered_slot_input == is_hovered_slot_input_prev) {
+                if (c_state.hovered_slot_name.empty() ||
+                    c_state.is_hovered_slot_input ==
+                            is_hovered_slot_input_prev) {
                     // Canceled
                 } else {
                     // Create link
                     bool success;
                     AddLinkInfo info;
                     if (is_hovered_slot_input_prev) {
-                        info = {
-                            hovered_slot_name,      hovered_slot_idx,
-                            hovered_slot_name_prev, hovered_slot_idx_prev
-                        };
+                        info = {c_state.hovered_slot_name,
+                                c_state.hovered_slot_idx,
+                                hovered_slot_name_prev, hovered_slot_idx_prev};
                     } else {
-                        info = {
-                            hovered_slot_name_prev, hovered_slot_idx_prev,
-                            hovered_slot_name,      hovered_slot_idx
-                        };
+                        info = {hovered_slot_name_prev, hovered_slot_idx_prev,
+                                c_state.hovered_slot_name,
+                                c_state.hovered_slot_idx};
                     }
-                    throwIssue(IssuePattern::AddLink, true,
-                               info, &success);
+                    throwIssue(IssuePattern::AddLink, true, info, &success);
                 }
-                is_link_creating = false;
+                c_state.is_link_creating = false;
             }
         } else {
             if (ImGui::IsMouseDown(0) && !ImGui::IsMouseDragging(0, 1.f) &&
-                !hovered_slot_name.empty()) {
+                !c_state.hovered_slot_name.empty()) {
                 // Start creating
-                is_link_creating = true;
-                const Link& link =
-                        nodes.at(hovered_slot_name).links[hovered_slot_idx];
-                if (link.node_name.empty() || !is_hovered_slot_input) {
+                c_state.is_link_creating = true;
+                const Link& link = nodes.at(c_state.hovered_slot_name)
+                                           .links[c_state.hovered_slot_idx];
+                if (link.node_name.empty() || !c_state.is_hovered_slot_input) {
                     // New link
-                    hovered_slot_name_prev = hovered_slot_name;
-                    hovered_slot_idx_prev = hovered_slot_idx;
-                    is_hovered_slot_input_prev = is_hovered_slot_input;
+                    hovered_slot_name_prev = c_state.hovered_slot_name;
+                    hovered_slot_idx_prev = c_state.hovered_slot_idx;
+                    is_hovered_slot_input_prev = c_state.is_hovered_slot_input;
                 } else {
                     // Edit existing link
                     hovered_slot_name_prev = link.node_name;
@@ -491,12 +495,12 @@ private:
                     is_hovered_slot_input_prev = false;
                     bool success;
                     throwIssue(IssuePattern::DelLink, true,
-                               DelLinkInfo{hovered_slot_name, hovered_slot_idx},
+                               DelLinkInfo{c_state.hovered_slot_name,
+                                           c_state.hovered_slot_idx},
                                &success);
                 }
             }
         }
-#endif
     }
 };
 
@@ -614,8 +618,10 @@ private:
         }
         if (!s_flag && !simple) {
             int priority = node.priority;
+            ImGui::PushItemWidth(100);
             ImGui::SliderInt(label("priority"), &priority,
                              preference.priority_min, preference.priority_max);
+            ImGui::PopItemWidth();
             priority = std::min(priority, preference.priority_max);
             priority = std::max(priority, preference.priority_min);
             if (priority != node.priority) {
@@ -717,11 +723,8 @@ private:
                 state.hovered_node_name = node_name;
             }
             // Scroll
-            if (
-#if 0
-                    !is_link_creating &&
-#endif
-                    ImGui::IsItemActive() && ImGui::IsMouseDragging(0, 0.f)) {
+            if (!c_state.is_link_creating && ImGui::IsItemActive() &&
+                ImGui::IsMouseDragging(0, 0.f)) {
                 gui_node.pos = gui_node.pos + ImGui::GetIO().MouseDelta;
             }
 
@@ -751,6 +754,11 @@ private:
     CanvasState c_state;
     std::string prev_nodes_str;  // for check is updating core nodes.
     GUINodePositionOptimizer position_optimizer;
+
+    void updateCanvasState() {
+        state.hovered_node_name.clear();
+        c_state.hovered_slot_name.clear();
+    }
 
     void updateGuiNodes() {
         auto& gui_nodes = c_state.gui_nodes;
@@ -812,6 +820,7 @@ private:
 
 void NodeCanvasView::main() {
     updateGuiNodes();
+    updateCanvasState();
 
     ImGui::Text("Hold middle mouse button to scroll (%f, %f)",
                 c_state.scroll_pos.x, c_state.scroll_pos.y);
@@ -934,8 +943,11 @@ private:
         // Edit Priority
         const Node& node = core.getNodes().at(state.selected_nodes[0]);
         int priority = node.priority;
+
+        ImGui::PushItemWidth(100);
         ImGui::SliderInt(label("priority"), &priority, preference.priority_min,
                          preference.priority_max);
+        ImGui::PopItemWidth();
         priority = std::min(priority, preference.priority_max);
         priority = std::max(priority, preference.priority_min);
         if (priority != node.priority) {
@@ -985,7 +997,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
     }
 
     // Left side: Panel
-    ImGui::BeginChild(label("left panel"), ImVec2(150, 0));
+    ImGui::BeginChild(label("left panel"), ImVec2(state.preference.node_list_panel_size, 0));
     // Draw a list of nodes on the left side
     node_list->draw(resp);
     ImGui::EndChild();
@@ -993,7 +1005,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
     if (state.preference.enable_edit_panel) {
         ImGui::SameLine();
 
-        ImGui::BeginChild(label("center panel"), ImVec2(300, 0));
+        ImGui::BeginChild(label("center panel"), ImVec2(state.preference.edit_panel_size, 0));
         // Draw a list of nodes on the left side
         args_editor->draw(resp);
         ImGui::EndChild();
