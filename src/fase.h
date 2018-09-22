@@ -35,12 +35,6 @@ public:
                 arg_names, default_args);
     }
 
-    template <typename... Gen>
-    bool addVarGenerator(Gen&&... gen) {
-        // return editor.addVarGenerator(std::forward<Gen>(gen)...);
-        return true;
-    }
-
     template <typename T>
     bool registerTextIO(const std::string& name,
                         std::function<std::string(const T&)> serializer,

@@ -3,7 +3,6 @@
 #include <thread>
 
 #include "fase_gl_utils.h"
-#include "fase_var_generators.h"
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;

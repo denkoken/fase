@@ -695,8 +695,6 @@ private:
     const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
     const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
     const ImU32 SLOT_ACT_COLOR = IM_COL32(255, 255, 100, 255);
-    const float TITLE_COL_SCALE = 155.f;
-    const float TITLE_COL_OFFSET = 100.f;
 
     const std::map<const std::type_info*, VarEditor>& var_editors;
 
@@ -910,7 +908,6 @@ private:
 
 class ContextMenu : public Content {
 public:
-
     template <class... Args>
     ContextMenu(CanvasState& c_state, Args&&... args)
         : Content(args...), c_state(c_state) {}
@@ -939,9 +936,10 @@ private:
                              sizeof(new_node_name));
 
             bool success;
-            if (issueButton(IssuePattern::RenameNode,
-                            RenameNodeInfo{state.selected_nodes[0], new_node_name},
-                            &success, "OK")) {
+            if (issueButton(
+                        IssuePattern::RenameNode,
+                        RenameNodeInfo{state.selected_nodes[0], new_node_name},
+                        &success, "OK")) {
                 ImGui::CloseCurrentPopup();
             }
 
@@ -979,15 +977,18 @@ private:
             if (ImGui::MenuItem(label("Clear"))) {
                 if (is_selected_slot_input) {
                     // Remove input link
-                    throwIssue(IssuePattern::DelLink, true,
-                               DelLinkInfo{selected_slot_name, selected_slot_idx});
+                    throwIssue(
+                            IssuePattern::DelLink, true,
+                            DelLinkInfo{selected_slot_name, selected_slot_idx});
                 } else {
                     // Remove output links
                     std::vector<std::pair<std::string, size_t>> slots;
-                    FindConnectedOutSlots(core.getNodes(), state.selected_nodes[0],
+                    FindConnectedOutSlots(core.getNodes(),
+                                          state.selected_nodes[0],
                                           selected_slot_idx, slots);
                     for (auto& it : slots) {
-                        throwIssue(IssuePattern::DelLink, true, DelLinkInfo{it.first, it.second});
+                        throwIssue(IssuePattern::DelLink, true,
+                                   DelLinkInfo{it.first, it.second});
                     }
                 }
             }
@@ -999,7 +1000,7 @@ private:
             ImGui::Text("Node \"%s\"", state.selected_nodes[0].c_str());
             ImGui::Separator();
             throwIssue(IssuePattern::DelNode, ImGui::MenuItem(label("Delete")),
-                      state.selected_nodes[0]);
+                       state.selected_nodes[0]);
             // TODO
             bool rename = false;
             if (ImGui::MenuItem(label("Rename"))) {
@@ -1230,15 +1231,13 @@ private:
                 ImGui::SameLine();
                 drawVarEditor(arg);
             }
-            ImGui::SameLine();
-            ImGui::Text(": %s", std::get<1>(arg).c_str());
         }
 
         // Edit Priority
         const Node& node = core.getNodes().at(state.selected_nodes[0]);
         int priority = node.priority;
 
-        ImGui::PushItemWidth(100);
+        ImGui::PushItemWidth(-100);
         ImGui::SliderInt(label("priority"), &priority, preference.priority_min,
                          preference.priority_max);
         ImGui::PopItemWidth();
@@ -1263,7 +1262,8 @@ View::View(const FaseCore& core, const TypeUtils& utils,
                                               utils, add_issue_function);
     args_editor = std::make_unique<NodeArgEditView>(
             var_editors, core, label, state, utils, add_issue_function);
-    report_window = std::make_unique<ReportWindow>(core, label, state, utils, add_issue_function);
+    report_window = std::make_unique<ReportWindow>(core, label, state, utils,
+                                                   add_issue_function);
     setupMenus(add_issue_function);
 }
 
@@ -1333,7 +1333,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     // Left Panel
     if (state.preference.enable_node_list_panel) {
-        ImGui::BeginChild(label("left panel"), ImVec2(state.preference.node_list_panel_size, 0));
+        ImGui::BeginChild(label("left panel"),
+                          ImVec2(state.preference.node_list_panel_size, 0));
         // Draw a list of nodes on the left side
         node_list->draw(resp);
         ImGui::EndChild();
@@ -1342,8 +1343,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     // Center Panel
     if (state.preference.enable_edit_panel) {
-
-        ImGui::BeginChild(label("center panel"), ImVec2(state.preference.edit_panel_size, 0));
+        ImGui::BeginChild(label("center panel"),
+                          ImVec2(state.preference.edit_panel_size, 0));
         // Draw a list of nodes on the left side
         args_editor->draw(resp);
         ImGui::EndChild();

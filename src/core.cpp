@@ -416,16 +416,16 @@ bool FaseCore::delInput(const size_t& idx) {
 
     delRevLink(node, idx, this);
 
-    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
-    func.arg_types.erase(std::begin(func.arg_types) + idx);
-    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + idx);
-    func.arg_names.erase(std::begin(func.arg_names) + idx);
-    func.default_arg_values.erase(std::begin(func.default_arg_values) + idx);
-    func.is_input_args.erase(std::begin(func.is_input_args) + idx);
+    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
+    func.arg_types.erase(std::begin(func.arg_types) + long(idx));
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + long(idx));
+    func.arg_names.erase(std::begin(func.arg_names) + long(idx));
+    func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
+    func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
-    node.arg_reprs.erase(std::begin(node.arg_reprs) + idx);
-    node.links.erase(std::begin(node.links) + idx);
-    node.arg_values.erase(std::begin(node.arg_values) + idx);
+    node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
+    node.links.erase(std::begin(node.links) + long(idx));
+    node.arg_values.erase(std::begin(node.arg_values) + long(idx));
 
     return true;
 }
@@ -465,18 +465,18 @@ bool FaseCore::delOutput(const size_t& idx) {
     delLink(OutputFuncStr(), idx);
 
     Function& func = functions[OutputFuncStr()];
-    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + idx);
-    func.arg_types.erase(std::begin(func.arg_types) + idx);
-    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + idx);
-    func.arg_names.erase(std::begin(func.arg_names) + idx);
-    func.default_arg_values.erase(std::begin(func.default_arg_values) + idx);
-    func.is_input_args.erase(std::begin(func.is_input_args) + idx);
+    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
+    func.arg_types.erase(std::begin(func.arg_types) + long(idx));
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + long(idx));
+    func.arg_names.erase(std::begin(func.arg_names) + long(idx));
+    func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
+    func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
     Node& node = nodes[OutputNodeStr()];
 
-    node.arg_reprs.erase(std::begin(node.arg_reprs) + idx);
-    node.links.erase(std::begin(node.links) + idx);
-    node.arg_values.erase(std::begin(node.arg_values) + idx);
+    node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
+    node.links.erase(std::begin(node.links) + long(idx));
+    node.arg_values.erase(std::begin(node.arg_values) + long(idx));
 
     return true;
 }

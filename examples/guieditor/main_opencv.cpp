@@ -1,7 +1,6 @@
 #include <fase.h>
 
 #include "fase_gl_utils.h"
-#include "fase_var_generators.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -46,8 +45,6 @@ int main() {
     FaseAddFunctionBuilder(app, Random, (int&, const int&, const int&),
                            ("out", "min", "max"), 0, 0, 256);
 
-    // Register for argument editing
-    FaseInstallBasicGuiGenerators(app);
     //   <cv::Mat>
     std::map<std::string, std::tuple<GLuint, int, int>> tex_ids;
     FaseAddConstructAndEditor(

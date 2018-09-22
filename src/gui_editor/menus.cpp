@@ -47,6 +47,25 @@ bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
             static_cast<void*>(&vals), int(vals.size()));
 }
 
+template <class Layout>
+inline void Popup(const char* popup_name, const Layout& layout) {
+    bool opened = true;
+    if (ImGui::BeginPopupModal(popup_name, &opened,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
+            ImGui::CloseCurrentPopup();  // Behavior of close button
+        }
+
+        layout();
+
+        if (ImGui::Button("Done")) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 class PreferenceMenu : public Content {
 public:
     template <class... Args>
@@ -56,36 +75,19 @@ public:
 
 private:
     void priorityPopUp(const char* popup_name) {
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label(popup_name), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
-
-            constexpr int v_min = std::numeric_limits<int>::min();
-            constexpr int v_max = std::numeric_limits<int>::max();
-            constexpr float v_speed = 0.5;
+        constexpr int v_min = std::numeric_limits<int>::min();
+        constexpr int v_max = std::numeric_limits<int>::max();
+        constexpr float v_speed = 0.5;
+        Popup(label(popup_name), [&]() {
             ImGui::DragInt(label("priority min"), &preference.priority_min,
                            v_speed, v_min, preference.priority_max);
             ImGui::DragInt(label("priority max"), &preference.priority_max,
                            v_speed, preference.priority_min, v_max);
-
-            if (ImGui::Button("OK")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
+        });
     }
 
     void nodeViewPopUp(const char* popup_name) {
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label(popup_name), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
+        Popup(label(popup_name), [&]() {
             ImGui::Checkbox(label("Simple Node Boxes"),
                             &preference.is_simple_node_box);
 
@@ -95,46 +97,25 @@ private:
             ImGui::DragInt(label("argument char max"),
                            &preference.max_arg_name_chars, v_speed, v_min,
                            v_max);
-
-            if (ImGui::Button("Done")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
+        });
     }
 
     void panelPopUp(const char* popup_name) {
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label(popup_name), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
-
-            constexpr int v_min = 0;
-            constexpr int v_max = std::numeric_limits<int>::max();
-            constexpr float v_speed = 0.5;
-
+        Popup(label(popup_name), [&]() {
             ImGui::Checkbox(label("Edit Panel View"),
                             &preference.enable_edit_panel);
             ImGui::Checkbox(label("Node List Panel View"),
                             &preference.enable_node_list_panel);
+            constexpr int v_min = 0;
+            constexpr int v_max = std::numeric_limits<int>::max();
+            constexpr float v_speed = 0.5;
 
             ImGui::DragInt(label("node list panel size"),
                            &preference.node_list_panel_size, v_speed, v_min,
                            v_max);
-
             ImGui::DragInt(label("edit panel size"),
-                           &preference.edit_panel_size, v_speed, v_min,
-                           v_max);
-
-            if (ImGui::Button("Done")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
+                           &preference.edit_panel_size, v_speed, v_min, v_max);
+        });
     }
 
     void main() {
@@ -191,19 +172,12 @@ private:
             // Open pop up window
             ImGui::OpenPopup(label("Popup: Native code"));
         }
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label("Popup: Native code"), &opened,
-                                   ImGuiWindowFlags_NoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
+        Popup(label("Popup: Native code"), [&]() {
             ImGui::InputTextMultiline(label("##native code"),
                                       const_cast<char*>(native_code.c_str()),
                                       native_code.size(), ImVec2(500, 500),
                                       ImGuiInputTextFlags_ReadOnly);
-
-            ImGui::EndPopup();
-        }
+        });
     }
 };
 
@@ -226,13 +200,7 @@ private:
         if (ImGui::MenuItem(label("Save"))) {
             ImGui::OpenPopup(label("Popup: Save pipeline"));
         }
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label("Popup: Save pipeline"), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened) {
-                ImGui::CloseCurrentPopup();
-            }
-
+        Popup(label("Popup: Save pipeline"), [&]() {
             // Input elements
             ImGui::InputText(label("File path"), filename_buf,
                              sizeof(filename_buf));
@@ -251,9 +219,7 @@ private:
                     error_msg = "Failed to save pipeline";  // Failed
                 }
             }
-
-            ImGui::EndPopup();
-        }
+        });
     }
 };
 
@@ -276,13 +242,7 @@ private:
         if (ImGui::MenuItem(label("Load"))) {
             ImGui::OpenPopup(label("Popup: Load pipeline"));
         }
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label("Popup: Load pipeline"), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened) {
-                ImGui::CloseCurrentPopup();
-            }
-
+        Popup(label("Popup: Load pipeline"), [&]() {
             // Input elements
             ImGui::InputText(label("File path"), filename_buf,
                              sizeof(filename_buf));
@@ -301,9 +261,7 @@ private:
                     error_msg = "Failed to save pipeline";  // Failed
                 }
             }
-
-            ImGui::EndPopup();
-        }
+        });
     }
 };
 
@@ -468,13 +426,7 @@ private:
             // Open pop up window
             ImGui::OpenPopup(label("Popup: AddInOutputGUI"));
         }
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label("Popup: AddInOutputGUI"), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
-
+        Popup(label("Popup: AddInOutputGUI"), [&]() {
             ImGui::InputText(label("Name"), buf, sizeof(buf));
 
             if (!error_msg.empty()) {
@@ -542,9 +494,7 @@ private:
                 }
 #endif
             }
-
-            ImGui::EndPopup();
-        }
+        });
     }
 };
 

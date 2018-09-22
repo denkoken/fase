@@ -44,7 +44,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
                          -Wmissing-declarations -Wmissing-include-dirs \
                          -Wold-style-cast -Woverloaded-virtual \
                          -Wredundant-decls -Wshadow -Wsign-conversion \
-                         -Wsign-promo \
+                         -Wsign-promo  -Wno-old-style-cast\
                          -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
