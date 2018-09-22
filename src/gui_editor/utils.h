@@ -20,6 +20,9 @@ enum class IssuePattern {
     SetArgValue,
     Load,
     Save,
+    BuildAndRun,
+    BuildAndRunLoop,
+    StopRunLoop,
 };
 
 /// For AddNode issue

@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <sstream>
+#include <thread>
 
 #include "../core_util.h"
 #include "view.h"
@@ -1717,7 +1718,10 @@ bool GUIEditor::Impl::run(FaseCore* core, const TypeUtils& type_utils,
 class GUIEditor::Impl {
 public:
     Impl(FaseCore* core, const TypeUtils& utils)
-        : view(*core, utils, var_editors), core(core), utils(utils) {
+        : view(*core, utils, var_editors),
+          core(core),
+          utils(utils),
+          is_running(false) {
         SetUpVarEditors(&var_editors);
     }
 
@@ -1730,33 +1734,88 @@ private:
     FaseCore* core;
     const TypeUtils& utils;
 
+    std::mutex report_mutex;
     std::map<std::string, ResultReport> reports;
     std::map<const std::type_info*, VarEditor> var_editors;
     std::map<std::string, Variable> response;
+
+    bool multi_running;
+    bool is_core_updeted = false;
+    std::thread pipeline_thread;
+    std::string run_looping_id;
+
+    // for other thread running.
+    std::atomic_bool is_running;
+
+    template <bool Loop>
+    void startRunning();
+    bool isCoreUpdatable();
 };
+
+template <>
+void GUIEditor::Impl::startRunning<true>() {
+    // pipeline_thread = []() {
+    // }
+}
+
+template <>
+void GUIEditor::Impl::startRunning<false>() {
+    // reports = core->run();
+    is_running = true;
+    pipeline_thread = std::thread([this]() {
+        auto ret = core->run();
+        report_mutex.lock();
+        reports = ret;
+        report_mutex.unlock();
+        is_running = false;
+    });
+}
+
+bool GUIEditor::Impl::isCoreUpdatable() {
+    if (is_running) return false;
+    is_core_updeted = true;
+    return true;
+}
 
 bool GUIEditor::Impl::run(const std::string& win_title,
                           const std::string& label_suffix) {
     // Draw GUI and get issues.
+    report_mutex.lock();
     std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
+    report_mutex.unlock();
 
     // Do issue and make responses.
     response.clear();
     for (const Issue& issue : issues) {
         if (issue.issue == IssuePattern::AddNode) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
             response[issue.id] = core->addNode(info.name, info.func_repr);
         } else if (issue.issue == IssuePattern::DelNode) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const std::string& name = GetVar<std::string>(issue);
             response[issue.id] = core->delNode(name);
         } else if (issue.issue == IssuePattern::SetPriority) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const SetPriorityInfo& v = GetVar<SetPriorityInfo>(issue);
             response[issue.id] = core->setPriority(v.nodename, v.priority);
         } else if (issue.issue == IssuePattern::AddLink) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const auto& info = GetVar<AddLinkInfo>(issue);
             response[issue.id] = core->addLink(info.src_nodename, info.src_idx,
                                                info.dst_nodename, info.dst_idx);
         } else if (issue.issue == IssuePattern::DelLink) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const auto& info = GetVar<DelLinkInfo>(issue);
             core->delLink(info.src_nodename, info.src_idx);
             response[issue.id] = true;
@@ -1764,6 +1823,9 @@ bool GUIEditor::Impl::run(const std::string& win_title,
             const std::string& filename = GetVar<std::string>(issue);
             response[issue.id] = SaveFaseCore(filename, *core, utils);
         } else if (issue.issue == IssuePattern::Load) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const std::string& filename = GetVar<std::string>(issue);
             response[issue.id] = LoadFaseCore(filename, core, utils);
         } else if (issue.issue == IssuePattern::AddInput) {
@@ -1773,17 +1835,54 @@ bool GUIEditor::Impl::run(const std::string& win_title,
             const std::string& name = GetVar<std::string>(issue);
             response[issue.id] = core->addOutput(name);
         } else if (issue.issue == IssuePattern::DelInput) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const size_t& idx = GetVar<size_t>(issue);
             response[issue.id] = core->delInput(idx);
         } else if (issue.issue == IssuePattern::DelOutput) {
             const size_t& idx = GetVar<size_t>(issue);
             response[issue.id] = core->delOutput(idx);
         } else if (issue.issue == IssuePattern::SetArgValue) {
+            if (!isCoreUpdatable()) {
+                continue;
+            }
             const SetArgValueInfo& info = GetVar<SetArgValueInfo>(issue);
             response[issue.id] = core->setNodeArg(info.node_name, info.arg_idx,
                                                   info.arg_repr, info.var);
         }
         // TODO
+    }
+
+    // Do Running Issues.
+    for (const Issue& issue : issues) {
+        if (issue.issue == IssuePattern::BuildAndRun) {
+            multi_running = GetVar<bool>(issue);
+            response[issue.id] = core->build(multi_running, true);
+            response[REPORT_RESPONSE_ID] = reports;
+            startRunning<false>();
+        } else if (issue.issue == IssuePattern::BuildAndRunLoop) {
+            multi_running = GetVar<bool>(issue);
+            response[issue.id] = core->build(multi_running, true);
+            startRunning<true>();
+            run_looping_id = issue.id;
+        } else if (issue.issue == IssuePattern::StopRunLoop) {
+            run_looping_id = "";
+        }
+    }
+
+    if (!run_looping_id.empty()) {
+        if (is_core_updeted) {
+            core->build(multi_running, true);
+        }
+        reports = core->run();
+        response[run_looping_id] = true;
+        response[REPORT_RESPONSE_ID] = reports;
+        is_core_updeted = false;
+    }
+
+    if (!is_running && pipeline_thread.joinable()) {
+        pipeline_thread.join();
     }
 
     return true;

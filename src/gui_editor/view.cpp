@@ -590,7 +590,6 @@ private:
             } else if (!node.links[arg_idx].node_name.empty()) {
                 // Link exists
                 ImGui::Text("%s", arg_name.c_str());
-#if 0
             } else if (var_editors.count(arg_type)) {
                 // Call registered GUI for editing
                 auto& func = var_editors.at(arg_type);
@@ -598,11 +597,8 @@ private:
                 std::string expr;
                 const std::string view_label = arg_name + "##" + node_name;
                 Variable v = func(label(view_label), var);
-                if (v) {
-                    // Update argument
-                    core->setNodeArg(node_name, arg_idx, "", v);
-                }
-#endif
+                throwIssue(IssuePattern::SetArgValue, bool(v),
+                           SetArgValueInfo{node_name, arg_idx, "", v});
             } else {
                 // No GUI for editing
                 if (s_flag) {

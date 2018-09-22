@@ -1,5 +1,7 @@
 #include <fase.h>
 
+#include <thread>
+
 #include "fase_gl_utils.h"
 #include "fase_var_generators.h"
 
@@ -15,6 +17,10 @@ void Print(const int& in) {
     std::cout << in << std::endl;
 }
 
+void Wait(const int& seconds) {
+    std::this_thread::sleep_for(std::chrono::seconds(seconds));
+}
+
 int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::GUIEditor> app;
@@ -24,6 +30,7 @@ int main() {
                            ("in1", "in2", "out"));
     FaseAddFunctionBuilder(app, Square, (const int&, int&), ("in", "out"));
     FaseAddFunctionBuilder(app, Print, (const int&), ("in"));
+    FaseAddFunctionBuilder(app, Wait, (const int&), ("seconds"));
 
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },

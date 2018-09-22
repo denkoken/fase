@@ -268,6 +268,54 @@ private:
     }
 };
 
+constexpr char RUNNING_RESPONSE_ID[] = "RUNNING_RESPONSE_ID";
+
+class RunPipelineMenu : public Content {
+public:
+    template <class... Args>
+    RunPipelineMenu(Args&&... args) : Content(args...) {}
+
+private:
+    // Private status
+    bool multi = false;
+    bool report = true;
+
+    bool getRunning() {
+        bool f = false;
+        bool ret = getResponse(RUNNING_RESPONSE_ID, &f);
+        return ret && f;
+    }
+
+    void main() {
+        bool is_running = getRunning();
+        if (!is_running && ImGui::BeginMenu("Run")) {
+            // Run once
+            if (ImGui::MenuItem(label("Run")) && !is_running) {
+                throwIssue(RUNNING_RESPONSE_ID, IssuePattern::BuildAndRun,
+                           multi);
+            }
+            ImGui::Dummy(ImVec2(5, 0));  // Spacing
+            // Run by loop
+            if (!is_running) {
+                if (ImGui::MenuItem(label("Run (loop)"))) {
+                    // Start loop
+                    throwIssue(RUNNING_RESPONSE_ID,
+                               IssuePattern::BuildAndRunLoop, multi);
+                }
+            }
+            ImGui::MenuItem(label("Multi Build"), NULL, &multi);
+            ImGui::MenuItem(label("Reporting"), NULL, &report);
+
+            ImGui::EndMenu();
+        } else if (is_running) {
+            if (ImGui::MenuItem(label("Stop!"))) {
+                // Stop
+                throwIssue(RUNNING_RESPONSE_ID, IssuePattern::StopRunLoop, {});
+            }
+        }
+    }
+};
+
 // Draw button and pop up window for node adding
 class NodeAddingMenu : public Content {
 public:
@@ -510,8 +558,8 @@ int Content::id_counter = 0;
 
 void View::setupMenus(std::function<void(Issue)>&& issue_f) {
     // Setup Menu bar
-    SetupMenus<PreferenceMenu, NativeCodeMenu, NodeAddingMenu, AddInOutputMenu,
-               LayoutOptimizeMenu, SaveMenu, LoadMenu, Footer>(
+    SetupMenus<PreferenceMenu, NativeCodeMenu, NodeAddingMenu, RunPipelineMenu,
+               AddInOutputMenu, LayoutOptimizeMenu, SaveMenu, LoadMenu, Footer>(
             core, label, state, utils, issue_f, &menus);
 }
 

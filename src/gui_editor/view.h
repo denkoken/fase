@@ -13,6 +13,8 @@
 
 namespace fase {
 
+constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
+
 // Label wrapper for suffix
 class LabelWrapper {
 public:
@@ -73,17 +75,26 @@ protected:
     GUIState& state;
     GUIPreference& preference;
 
+    void throwIssue(std::string&& res_id, IssuePattern&& pattern,
+                    Variable&& var) {
+        issue_f(Issue{res_id, pattern, var});
+    }
+
+    template <typename T>
+    bool getResponse(const std::string& res_id, T* ret) {
+        if (response_p->count(res_id)) {
+            *ret = *response_p->at(res_id).getReader<T>();
+            return true;
+        }
+        return false;
+    }
+
     template <typename T, typename Ret = int>
     bool throwIssue(const IssuePattern& pattern, bool is_throw, T&& var,
                     Ret* ret = nullptr, std::string res_id_footer = "") {
         std::string res_id = std::to_string(id) + "::" + res_id_footer;
         if (is_throw) {
-            Issue issue = {
-                    .id = res_id,
-                    .issue = pattern,
-                    .var = var,
-            };
-            issue_f(std::move(issue));
+            issue_f(Issue{res_id, pattern, var});
         }
 
         if (ret == nullptr) {
