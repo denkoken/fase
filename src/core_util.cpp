@@ -284,6 +284,7 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
             ss << buf << std::endl;
         }
 
+        core->switchProject(split(filename, '.')[0]);
         StringToCore(ss.str(), core, utils);
 
         input.close();

@@ -232,6 +232,10 @@ void GUIEditor::Impl::startRunning<false>() {
             return;
         }
 
+        report_mutex.lock();
+        reports = ret;
+        report_mutex.unlock();
+
         // update Node arguments
         buf_issues_mutex.lock();
         for (const Issue& issue : buf_issues) {

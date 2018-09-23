@@ -76,6 +76,26 @@ std::vector<Variable*> BindVariables(
     return bound_variables;
 }
 
+void initNode(std::map<std::string, Node>* nodes) {
+    (*nodes)[InputNodeStr()] = {
+            InputFuncStr(),
+            std::vector<Link>(),
+            std::vector<std::tuple<size_t, Link>>(),
+            std::vector<std::string>(),
+            std::vector<Variable>(),
+            std::numeric_limits<int>::min()
+    };
+
+    (*nodes)[OutputNodeStr()] = {
+            OutputFuncStr(),
+            std::vector<Link>(),
+            std::vector<std::tuple<size_t, Link>>(),
+            std::vector<std::string>(),
+            std::vector<Variable>(),
+            std::numeric_limits<int>::max()
+    };
+}
+
 }  // anonymous namespace
 
 bool FaseCore::checkNodeName(const std::string& name) {
@@ -88,7 +108,7 @@ bool FaseCore::checkNodeName(const std::string& name) {
     }
 
     // check uniqueness of name.
-    if (exists(nodes, name)) {
+    if (exists(projects[primary_project].nodes, name)) {
         return false;
     }
 
@@ -101,24 +121,11 @@ FaseCore::FaseCore() {
     addFunctionBuilder(InputFuncStr(), dummy, {}, {}, {}, {});
     addFunctionBuilder(OutputFuncStr(), dummy, {}, {}, {}, {});
 
-    // make input node and output node.
-    nodes[InputNodeStr()] = {
-            InputFuncStr(),
-            std::vector<Link>(),
-            std::vector<std::tuple<size_t, Link>>(),
-            std::vector<std::string>(),
-            std::vector<Variable>(),
-            std::numeric_limits<int>::min()
-    };
+    primary_project = "Untitled";
+    projects[primary_project] = {};
 
-    nodes[OutputNodeStr()] = {
-            OutputFuncStr(),
-            std::vector<Link>(),
-            std::vector<std::tuple<size_t, Link>>(),
-            std::vector<std::string>(),
-            std::vector<Variable>(),
-            std::numeric_limits<int>::max()
-    };
+    // make input node and output node.
+    initNode(&projects[primary_project].nodes);
 }
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
@@ -141,7 +148,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
     // Register node (arg_values are copied from function's default_arg_values)
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
-    nodes[name] = {func_repr,
+    projects[primary_project].nodes[name] = {func_repr,
                    std::vector<Link>(n_args),
                    std::vector<std::tuple<size_t, Link>>(),
                    functions[func_repr].default_arg_reprs,
@@ -152,6 +159,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 }
 
 bool FaseCore::delNode(const std::string& node_name) noexcept {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
         return false;
     }
@@ -193,6 +201,7 @@ bool FaseCore::delNode(const std::string& node_name) noexcept {
 
 bool FaseCore::renameNode(const std::string& old_name,
                           const std::string& new_name) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, old_name) || !checkNodeName(new_name)) {
         return false;
     }
@@ -218,6 +227,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
                        const size_t& src_arg_idx,
                        const std::string& dst_node_name,
                        const size_t& dst_arg_idx) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, src_node_name) || !exists(nodes, dst_node_name)) {
         return false;
     }
@@ -313,6 +323,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
 void FaseCore::delLink(const std::string& dst_node_name,
                        const size_t& dst_arg_idx) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, dst_node_name)) {
         return;
     }
@@ -334,6 +345,7 @@ void FaseCore::delLink(const std::string& dst_node_name,
 }
 
 bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
         return false;
     }
@@ -344,6 +356,7 @@ bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
                           const std::string& arg_repr,
                           const Variable& arg_val) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, node_name)) {
         return false;
     }
@@ -366,6 +379,7 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
 
 void FaseCore::clearNodeArg(const std::string& node_name,
                             const size_t arg_idx) {
+    auto& nodes = projects[primary_project].nodes;
     if (!exists(nodes, node_name)) {
         return;
     }
@@ -397,7 +411,7 @@ bool FaseCore::addInput(const std::string& name) {
     func.default_arg_values.push_back(Variable());
     func.is_input_args.push_back(false);
 
-    Node& node = nodes[InputNodeStr()];
+    Node& node = projects[primary_project].nodes[InputNodeStr()];
 
     node.arg_reprs.push_back(name);
     node.links.push_back({});
@@ -413,7 +427,7 @@ bool FaseCore::delInput(const size_t& idx) {
 
     // TODO
 
-    Node& node = nodes[InputNodeStr()];
+    Node& node = projects[primary_project].nodes[InputNodeStr()];
     Function& func = functions[InputFuncStr()];
 
     delRevLink(node, idx, this);
@@ -449,7 +463,7 @@ bool FaseCore::addOutput(const std::string& name) {
     func.default_arg_values.push_back(Variable());
     func.is_input_args.push_back(true);
 
-    Node& node = nodes[OutputNodeStr()];
+    Node& node = projects[primary_project].nodes[OutputNodeStr()];
 
     node.arg_reprs.push_back(name);
     node.links.push_back({});
@@ -474,7 +488,7 @@ bool FaseCore::delOutput(const size_t& idx) {
     func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
     func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
-    Node& node = nodes[OutputNodeStr()];
+    Node& node = projects[primary_project].nodes[OutputNodeStr()];
 
     node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
     node.links.erase(std::begin(node.links) + long(idx));
@@ -483,8 +497,20 @@ bool FaseCore::delOutput(const size_t& idx) {
     return true;
 }
 
+void FaseCore::switchProject(const std::string& project_name) noexcept {
+    primary_project = project_name;
+
+    if (projects[primary_project].nodes.empty()) {
+        initNode(&projects[primary_project].nodes);
+    }
+}
+
+const std::string& FaseCore::getProjectName() const noexcept {
+    return primary_project;
+}
+
 const std::map<std::string, Node>& FaseCore::getNodes() const {
-    return nodes;
+    return projects.at(primary_project).nodes;
 }
 
 const std::map<std::string, Function>& FaseCore::getFunctions() const {
@@ -494,7 +520,7 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
 std::function<void()> FaseCore::buildNode(
         const std::string& node_name, const std::vector<Variable*>& args,
         std::map<std::string, ResultReport>* report_box_) const {
-    const Function& func = functions.at(nodes.at(node_name).func_repr);
+    const Function& func = functions.at(projects.at(primary_project).nodes.at(node_name).func_repr);
     if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
         return [] {};
     }
@@ -509,6 +535,7 @@ void FaseCore::buildNodesParallel(
         const std::set<std::string>& runnables,
         const size_t& step,  // for report.
         std::map<std::string, ResultReport>* report_box_) {
+    auto& nodes = projects[primary_project].nodes;
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
         variable_ps[runnable] = BindVariables(nodes[runnable], output_variables,
@@ -550,6 +577,7 @@ void FaseCore::buildNodesParallel(
 void FaseCore::buildNodesNonParallel(
         const std::set<std::string>& runnables,
         std::map<std::string, ResultReport>* report_box_) {
+    auto& nodes = projects[primary_project].nodes;
     for (auto& runnable : runnables) {
         const Node& node = nodes[runnable];
         auto bound_variables = BindVariables(node, output_variables,
@@ -562,6 +590,8 @@ void FaseCore::buildNodesNonParallel(
 }
 
 bool FaseCore::build(bool parallel_exe, bool profile) {
+    auto& nodes = projects[primary_project].nodes;
+    projects[primary_project].multi = parallel_exe;
     pipeline.clear();
     output_variables.clear();
     report_box.clear();

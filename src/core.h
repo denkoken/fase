@@ -38,6 +38,11 @@ struct Function {
     std::vector<bool> is_input_args;               // size == |args|
 };
 
+struct Project {
+    std::map<std::string, Node> nodes;  // [name, Node]
+    bool multi = false;
+};
+
 class FaseCore {
 public:
     FaseCore();
@@ -82,6 +87,10 @@ public:
 
     bool delOutput(const size_t& idx);
 
+    void switchProject(const std::string& project_name) noexcept;
+
+    const std::string& getProjectName() const noexcept;
+
     // ## Building, Running ##
     bool build(bool parallel_exe = false, bool profile = false);
     const std::map<std::string, ResultReport>& run();
@@ -108,8 +117,8 @@ private:
     // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 
-    // Function nodes
-    std::map<std::string, Node> nodes;  // [name, Node]
+    std::map<std::string, Project> projects;
+    std::string primary_project;
 
     // Built pipeline
     std::vector<std::function<void()>> pipeline;

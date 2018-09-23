@@ -1327,7 +1327,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
     updateState();
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin(win_title.c_str(), NULL, ImGuiWindowFlags_MenuBar)) {
+    if (!ImGui::Begin((win_title + " - " + core.getProjectName()).c_str(),
+                       NULL, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return {};
     }
