@@ -1,6 +1,8 @@
 #ifndef FASE_H_20180617
 #define FASE_H_20180617
 
+#define NOMINMAX
+
 #include "core.h"
 #include "core_util.h"
 #include "editor.h"

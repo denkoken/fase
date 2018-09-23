@@ -28,8 +28,24 @@ public:
         set<T>(v);
     }
 
+#if defined(_WIN64) || defined(_WIN32)
+    template<>
+    Variable(Variable&& v) {
+        data = v.data;
+        type = v.type;
+        cloner = v.cloner;
+    }
+
+    template<>
+    Variable (Variable& v) {
+        data = v.data;
+        type = v.type;
+        cloner = v.cloner;
+    }
+#else
     Variable(Variable &) = default;
     Variable &operator=(Variable &) = default;
+#endif
     Variable(const Variable &) = default;
     Variable &operator=(const Variable &) = default;
     Variable(Variable &&) = default;

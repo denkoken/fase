@@ -302,7 +302,7 @@ std::vector<std::vector<Link>> getReverseLinks(
         for (size_t i = 0; i < std::get<1>(pair).links.size(); i++) {
             if (std::get<1>(pair).links[i].node_name == node) {
                 dst[std::get<1>(pair).links[i].arg_idx].push_back(
-                        {.node_name = std::get<0>(pair), .arg_idx = i});
+                        {std::get<0>(pair), i});
             }
         }
     }

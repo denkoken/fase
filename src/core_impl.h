@@ -55,8 +55,8 @@ const std::type_info* GetCleanTypeId() {
 template <typename T>
 constexpr bool IsInputArgType() {
     using rrT = typename std::remove_reference<T>::type;
-    return std::is_same<rrT, T>() or
-           !std::is_same<typename std::remove_const<rrT>::type, rrT>() or
+    return std::is_same<rrT, T>() ||
+           !std::is_same<typename std::remove_const<rrT>::type, rrT>() ||
            std::is_rvalue_reference<T>();
 }
 

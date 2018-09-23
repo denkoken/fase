@@ -103,20 +103,22 @@ FaseCore::FaseCore() {
 
     // make input node and output node.
     nodes[InputNodeStr()] = {
-            .func_repr = InputFuncStr(),
-            .links = std::vector<Link>(),
-            .rev_links = std::vector<std::tuple<size_t, Link>>(),
-            .arg_reprs = std::vector<std::string>(),
-            .arg_values = std::vector<Variable>(),
-            .priority = std::numeric_limits<int>::min()};
+            InputFuncStr(),
+            std::vector<Link>(),
+            std::vector<std::tuple<size_t, Link>>(),
+            std::vector<std::string>(),
+            std::vector<Variable>(),
+            std::numeric_limits<int>::min()
+    };
 
     nodes[OutputNodeStr()] = {
-            .func_repr = OutputFuncStr(),
-            .links = std::vector<Link>(),
-            .rev_links = std::vector<std::tuple<size_t, Link>>(),
-            .arg_reprs = std::vector<std::string>(),
-            .arg_values = std::vector<Variable>(),
-            .priority = std::numeric_limits<int>::max()};
+            OutputFuncStr(),
+            std::vector<Link>(),
+            std::vector<std::tuple<size_t, Link>>(),
+            std::vector<std::string>(),
+            std::vector<Variable>(),
+            std::numeric_limits<int>::max()
+    };
 }
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
@@ -139,12 +141,12 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
     // Register node (arg_values are copied from function's default_arg_values)
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
-    nodes[name] = {.func_repr = func_repr,
-                   .links = std::vector<Link>(n_args),
-                   .rev_links = std::vector<std::tuple<size_t, Link>>(),
-                   .arg_reprs = functions[func_repr].default_arg_reprs,
-                   .arg_values = arg_values,
-                   .priority = priority};
+    nodes[name] = {func_repr,
+                   std::vector<Link>(n_args),
+                   std::vector<std::tuple<size_t, Link>>(),
+                   functions[func_repr].default_arg_reprs,
+                   arg_values,
+                   priority};
 
     return true;
 }

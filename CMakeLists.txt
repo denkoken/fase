@@ -108,14 +108,26 @@ if (NOT BUILD_GLFW)
 endif()
 
 # ImGui
-add_library(imgui SHARED
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
-)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_library(imgui STATIC
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+    )
+else()
+    add_library(imgui SHARED
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+    )
+endif()
 set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w
@@ -145,17 +157,31 @@ endif()
 # ------------------------------------------------------------------------------
 
 # fase.so
-add_library(fase SHARED
-    ${CMAKE_SOURCE_DIR}/src/fase.cpp
-    ${CMAKE_SOURCE_DIR}/src/core.cpp
-    ${CMAKE_SOURCE_DIR}/src/core_util.cpp
-    ${CMAKE_SOURCE_DIR}/src/type_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/dst_code.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
-    ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
-    ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
-    ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
-)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_library(fase STATIC
+        ${CMAKE_SOURCE_DIR}/src/fase.cpp
+        ${CMAKE_SOURCE_DIR}/src/core.cpp
+        ${CMAKE_SOURCE_DIR}/src/core_util.cpp
+        ${CMAKE_SOURCE_DIR}/src/type_utils.cpp
+        ${CMAKE_SOURCE_DIR}/src/dst_code.cpp
+        ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
+    )
+else()
+    add_library(fase SHARED
+        ${CMAKE_SOURCE_DIR}/src/fase.cpp
+        ${CMAKE_SOURCE_DIR}/src/core.cpp
+        ${CMAKE_SOURCE_DIR}/src/core_util.cpp
+        ${CMAKE_SOURCE_DIR}/src/type_utils.cpp
+        ${CMAKE_SOURCE_DIR}/src/dst_code.cpp
+        ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
+    )
+endif()
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)
