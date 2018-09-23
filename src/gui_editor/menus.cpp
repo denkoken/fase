@@ -181,26 +181,22 @@ private:
     }
 };
 
-// FaseCore saver
-class SaveMenu : public Content {
+class ProjectMenu : public Content {
 public:
     template <class... Args>
-    SaveMenu(Args&&... args) : Content(args...) {}
+    ProjectMenu(Args&&... args) : Content(args...) {}
 
-    ~SaveMenu() {}
+    ~ProjectMenu() {}
 
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
-    const std::string resp_id = "SaveMenu";
-
+    char filename_buf[128] = "fase_save.txt";
+    char project_name_buf[128] = "NewProject";
     std::string error_msg;
-    char filename_buf[1024] = "fase_save.txt";
+    int combo_idx = 0;
 
-    void main() {
-        if (ImGui::MenuItem(label("Save"))) {
-            ImGui::OpenPopup(label("Popup: Save pipeline"));
-        }
-        Popup(label("Popup: Save pipeline"), [&]() {
+    void savePopup(const char* popup_name) {
+        Popup(popup_name, [&]() {
             // Input elements
             ImGui::InputText(label("File path"), filename_buf,
                              sizeof(filename_buf));
@@ -221,28 +217,9 @@ private:
             }
         });
     }
-};
 
-// FaseCore saver
-class LoadMenu : public Content {
-public:
-    template <class... Args>
-    LoadMenu(Args&&... args) : Content(args...) {}
-
-    ~LoadMenu() {}
-
-private:
-    const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
-    const std::string resp_id = "LoadMenu";
-
-    std::string error_msg;
-    char filename_buf[1024] = "fase_save.txt";
-
-    void main() {
-        if (ImGui::MenuItem(label("Load"))) {
-            ImGui::OpenPopup(label("Popup: Load pipeline"));
-        }
-        Popup(label("Popup: Load pipeline"), [&]() {
+    void loadPopup(const char* popup_name) {
+        Popup(popup_name, [&]() {
             // Input elements
             ImGui::InputText(label("File path"), filename_buf,
                              sizeof(filename_buf));
@@ -258,10 +235,91 @@ private:
                     ImGui::CloseCurrentPopup();
                     error_msg = "";
                 } else {
-                    error_msg = "Failed to save pipeline";  // Failed
+                    error_msg = "Failed to load pipeline";  // Failed
                 }
             }
         });
+    }
+
+    void switchPopup(const char* popup_name) {
+        Popup(popup_name, [&]() {
+            std::vector<std::string> projects = core.getProjects();
+            Combo(label("issue"), &combo_idx, projects);
+
+            bool success;
+            if (issueButton(IssuePattern::SwitchProject,
+                            projects[size_t(combo_idx)], &success, "Switch")) {
+                ImGui::CloseCurrentPopup();
+            }
+        });
+    }
+
+    void newPopup(const char* popup_name) {
+        Popup(popup_name, [&]() {
+            // Input elements
+            ImGui::InputText(label("File path"), project_name_buf,
+                             sizeof(project_name_buf));
+
+            bool success;
+            if (issueButton(IssuePattern::SwitchProject,
+                            std::string(project_name_buf), &success,
+                            "New Project")) {
+                ImGui::CloseCurrentPopup();
+            }
+        });
+    }
+
+    void renamePopup(const char* popup_name) {
+        Popup(popup_name, [&]() {
+            // Input elements
+            ImGui::InputText(label("File path"), project_name_buf,
+                             sizeof(project_name_buf));
+
+            bool success;
+            if (issueButton(IssuePattern::RenameProject,
+                            std::string(project_name_buf), &success,
+                            "Rename")) {
+                ImGui::CloseCurrentPopup();
+            }
+        });
+    }
+
+    void main() {
+        bool save_f = false, load_f = false, switch_f = false, new_f = false,
+             rename_f = false;
+        if (ImGui::BeginMenu("Project..")) {
+            ImGui::MenuItem(label("New.."), NULL, &new_f);
+            ImGui::Separator();
+            ImGui::MenuItem(label("Save.."), NULL, &save_f);
+            ImGui::MenuItem(label("Load.."), NULL, &load_f);
+            ImGui::Separator();
+            ImGui::MenuItem(label("Switch.."), NULL, &switch_f);
+            ImGui::MenuItem(label("Rename.."), NULL, &rename_f);
+            ImGui::EndMenu();
+        }
+        if (save_f) {
+            ImGui::OpenPopup(label("Popup: Save project"));
+            std::strcpy(filename_buf, (core.getProjectName() + ".txt").c_str());
+        }
+        if (load_f) {
+            ImGui::OpenPopup(label("Popup: Load project"));
+        }
+        if (switch_f) {
+            ImGui::OpenPopup(label("Popup: Switch project"));
+        }
+        if (new_f) {
+            ImGui::OpenPopup(label("Popup: New project"));
+            std::strcpy(project_name_buf, "NewProject");
+        }
+        if (rename_f) {
+            ImGui::OpenPopup(label("Popup: Rename project"));
+            std::strcpy(project_name_buf, "NewNameProject");
+        }
+        savePopup(label("Popup: Save project"));
+        loadPopup(label("Popup: Load project"));
+        switchPopup(label("Popup: Switch project"));
+        newPopup(label("Popup: New project"));
+        renamePopup(label("Popup: Rename project"));
     }
 };
 
@@ -303,7 +361,7 @@ private:
             }
             ImGui::MenuItem(label("Multi Build"), NULL, &multi);
             ImGui::MenuItem(label("Reporting"), NULL, &report);
-            ImGui::MenuItem(label("Running on another thread."), NULL,
+            ImGui::MenuItem(label("Running on another thread"), NULL,
                             &preference.another_th_run);
 
             ImGui::EndMenu();
@@ -550,8 +608,8 @@ int Content::id_counter = 0;
 
 void View::setupMenus(std::function<void(Issue)>&& issue_f) {
     // Setup Menu bar
-    SetupMenus<PreferenceMenu, NativeCodeMenu, NodeAddingMenu, RunPipelineMenu,
-               AddInOutputMenu, LayoutOptimizeMenu, SaveMenu, LoadMenu, Footer>(
+    SetupMenus<PreferenceMenu, ProjectMenu, NativeCodeMenu, NodeAddingMenu,
+               RunPipelineMenu, AddInOutputMenu, LayoutOptimizeMenu, Footer>(
             core, label, state, utils, issue_f, &menus);
 }
 

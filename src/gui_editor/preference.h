@@ -25,9 +25,13 @@ public:
     GUIPreferenceManager() {
         load();
     }
-    ~GUIPreferenceManager() {save();}
+    ~GUIPreferenceManager() {
+        save();
+    }
 
-    GUIPreference& get() { return data; }
+    GUIPreference& get() {
+        return data;
+    }
 
 private:
     const std::string filename = "fase_gui.ini";
@@ -51,32 +55,23 @@ private:
     void set(const std::vector<std::string>& line) {
         if ("auto_layout" == line[0]) {
             data.auto_layout = std::stoi(line[1]);
-        }
-        else if ("priority_min" == line[0]) {
+        } else if ("priority_min" == line[0]) {
             data.priority_min = std::stoi(line[1]);
-        }
-        else if ("priority_max" == line[0]) {
+        } else if ("priority_max" == line[0]) {
             data.priority_max = std::stoi(line[1]);
-        }
-        else if ("is_simple_node_box" == line[0]) {
+        } else if ("is_simple_node_box" == line[0]) {
             data.is_simple_node_box = std::stoi(line[1]);
-        }
-        else if ("max_arg_name_chars" == line[0]) {
+        } else if ("max_arg_name_chars" == line[0]) {
             data.max_arg_name_chars = std::stoi(line[1]);
-        }
-        else if ("enable_edit_panel" == line[0]) {
+        } else if ("enable_edit_panel" == line[0]) {
             data.enable_edit_panel = std::stoi(line[1]);
-        }
-        else if ("enable_node_list_panel" == line[0]) {
+        } else if ("enable_node_list_panel" == line[0]) {
             data.enable_node_list_panel = std::stoi(line[1]);
-        }
-        else if ("another_th_run" == line[0]) {
+        } else if ("another_th_run" == line[0]) {
             data.another_th_run = std::stoi(line[1]);
-        }
-        else if ("node_list_panel_size" == line[0]) {
+        } else if ("node_list_panel_size" == line[0]) {
             data.node_list_panel_size = std::stoi(line[1]);
-        }
-        else if ("edit_panel_size" == line[0]) {
+        } else if ("edit_panel_size" == line[0]) {
             data.edit_panel_size = std::stoi(line[1]);
         }
     }
@@ -90,12 +85,15 @@ private:
         ss << "is_simple_node_box: " << data.is_simple_node_box << std::endl;
         ss << "max_arg_name_chars: " << data.max_arg_name_chars << std::endl;
         ss << "enable_edit_panel: " << data.enable_edit_panel << std::endl;
-        ss << "enable_node_list_panel: " << data.enable_node_list_panel << std::endl;
+        ss << "enable_node_list_panel: " << data.enable_node_list_panel
+           << std::endl;
         ss << "another_th_run: " << data.another_th_run << std::endl;
-        ss << "node_list_panel_size: " << data.node_list_panel_size << std::endl;
+        ss << "node_list_panel_size: " << data.node_list_panel_size
+           << std::endl;
         ss << "edit_panel_size: " << data.edit_panel_size << std::endl;
         // copy set() and type
-        // :s/else if ("\(.*\)" == line\[0\]) {/ss << "\1: " << data.\1 << std::endl;
+        // :s/else if ("\(.*\)" == line\[0\]) {/ss << "\1: " << data.\1 <<
+        // std::endl;
 
         return ss.str();
     }
@@ -115,7 +113,8 @@ private:
             }
 
             input.close();
-        } catch (std::exception& e) {}
+        } catch (std::exception& e) {
+        }
     }
 
     void save() {
@@ -129,4 +128,4 @@ private:
     }
 };
 
-#endif // GUI_PREFERENCE_H_20180923
+#endif  // GUI_PREFERENCE_H_20180923

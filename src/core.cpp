@@ -505,6 +505,13 @@ void FaseCore::switchProject(const std::string& project_name) noexcept {
     }
 }
 
+void FaseCore::renameProject(const std::string& project_name) noexcept {
+    Project buf = std::move(projects[primary_project]);
+    projects.erase(primary_project);
+    primary_project = project_name;
+    projects[primary_project] = std::move(buf);
+}
+
 const std::string& FaseCore::getProjectName() const noexcept {
     return primary_project;
 }
@@ -515,6 +522,14 @@ const std::map<std::string, Node>& FaseCore::getNodes() const {
 
 const std::map<std::string, Function>& FaseCore::getFunctions() const {
     return functions;
+}
+
+std::vector<std::string> FaseCore::getProjects() const {
+    std::vector<std::string> dst;
+    for (const auto& pair : projects) {
+        dst.emplace_back(std::get<0>(pair));
+    }
+    return dst;
 }
 
 std::function<void()> FaseCore::buildNode(

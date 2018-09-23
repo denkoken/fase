@@ -75,19 +75,17 @@ public:
     // ## Editing links ##
     bool addLink(const std::string& src_node_name, const size_t& src_arg_idx,
                  const std::string& dst_node_name, const size_t& dst_arg_idx);
-
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     // ## Editing Input/Output node ##
     bool addInput(const std::string& name);
-
     bool delInput(const size_t& idx);
 
     bool addOutput(const std::string& name);
-
     bool delOutput(const size_t& idx);
 
     void switchProject(const std::string& project_name) noexcept;
+    void renameProject(const std::string& project_name) noexcept;
 
     const std::string& getProjectName() const noexcept;
 
@@ -99,6 +97,8 @@ public:
     const std::map<std::string, Function>& getFunctions() const;
 
     const std::map<std::string, Node>& getNodes() const;
+
+    std::vector<std::string> getProjects() const;
 
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,

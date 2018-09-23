@@ -9,8 +9,8 @@
 
 #include "../core.h"
 #include "../type_utils.h"
-#include "utils.h"
 #include "preference.h"
+#include "utils.h"
 
 namespace fase {
 
