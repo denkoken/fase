@@ -29,7 +29,7 @@ struct Node {
 };
 
 struct Function {
-    std::unique_ptr<FunctionBuilderBase> builder;
+    std::shared_ptr<FunctionBuilderBase> builder;
     std::vector<std::string> arg_type_reprs;       // size == |args|
     std::vector<std::string> default_arg_reprs;    // size == |args|
     std::vector<std::string> arg_names;            // size == |args|

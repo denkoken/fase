@@ -345,6 +345,9 @@ private:
     SortRule sort_rule = SortRule::Name;
     std::map<std::string, ResultReport> report_box;
 
+    std::string err_message;
+    const ImVec4 err_message_color = ImVec4(1.f, .1f, 0.f, 1.f);
+
     std::function<bool(const std::pair<std::string, ResultReport>&)>
     getFilter() {
         if (view == ViewList::Nodes) {
@@ -395,13 +398,13 @@ private:
     }
 
     void main() {
-        std::map<std::string, ResultReport>* report_pp = nullptr;
-        if (getResponse(REPORT_RESPONSE_ID, &report_pp)) {
-            report_box = *report_pp;
+        std::map<std::string, ResultReport>* report_p = nullptr;
+        if (getResponse(REPORT_RESPONSE_ID, &report_p)) {
+            report_box = *report_p;
             ImGui::SetNextWindowFocus();
         }
-        if (report_box.empty()) {
-            return;
+        if (getResponse(RUNNING_ERROR_RESPONSE_ID, &err_message)) {
+            ImGui::SetNextWindowFocus();
         }
 
         ImGui::Begin("Report", NULL, ImGuiWindowFlags_MenuBar);
@@ -416,6 +419,15 @@ private:
         }
 
         ImGui::EndMenuBar();
+
+        if (!err_message.empty()) {
+            ImGui::TextColored(err_message_color, "Error Message : %s",
+                               err_message.c_str());
+        }
+        if (report_box.empty()) {
+            ImGui::End();
+            return;
+        }
 
         // for sort rule
         ImGui::Text("Sort rule : ");

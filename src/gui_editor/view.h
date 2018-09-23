@@ -14,6 +14,7 @@
 namespace fase {
 
 constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
+constexpr char RUNNING_ERROR_RESPONSE_ID[] = "RUNNING_ERROR_RESPONSE_ID";
 
 // Label wrapper for suffix
 class LabelWrapper {

@@ -1,5 +1,6 @@
 #include <fase.h>
 
+#include <stdexcept>
 #include <thread>
 
 #include "fase_gl_utils.h"
@@ -20,6 +21,12 @@ void Wait(const int& seconds) {
     std::this_thread::sleep_for(std::chrono::seconds(seconds));
 }
 
+void Assert(const int& a, const int& b) {
+    if (a != b) {
+        throw(std::runtime_error("a is not equal to b!"));
+    }
+}
+
 int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::GUIEditor> app;
@@ -30,6 +37,7 @@ int main() {
     FaseAddFunctionBuilder(app, Square, (const int&, int&), ("in", "out"));
     FaseAddFunctionBuilder(app, Print, (const int&), ("in"));
     FaseAddFunctionBuilder(app, Wait, (const int&), ("seconds"));
+    FaseAddFunctionBuilder(app, Assert, (const int&, const int&), ("a", "b"));
 
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },

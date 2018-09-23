@@ -92,7 +92,7 @@ bool FaseCore::addFunctionBuilder(
 
     // Register
     functions[func_repr] = {
-            std::make_unique<FunctionBuilder<Args...>>(func_val),
+            std::make_shared<FunctionBuilder<Args...>>(func_val),
             std::vector<std::string>(arg_type_reprs.begin(),
                                      arg_type_reprs.end()),
             std::vector<std::string>(default_arg_reprs.begin(),
