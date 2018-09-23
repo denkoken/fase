@@ -445,7 +445,7 @@ private:
                 }
             }
 
-            if (issueButton(IssuePattern::AddInput, std::string(buf), &success,
+            if (issueButton(IssuePattern::AddOutput, std::string(buf), &success,
                             "Make output")) {
                 if (success) {
                     ImGui::CloseCurrentPopup();
