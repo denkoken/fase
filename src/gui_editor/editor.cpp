@@ -137,7 +137,8 @@ private:
     std::map<const std::type_info*, VarEditor> var_editors;
     std::map<std::string, Variable> response;
 
-    bool is_core_updeted = false;
+    bool is_updated = true;
+    bool same_th_loop = false;
     std::string run_response_id;
     std::string err_message;
 
@@ -258,6 +259,7 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
     std::map<std::string, Variable> responses_;
 
     for (const Issue& issue : *issues) {
+        is_updated = true;
         if (issue.issue == IssuePattern::AddNode) {
             const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
             responses_[issue.id] = core->addNode(info.name, info.func_repr);
@@ -337,26 +339,50 @@ bool GUIEditor::Impl::run(const std::string& win_title,
     // Do Running Issues.
     for (const Issue& issue : issues) {
         if (issue.issue == IssuePattern::BuildAndRun) {
-            multi_running = GetVar<bool>(issue);
+            BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
+            multi_running = info.multi_th_build;
             response[issue.id] = core->build(multi_running, true);
-            response[REPORT_RESPONSE_ID] = &reports;
             if (response[issue.id]) {
-                response[RUNNING_ERROR_RESPONSE_ID] = std::string();
-                startRunning<false>();
-                run_response_id = issue.id;
+                response[REPORT_RESPONSE_ID] = &reports;
+                if (info.another_th_run) {
+                    response[RUNNING_ERROR_RESPONSE_ID] = std::string();
+                    startRunning<false>();
+                    run_response_id = issue.id;
+                } else {
+                    reports = core->run();
+                }
             }
         } else if (issue.issue == IssuePattern::BuildAndRunLoop) {
-            multi_running = GetVar<bool>(issue);
+            BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
+            multi_running = info.multi_th_build;
             response[issue.id] = core->build(multi_running, true);
             if (response[issue.id]) {
-                response[RUNNING_ERROR_RESPONSE_ID] = std::string();
-                startRunning<true>();
-                run_response_id = issue.id;
+                response[REPORT_RESPONSE_ID] = &reports;
+                if (info.another_th_run) {
+                    response[RUNNING_ERROR_RESPONSE_ID] = std::string();
+                    startRunning<true>();
+                    run_response_id = issue.id;
+                } else {
+                    same_th_loop = true;
+                    run_response_id = issue.id;
+                }
             }
         } else if (issue.issue == IssuePattern::StopRunLoop) {
             run_response_id = "";
             shold_stop_loop = true;
+            same_th_loop = false;
         }
+    }
+
+    if (same_th_loop) {
+        if (is_updated) {
+            core->build(multi_running, true);
+            is_updated = false;
+        }
+        reports = core->run();
+
+        response[run_response_id] = true;
+        response[REPORT_RESPONSE_ID] = &reports;
     }
     core_mutex.unlock();
 

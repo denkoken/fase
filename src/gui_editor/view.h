@@ -40,6 +40,7 @@ struct GUIPreference {
     int max_arg_name_chars = 16;
     bool enable_edit_panel = false;
     bool enable_node_list_panel = true;
+    bool another_th_run = true;
 
     int node_list_panel_size = 150;
     int edit_panel_size = 200;

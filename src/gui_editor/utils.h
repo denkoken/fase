@@ -60,6 +60,11 @@ struct RenameNodeInfo {
     std::string new_name;
 };
 
+struct BuildAndRunInfo {
+    bool multi_th_build;
+    bool another_th_run;
+};
+
 struct Issue {
     std::string id;
     IssuePattern issue;

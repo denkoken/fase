@@ -289,19 +289,22 @@ private:
             // Run once
             if (ImGui::MenuItem(label("Run")) && !is_running) {
                 throwIssue(RUNNING_RESPONSE_ID, IssuePattern::BuildAndRun,
-                           multi);
+                           BuildAndRunInfo{multi, preference.another_th_run});
             }
             ImGui::Dummy(ImVec2(5, 0));  // Spacing
             // Run by loop
             if (!is_running) {
                 if (ImGui::MenuItem(label("Run (loop)"))) {
                     // Start loop
-                    throwIssue(RUNNING_RESPONSE_ID,
-                               IssuePattern::BuildAndRunLoop, multi);
+                    throwIssue(
+                            RUNNING_RESPONSE_ID, IssuePattern::BuildAndRunLoop,
+                            BuildAndRunInfo{multi, preference.another_th_run});
                 }
             }
             ImGui::MenuItem(label("Multi Build"), NULL, &multi);
             ImGui::MenuItem(label("Reporting"), NULL, &report);
+            ImGui::MenuItem(label("Running on another thread."), NULL,
+                            &preference.another_th_run);
 
             ImGui::EndMenu();
         } else if (is_running) {
