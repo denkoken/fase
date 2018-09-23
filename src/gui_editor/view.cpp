@@ -1266,7 +1266,8 @@ private:
 
 View::View(const FaseCore& core, const TypeUtils& utils,
            const std::map<const std::type_info*, VarEditor>& var_editors)
-    : core(core), utils(utils), var_editors(var_editors) {
+    : core(core), utils(utils), var_editors(var_editors), preference_manager(),
+    state{preference_manager.get(), {}, {}, {}} {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
     node_list = std::make_unique<NodeListView>(core, label, state, utils,
                                                add_issue_function);

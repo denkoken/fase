@@ -10,6 +10,7 @@
 #include "../core.h"
 #include "../type_utils.h"
 #include "utils.h"
+#include "preference.h"
 
 namespace fase {
 
@@ -32,26 +33,12 @@ private:
     std::string last_label;  // temporary storage to return char*
 };
 
-struct GUIPreference {
-    bool auto_layout = false;
-    int priority_min = -10;
-    int priority_max = 10;
-    bool is_simple_node_box = false;
-    int max_arg_name_chars = 16;
-    bool enable_edit_panel = false;
-    bool enable_node_list_panel = true;
-    bool another_th_run = true;
-
-    int node_list_panel_size = 150;
-    int edit_panel_size = 200;
-};
-
 struct GUIState {
+    GUIPreference& preference;
+
     std::vector<std::string> selected_nodes;
     std::string hovered_node_name;
     std::vector<std::string> node_order;
-
-    GUIPreference preference;
 };
 
 class Content {
@@ -153,6 +140,8 @@ private:
     const FaseCore& core;
     const TypeUtils& utils;
     const std::map<const std::type_info*, VarEditor>& var_editors;
+
+    GUIPreferenceManager preference_manager;
 
     LabelWrapper label;
     GUIState state;
