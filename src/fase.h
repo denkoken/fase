@@ -40,55 +40,20 @@ public:
     template <typename T>
     bool registerTextIO(const std::string& name,
                         std::function<std::string(const T&)> serializer,
-                        std::function<T(const std::string&)> deserializer) {
-        type_utils.serializers[name] = [serializer](const Variable& v) {
-            return serializer(*v.getReader<T>());
-        };
-
-        type_utils.deserializers[name] =
-                [deserializer](Variable& v, const std::string& str) {
-                    v.create<T>(deserializer(str));
-                };
-    }
+                        std::function<T(const std::string&)> deserializer);
 
     template <typename T>
     bool registerConstructorAndVieweditor(
             const std::string& name,
             std::function<std::string(const T&)> def_makers,
             std::function<std::unique_ptr<T>(const char*, const T&)>
-                    view_editor) {
-        type_utils.def_makers[name] = [def_makers](const Variable& v) {
-            return def_makers(*v.getReader<T>());
-        };
+                    view_editor);
 
-        var_editor_buffer.push_back(
-                {&typeid(T),
-                 [f = view_editor](const char* label, const Variable& v) {
-                     auto p = f(label, *v.getReader<T>());
-                     if (p) return Variable(std::move(*p));
-                     return Variable();
-                 }});
-
-        type_utils.checkers[name] = [](const Variable& v) {
-            return v.isSameType<T>();
-        };
-
-        type_utils.names[&typeid(T)] = name;
-    }
-
-    void setupEditor() {
-        editor = std::make_unique<Editor>(&core, type_utils);
-
-        for (auto& pair : var_editor_buffer) {
-            editor->addVarEditor(std::get<0>(pair),
-                                 std::move(std::get<1>(pair)));
-        }
-        var_editor_buffer.clear();
-    }
+    void setupEditor();
 
     template <typename... Args>
     bool runEditing(Args&&... args) {
-        assert(editor);
+        assert(editor);  // call setupEditor() brefore this function.
         return editor->run(std::forward<Args>(args)...);
     }
 
