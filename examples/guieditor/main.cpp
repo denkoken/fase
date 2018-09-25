@@ -1,3 +1,5 @@
+
+#define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
 #include <fase.h>
 
 #include <stdexcept>
@@ -5,9 +7,12 @@
 
 #include "fase_gl_utils.h"
 
+
+FaseAutoAddingFunctionBuilder(Add,
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
+)
 
 void Square(const int& in, int& dst) {
     dst = in * in;

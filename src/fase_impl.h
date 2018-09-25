@@ -44,8 +44,71 @@ void extractArgExprs(std::string types, std::array<std::string, N>& reprs) {
     }
 }
 
+#ifdef FASE_USE_ADD_FUNCTION_BUILDER_MACRO
+
+class FuncNodeStorer {
+public:
+    template <typename Ret, typename... Args>
+    FuncNodeStorer(std::string func_name, const std::string& code,
+                   Ret (*fp)(Args...)) {
+        while (true) {
+            if (codes.count(func_name)) {
+                func_name += "_";
+                continue;
+            }
+            break;
+        }
+
+        std::array<std::string, sizeof...(Args)> arg_type_reprs;
+        std::array<std::string, sizeof...(Args)> default_arg_reprs;
+        std::array<std::string, sizeof...(Args)> arg_names;
+        std::array<Variable, sizeof...(Args)> default_args;
+        // TODO initialize these varialbes with code.
+
+        codes[func_name] = code;
+        func_builder_adders.push_back([=](auto *app) {
+            std::clog << "add " << func_name << std::endl;
+            app->addFunctionBuilder(func_name,
+                                    std::function<Ret(Args...)>(fp),
+                                    arg_type_reprs,
+                                    default_arg_reprs,
+                                    arg_names,
+                                    default_args);
+        });
+    }
+
+    inline static std::vector<std::function<void(Fase<GUIEditor>*)>> func_builder_adders;
+    inline static std::map<std::string, std::string> codes;
+};
+
+#ifdef __COUNTER__
+
+#define FaseAutoAddingFunctionBuilder__(func_name, code, c) \
+    code \
+    static fase::FuncNodeStorer FaseFuncNodeStorer__ ## func_name ## c (#func_name, #code, func_name);
+#define FaseAutoAddingFunctionBuilder_(func_name, code, c) FaseAutoAddingFunctionBuilder__(func_name, code, c)
+#define FaseAutoAddingFunctionBuilder(func_name, code) FaseAutoAddingFunctionBuilder_(func_name, code, __COUNTER__)
+
+#else // ifdef __COUNTER__
+
+#define FaseAutoAddingFunctionBuilder(func_name, code) \
+    var static fase::FuncNodeStorer FaseFuncNodeStorer__ ## func_name (#func_name, code, func_name);
+
+#endif
+
+#else
+#define TEST_MACRO(func_name, code) code
+#endif
+
 template <class Editor>
 void Fase<Editor>::setupEditor() {
+
+#ifdef FASE_USE_ADD_FUNCTION_BUILDER_MACRO
+    for (auto& builder_adder : FuncNodeStorer::func_builder_adders) {
+        builder_adder(this);
+    }
+#endif
+
     editor = std::make_unique<Editor>(&core, type_utils);
 
     for (auto& pair : var_editor_buffer) {
@@ -113,6 +176,12 @@ bool Fase<Editor>::registerConstructorAndVieweditor(
                 #func, std::function<void arg_types>(func), arg_type_reprs,   \
                 default_arg_reprs, FaseExpandList(arg_names), {__VA_ARGS__}); \
     }()
+
+#define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
+    FaseAddFunctionBuilderImpl(fase, func, arg_types, arg_names, __VA_ARGS__)
+
+#define FaseAddConstructAndEditor(fase, type, constructer, view_editor) \
+    fase.registerConstructorAndVieweditor<type>(#type, constructer, view_editor)
 
 }  // namespace fase
 

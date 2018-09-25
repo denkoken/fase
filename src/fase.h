@@ -8,12 +8,6 @@
 #include "editor.h"
 #include "type_utils.h"
 
-#define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
-    FaseAddFunctionBuilderImpl(fase, func, arg_types, arg_names, __VA_ARGS__)
-
-#define FaseAddConstructAndEditor(fase, type, constructer, view_editor) \
-    fase.registerConstructorAndVieweditor<type>(#type, constructer, view_editor)
-
 namespace fase {
 
 template <class Editor>
