@@ -316,9 +316,7 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             const std::string& name = GetVar<std::string>(issue);
             core->renameProject(name);
             responses_[issue.id] = true;
-        }
-        // TODO
-        else {
+        } else {
             remains.emplace_back(std::move(issue));
         }
     }

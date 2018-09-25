@@ -250,6 +250,18 @@ public:
     }
 };
 
+class WindowContriller {
+public:
+    template <typename... Args>
+    WindowContriller(Args&&... args) {
+        ImGui::Begin(std::forward<Args>(args)...);
+    }
+
+    ~WindowContriller() {
+        ImGui::End();
+    }
+};
+
 struct CanvasState {
     ImVec2 scroll_pos;
     std::map<std::string, GuiNode> gui_nodes;
@@ -385,7 +397,10 @@ private:
             }
             return total;
         } else if (view == ViewList::Steps) {
-            return getSec(reports.at(TotalTimeStr()));
+            // TODO
+            if (reports.count(TotalTimeStr())) {
+                return getSec(reports.at(TotalTimeStr()));
+            }
         }
         return 0.f;
     }
@@ -395,6 +410,26 @@ private:
                        repo.execution_time)
                        .count() *
                1e-6f;
+    }
+
+    std::string nameConverter(const std::string& name) {
+        if (name == StepStr(0) || name == InputNodeStr()) {
+            return "Input";
+        }
+
+        if (name == OutputNodeStr()) {
+            return "Output";
+        }
+
+        if (IsSpecialNodeName(name)) {
+            for (size_t i = 0; i < 100; i++) {
+                if (name == StepStr(i)) {
+                    return "Step " + std::to_string(i);
+                }
+            }
+        }
+
+        return name;
     }
 
     void main() {
@@ -407,7 +442,7 @@ private:
             ImGui::SetNextWindowFocus();
         }
 
-        ImGui::Begin("Report", NULL, ImGuiWindowFlags_MenuBar);
+        WindowContriller wc("Report", nullptr, ImGuiWindowFlags_MenuBar);
 
         ImGui::BeginMenuBar();
 
@@ -425,7 +460,6 @@ private:
                                err_message.c_str());
         }
         if (report_box.empty()) {
-            ImGui::End();
             return;
         }
 
@@ -461,12 +495,8 @@ private:
                     v / vmaxf,
                     ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
             ImGui::SameLine();
-            ImGui::Text("%s", key.c_str());
-            ImGui::SameLine();
-            ImGui::Text(" : %.3f msec", v * 1e3f);
+            ImGui::Text("%s : %.3f msec", nameConverter(key).c_str(), v * 1e3f);
         }
-
-        ImGui::End();
     }
 };
 
