@@ -1,6 +1,9 @@
 #ifndef FASE_CORE_IMPL_H_20180622
 #define FASE_CORE_IMPL_H_20180622
 
+#include <map>
+#include <set>
+
 namespace fase {
 
 namespace {
@@ -62,10 +65,10 @@ constexpr bool IsInputArgType() {
 
 }  // namespace
 
-template <typename... Args>
+template <typename Ret, typename... Args>
 bool FaseCore::addFunctionBuilder(
         const std::string& func_repr,
-        const std::function<void(Args...)>& func_val,
+        const std::function<Ret(Args...)>& func_val,
         const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
         const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
         const std::array<std::string, sizeof...(Args)>& arg_names,

@@ -13,7 +13,7 @@ message(STATUS "Build glfw: ${BUILD_GLFW}, examples: ${BUILD_EXAMPLE}, tests: ${
 # ----------------------------------- Common -----------------------------------
 # ------------------------------------------------------------------------------
 project(fase CXX C)
-set (CMAKE_CXX_STANDARD 14)  # C++ 14
+set (CMAKE_CXX_STANDARD 17)  # C++ 17
 
 # Print make commands for debug
 # set(CMAKE_VERBOSE_MAKEFILE 1)
@@ -45,7 +45,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
                          -Wold-style-cast -Woverloaded-virtual \
                          -Wredundant-decls -Wshadow -Wsign-conversion \
                          -Wsign-promo  -Wno-old-style-cast\
-                         -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
+                         -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas -Wno-c++17-extensions")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
                          -Wctor-dtor-privacy -Wdisabled-optimization \

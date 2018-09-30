@@ -6,8 +6,6 @@
 #include <sstream>
 #include <string>
 
-#include "fase.h"
-
 namespace fase {
 
 namespace {

@@ -576,13 +576,15 @@ private:
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
                   const size_t& order) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        float x_d = std::abs(d_pos.x - s_pos.x) * .7f;
-        if (d_pos.x < s_pos.x) {
-            x_d = std::pow(s_pos.x - d_pos.x, .7f) * 3.f;
+        const ImVec2 diff = d_pos - s_pos;
+        float x_d = std::abs(diff.x) * .7f;
+        if (diff.x < 0.f) {
+            x_d = std::pow(-diff.x, .7f) * 3.f;
         }
-        float y_d = (d_pos.y - s_pos.y) * .2f;
+        float y_d = diff.y * .2f;
         const ImVec2 s_pos_2 = s_pos + ImVec2(x_d, y_d);
-        const ImVec2 d_pos_2 = d_pos - ImVec2(x_d, y_d);
+        const ImVec2 d_pos_2 =
+                d_pos - ImVec2(x_d, y_d) - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0);
         draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
                                   d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
                                   GenNodeColor(order), 3.0f);
@@ -596,7 +598,6 @@ private:
     }
 
     void main() {
-        // TODO
         const std::map<std::string, Node>& nodes = core.getNodes();
 
         // Draw links
@@ -879,8 +880,12 @@ private:
             const ImU32 SLOT_NML_COLOR = GenNodeColor(order_idx);
             const ImU32 inp_col = inp_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
             const ImU32 out_col = out_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
-            draw_list->AddCircleFilled(inp_slot, SLOT_RADIUS, inp_col);
-            draw_list->AddCircleFilled(out_slot, SLOT_RADIUS, out_col);
+            if (order_idx != 0) {
+                draw_list->AddCircleFilled(inp_slot, SLOT_RADIUS, inp_col);
+            }
+            if (order_idx != 1) {
+                draw_list->AddCircleFilled(out_slot, SLOT_RADIUS, out_col);
+            }
         }
     }
 
