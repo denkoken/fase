@@ -20,7 +20,6 @@ void Add(const int& a, const int& b, int& dst) {
 };
 
 struct Y {
-    Y() {}
     Y(int a, float b, std::string c) : a(a), b(b), c(c) {}
 
     int a;

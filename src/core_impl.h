@@ -24,15 +24,34 @@ bool exists(const std::vector<T>& vec, const T& key) {
 }
 
 template <std::size_t N>
-bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
-                         std::array<Variable, N>& dst_args, size_t idx = 0) {
+auto CompleteDefaultArgs(int, const std::array<Variable, N>& src_args,
+                         std::array<Variable, N>& dst_args, size_t idx = 0) -> bool {
     (void)src_args, (void)dst_args, (void)idx;
     return true;
 }
 
 template <std::size_t N, typename Head, typename... Tail>
-bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
-                         std::array<Variable, N>& dst_args, size_t idx = 0) {
+auto CompleteDefaultArgs(bool, const std::array<Variable, N>& src_args,
+                         std::array<Variable, N>& dst_args, size_t idx = 0) -> bool {
+    if (src_args[idx].template isSameType<Head>()) {
+        // Use input argument
+        dst_args[idx] = src_args[idx];
+    } else if (src_args[idx].template isSameType<void>()) {
+        // Create by default constructor
+        return false;
+    } else {
+        // Invalid type
+        return false;
+    }
+
+    // Recursive call
+    return CompleteDefaultArgs<N, Tail...>(0, src_args, dst_args, idx + 1);
+}
+
+template <std::size_t N, typename Head, typename... Tail>
+auto CompleteDefaultArgs(int, const std::array<Variable, N>& src_args,
+                         std::array<Variable, N>& dst_args, size_t idx = 0)
+            -> decltype(typename std::remove_reference<Head>::type(), bool()) {
     if (src_args[idx].template isSameType<Head>()) {
         // Use input argument
         dst_args[idx] = src_args[idx];
@@ -46,7 +65,7 @@ bool CompleteDefaultArgs(const std::array<Variable, N>& src_args,
     }
 
     // Recursive call
-    return CompleteDefaultArgs<N, Tail...>(src_args, dst_args, idx + 1);
+    return CompleteDefaultArgs<N, Tail...>(0, src_args, dst_args, idx + 1);
 }
 
 template <typename T>
@@ -79,7 +98,7 @@ bool FaseCore::addFunctionBuilder(
 
     // Check input types
     std::array<Variable, sizeof...(Args)> args;
-    if (!CompleteDefaultArgs<sizeof...(Args), Args...>(default_args, args)) {
+    if (!CompleteDefaultArgs<sizeof...(Args), Args...>(0, default_args, args)) {
         return false;
     }
 

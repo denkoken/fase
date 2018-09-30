@@ -541,9 +541,6 @@ inline char* FromString<char*>(const std::string& str) {
 }
 
 inline std::vector<std::string> GetArgStrs(std::string args_str) {
-    // std::cout << "==getArgStrs==" << std::endl;
-
-    // std::cout << '|' << args_str << '|' << std::endl;
 
     while (args_str.find(' ') == 0 || args_str.find('{') == 0 ||
            args_str.find('(') == 0) {
@@ -577,12 +574,6 @@ inline std::vector<std::string> GetArgStrs(std::string args_str) {
         }
     }
     dst.push_back(buf.back().str());
-
-    // for (auto& d : dst) {
-    //     std::cout << "    " << d << std::endl;
-    // }
-
-    // std::cout << "====" << std::endl;
 
     return dst;
 }

@@ -6,14 +6,20 @@ cmake_minimum_required(VERSION 3.5.1)
 option(BUILD_GLFW "Build glfw libraries and link" ON)
 option(BUILD_EXAMPLE "Build example codes" ON)
 option(BUILD_TEST "Build test codes" ON)
-message(STATUS "Build glfw: ${BUILD_GLFW}, examples: ${BUILD_EXAMPLE}, tests: ${BUILD_TEST}")
+option(USE_CPP_SEVENTEEN "Use c++ 17" OFF)
+message(STATUS "Build glfw: ${BUILD_GLFW}, examples: ${BUILD_EXAMPLE}, tests: ${BUILD_TEST}, Use c++ 17: ${USE_CPP_SEVENTEEN}")
 
 
 # ------------------------------------------------------------------------------
 # ----------------------------------- Common -----------------------------------
 # ------------------------------------------------------------------------------
 project(fase CXX C)
-set (CMAKE_CXX_STANDARD 17)  # C++ 17
+
+if (USE_CPP_SEVENTEEN)
+    set (CMAKE_CXX_STANDARD 17)  # C++ 17
+else()
+    set (CMAKE_CXX_STANDARD 14)  # C++ 14
+endif()
 
 # Print make commands for debug
 # set(CMAKE_VERBOSE_MAKEFILE 1)
@@ -38,7 +44,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warning_options "-Wall -Wextra -Wconversion")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-	set(warning_options "-Wall -Wextra -Wcast-align -Wcast-qual \
+    set(warning_options "-Wall -Wextra -Wcast-align -Wcast-qual \
                          -Wctor-dtor-privacy -Wdisabled-optimization \
                          -Wformat=2 -Winit-self \
                          -Wmissing-declarations -Wmissing-include-dirs \
