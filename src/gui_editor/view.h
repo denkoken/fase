@@ -16,6 +16,7 @@ namespace fase {
 
 constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
 constexpr char RUNNING_ERROR_RESPONSE_ID[] = "RUNNING_ERROR_RESPONSE_ID";
+constexpr char CORE_UPDATED_KEY[] = "CORE_UPDATED_KEY";
 
 // Label wrapper for suffix
 class LabelWrapper {
@@ -39,6 +40,8 @@ struct GUIState {
     std::vector<std::string> selected_nodes;
     std::string hovered_node_name;
     std::vector<std::string> node_order;
+
+    std::vector<std::string> popup_issue;
 };
 
 class Content {
@@ -150,12 +153,14 @@ private:
 
     // GUI Contents
     std::vector<std::unique_ptr<Content>> menus;  // Menu bar
+    std::vector<std::unique_ptr<Content>> popups;
     std::unique_ptr<Content> node_list;
     std::unique_ptr<Content> canvas;
     std::unique_ptr<Content> args_editor;
     std::unique_ptr<Content> report_window;
 
     void setupMenus(std::function<void(Issue)>&&);
+    void setupPopups(std::function<void(Issue)>&&);
     void updateState();
 };
 

@@ -121,6 +121,7 @@ public:
           shold_stop_loop(false),
           is_running(false) {
         SetUpVarEditors(&var_editors);
+        response[CORE_UPDATED_KEY] = true;
     }
     ~Impl();
 
@@ -263,7 +264,6 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
     std::map<std::string, Variable> responses_;
 
     for (const Issue& issue : *issues) {
-        is_updated = true;
         if (issue.issue == IssuePattern::AddNode) {
             const AddNodeInfo& info = GetVar<AddNodeInfo>(issue);
             responses_[issue.id] = core->addNode(info.name, info.func_repr);
@@ -289,6 +289,7 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
         } else if (issue.issue == IssuePattern::Save) {
             const std::string& filename = GetVar<std::string>(issue);
             responses_[issue.id] = SaveFaseCore(filename, *core, utils);
+            continue;
         } else if (issue.issue == IssuePattern::Load) {
             const std::string& filename = GetVar<std::string>(issue);
             responses_[issue.id] = LoadFaseCore(filename, core, utils);
@@ -318,7 +319,11 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             responses_[issue.id] = true;
         } else {
             remains.emplace_back(std::move(issue));
+            continue;
         }
+
+        is_updated = true;
+        responses_[CORE_UPDATED_KEY] = true;
     }
     *issues = remains;
     return responses_;

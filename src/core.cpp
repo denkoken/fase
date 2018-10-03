@@ -202,7 +202,8 @@ bool FaseCore::delNode(const std::string& node_name) noexcept {
 bool FaseCore::renameNode(const std::string& old_name,
                           const std::string& new_name) {
     auto& nodes = projects[primary_project].nodes;
-    if (!exists(nodes, old_name) || !checkNodeName(new_name)) {
+    if (!exists(nodes, old_name) || !checkNodeName(new_name)
+            || IsSpecialNodeName(old_name)) {
         return false;
     }
 
@@ -510,6 +511,13 @@ void FaseCore::renameProject(const std::string& project_name) noexcept {
     projects.erase(primary_project);
     primary_project = project_name;
     projects[primary_project] = std::move(buf);
+}
+
+void FaseCore::deleteProject(const std::string& project_name) noexcept {
+    if (primary_project == project_name) {
+        return;
+    }
+    projects.erase(project_name);
 }
 
 const std::string& FaseCore::getProjectName() const noexcept {

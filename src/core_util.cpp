@@ -267,6 +267,8 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
                   const TypeUtils& utils) {
+    std::string project_name_buf = core->getProjectName();
+    std::string new_project_name = split(filename, '.')[0];
     try {
         std::ifstream input(filename);
 
@@ -282,14 +284,17 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
             ss << buf << std::endl;
         }
 
-        core->switchProject(split(filename, '.')[0]);
-        StringToCore(ss.str(), core, utils);
+        core->switchProject(new_project_name);
+        if (!StringToCore(ss.str(), core, utils)) {
+            throw std::exception();
+        }
 
         input.close();
 
         return true;
     } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        core->switchProject(project_name_buf);
+        core->deleteProject(new_project_name);
         return false;
     }
 }

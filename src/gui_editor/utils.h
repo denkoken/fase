@@ -73,6 +73,12 @@ struct Issue {
     Variable var;
 };
 
+constexpr char POPUP_ADDING_NODE[] = "adding node popup";
+constexpr char POPUP_NATIVE_CODE[] = "genarate native code popup";
+constexpr char POPUP_INPUT_OUTPUT[] = "in/output popup";
+constexpr char POPUP_PROJECT[] = "project popup";
+constexpr char POPUP_PREFERENCE[] = "preference popup";
+
 }  // namespace fase
 
 #endif  // EDITOR_GUI_UTIL_H_20180917

@@ -54,6 +54,40 @@ T SubGroup(const T& group, const Filter& f) {
     return dst;
 }
 
+template <typename ContainerA, typename ContainerB>
+ContainerA Intersection(const ContainerA& a, const ContainerB& b) {
+    ContainerA dst;
+
+    for (const auto& v : a) {
+        for (const auto& vv : b) {
+            if (v == vv) {
+                dst.push_back(v);
+                break;
+            }
+        }
+    }
+    return dst;
+}
+
+template <typename ContainerA, typename ContainerB>
+ContainerA RelativeComplement(const ContainerA& a, const ContainerB& b) {
+    ContainerA dst;
+
+    for (const auto& v : a) {
+        bool f = true;
+        for (const auto& vv : b) {
+            if (v == vv) {
+                f = false;
+                break;
+            }
+        }
+        if (f) {
+            dst.push_back(v);
+        }
+    }
+    return dst;
+}
+
 // Visible GUI node
 struct GuiNode {
     ImVec2 pos;
@@ -969,6 +1003,7 @@ private:
     size_t selected_slot_idx = 0;
     bool is_selected_slot_input = false;
 
+    std::string renaming_node;
     char new_node_name[64] = "";
 
     void renamePopUp(const char* popup_name) {
@@ -985,7 +1020,7 @@ private:
             bool success;
             if (issueButton(
                         IssuePattern::RenameNode,
-                        RenameNodeInfo{state.selected_nodes[0], new_node_name},
+                        RenameNodeInfo{renaming_node, new_node_name},
                         &success, "OK")) {
                 ImGui::CloseCurrentPopup();
             }
@@ -1013,6 +1048,20 @@ private:
                 // Open pop up window
                 ImGui::OpenPopup(label("Popup: Common context menu"));
             }
+        }
+
+        // Node menu
+        if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
+            if (ImGui::MenuItem(label("Add node"))) {
+                state.popup_issue.emplace_back(POPUP_ADDING_NODE);
+            }
+            ImGui::EndPopup();
+        }
+
+        renamePopUp("Popup: Rename node");
+
+        if (state.selected_nodes.empty()) {
+            return;
         }
 
         // Slot menu
@@ -1052,21 +1101,12 @@ private:
             bool rename = false;
             if (ImGui::MenuItem(label("Rename"))) {
                 rename = true;
+                renaming_node = state.selected_nodes[0];
             }
             ImGui::EndPopup();
             if (rename) {
                 ImGui::OpenPopup(label("Popup: Rename node"));
             }
-        }
-        renamePopUp("Popup: Rename node");
-
-        // Node menu
-        if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
-            if (ImGui::MenuItem(label("Add node"))) {
-                // Call for another class `NodeAddingGUI`
-                // request_add_node = true;
-            }
-            ImGui::EndPopup();
         }
     }
 };
@@ -1091,7 +1131,6 @@ private:
     ContextMenu context_menu;
 
     CanvasState c_state;
-    std::string prev_nodes_str;  // for check is updating core nodes.
     GUINodePositionOptimizer position_optimizer;
 
     void updateCanvasState() {
@@ -1100,9 +1139,19 @@ private:
     }
 
     void updateGuiNodes() {
+        bool updated = false;
+        getResponse(CORE_UPDATED_KEY, &updated);
+
+        if (!updated) {
+            return;
+        }
         auto& gui_nodes = c_state.gui_nodes;
 
         const std::map<std::string, Node>& nodes = core.getNodes();
+
+        auto nodes_keys = getKeys(nodes);
+        auto gui_keys = getKeys(gui_nodes);
+
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const size_t n_args = it->second.links.size();
@@ -1115,24 +1164,11 @@ private:
                 gui_nodes[node_name].alloc(n_args);
             }
         }
-        // Detect changes by the numbers of nodes and links
-        std::string nodes_str = CoreToString(core, {});
-        if (nodes_str != prev_nodes_str) {
-            prev_nodes_str = std::move(nodes_str);
-            // Remove unused GUI nodes
-            while (true) {
-                bool ok_f = true;
-                for (auto it = gui_nodes.begin(); it != gui_nodes.end(); it++) {
-                    if (nodes.count(it->first) == 0) {
-                        gui_nodes.erase(it);
-                        ok_f = false;
-                        break;
-                    }
-                }
-                if (ok_f) {
-                    break;
-                }
-            }
+
+        // Remove unused GUI nodes
+        const auto gui_d_core = RelativeComplement(gui_keys, nodes_keys);
+        for (auto& name : gui_d_core) {
+            gui_nodes.erase(name);
         }
 #if 0
         // Save argument positions
@@ -1147,9 +1183,6 @@ private:
             }
         }
 #endif
-
-        // optimize gui node positions
-        position_optimizer(preference.auto_layout);
     }
 
     void main();
@@ -1158,6 +1191,9 @@ private:
 void NodeCanvasView::main() {
     updateGuiNodes();
     updateCanvasState();
+
+    // optimize gui node positions
+    position_optimizer(preference.auto_layout);
 
     ImGui::Text("Hold middle mouse button to scroll (%f, %f)",
                 c_state.scroll_pos.x, c_state.scroll_pos.y);
@@ -1305,7 +1341,7 @@ View::View(const FaseCore& core, const TypeUtils& utils,
       utils(utils),
       var_editors(var_editors),
       preference_manager(),
-      state{preference_manager.get(), {}, {}, {}} {
+      state{preference_manager.get(), {}, {}, {}, {}} {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
     node_list = std::make_unique<NodeListView>(core, label, state, utils,
                                                add_issue_function);
@@ -1316,53 +1352,30 @@ View::View(const FaseCore& core, const TypeUtils& utils,
     report_window = std::make_unique<ReportWindow>(core, label, state, utils,
                                                    add_issue_function);
     setupMenus(add_issue_function);
+    setupPopups(add_issue_function);
 }
 
 View::~View() = default;
 
 void View::updateState() {
     // Update Node Order.
-    const std::map<std::string, Node>& nodes = core.getNodes();
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
-        const std::string& node_name = it->first;
-        // Check GUI node existence
-        if (!exists(state.node_order, node_name)) {
-            state.node_order.emplace_back(node_name);
-        }
-    }
-    while (true) {
-        bool f = true;
-        for (const std::string& name : state.node_order) {
-            if (!nodes.count(name)) {
-                erase(state.node_order, name);
-                f = false;
-            }
-        }
-        if (f) {
-            break;
-        }
+    std::vector<std::string> node_keys = getKeys(core.getNodes());
+    auto names = RelativeComplement(node_keys, state.node_order);
+    for (auto& name : names) {
+        state.node_order.emplace_back(std::move(name));
     }
 
-    // reflesh state.selected_nodes
-    while (true) {
-        bool f = true;
-        for (const std::string& name : state.selected_nodes) {
-            if (!nodes.count(name)) {
-                erase(state.selected_nodes, name);
-                f = false;
-            }
-        }
-        if (f) {
-            break;
-        }
-    }
+    state.node_order = Intersection(state.node_order, node_keys);
+    state.selected_nodes = Intersection(state.selected_nodes, node_keys);
 }
 
 std::vector<Issue> View::draw(const std::string& win_title,
                               const std::string& label_suffix,
                               const std::map<std::string, Variable>& resp) {
     issues.clear();
-    updateState();
+    if (resp.count(CORE_UPDATED_KEY)) {
+        updateState();
+    }
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin((win_title + " - " + core.getProjectName()).c_str(), NULL,
@@ -1381,6 +1394,12 @@ std::vector<Issue> View::draw(const std::string& win_title,
             ImGui::Dummy(ImVec2(5, 0));  // Spacing
         }
         ImGui::EndMenuBar();
+    }
+
+    // Popups
+    for (std::unique_ptr<Content>& popup : popups) {
+        // draw menu.
+        popup->draw(resp);
     }
 
     // Left Panel

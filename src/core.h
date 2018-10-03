@@ -86,6 +86,7 @@ public:
 
     void switchProject(const std::string& project_name) noexcept;
     void renameProject(const std::string& project_name) noexcept;
+    void deleteProject(const std::string& project_name) noexcept;
 
     const std::string& getProjectName() const noexcept;
 

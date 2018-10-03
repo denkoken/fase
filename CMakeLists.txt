@@ -173,6 +173,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/popups.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
     )
 else()
@@ -185,6 +186,7 @@ else()
         ${CMAKE_SOURCE_DIR}/src/editor_cli.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/editor.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/view.cpp
+        ${CMAKE_SOURCE_DIR}/src/gui_editor/popups.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
     )
 endif()
