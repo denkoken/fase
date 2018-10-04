@@ -159,6 +159,15 @@ std::string WrapNodeName(const std::string& node_name) {
     return node_name;
 }
 
+std::string WrapFuncName(const std::string& func_name) {
+    if (func_name == InputFuncStr()) {
+        return "Input";
+    } else if (func_name == OutputFuncStr()) {
+        return "Output";
+    }
+    return func_name;
+}
+
 void DrawCanvas(const ImVec2& scroll_pos, float size) {
     const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
     const ImVec2 win_pos = ImGui::GetCursorScreenPos();
@@ -1003,32 +1012,6 @@ private:
     size_t selected_slot_idx = 0;
     bool is_selected_slot_input = false;
 
-    std::string renaming_node;
-    char new_node_name[64] = "";
-
-    void renamePopUp(const char* popup_name) {
-        bool opened = true;
-        if (ImGui::BeginPopupModal(label(popup_name), &opened,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
-                ImGui::CloseCurrentPopup();  // Behavior of close button
-            }
-
-            ImGui::InputText(label("New node name (ID)"), new_node_name,
-                             sizeof(new_node_name));
-
-            bool success;
-            if (issueButton(
-                        IssuePattern::RenameNode,
-                        RenameNodeInfo{renaming_node, new_node_name},
-                        &success, "OK")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
-    }
-
     void main() {
         // Right click
         if (ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) &&
@@ -1057,8 +1040,6 @@ private:
             }
             ImGui::EndPopup();
         }
-
-        renamePopUp("Popup: Rename node");
 
         if (state.selected_nodes.empty()) {
             return;
@@ -1097,16 +1078,10 @@ private:
             ImGui::Separator();
             throwIssue(IssuePattern::DelNode, ImGui::MenuItem(label("Delete")),
                        state.selected_nodes[0]);
-            // TODO
-            bool rename = false;
             if (ImGui::MenuItem(label("Rename"))) {
-                rename = true;
-                renaming_node = state.selected_nodes[0];
+                state.popup_issue.emplace_back(POPUP_RENAME_NODE);
             }
             ImGui::EndPopup();
-            if (rename) {
-                ImGui::OpenPopup(label("Popup: Rename node"));
-            }
         }
     }
 };
@@ -1222,7 +1197,7 @@ void NodeCanvasView::main() {
     drawChild(context_menu);
 }
 
-// For Left panel
+// For Center panel
 class NodeArgEditView : public Content {
 public:
     template <class... Args>
@@ -1305,6 +1280,13 @@ private:
         ImGui::Text("");
         ImGui::Separator();
 
+        const Node& node = core.getNodes().at(state.selected_nodes[0]);
+
+        if (state.selected_nodes.size() == 1) {
+            ImGui::Text("%s", WrapFuncName(node.func_repr).c_str());
+            ImGui::Separator();
+        }
+
         std::vector<argIdentiry> args = getEdittingArgs();
 
         for (auto& arg : args) {
@@ -1317,7 +1299,6 @@ private:
         }
 
         // Edit Priority
-        const Node& node = core.getNodes().at(state.selected_nodes[0]);
         int priority = node.priority;
 
         ImGui::PushItemWidth(-100);

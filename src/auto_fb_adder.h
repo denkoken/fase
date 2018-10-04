@@ -801,7 +801,7 @@ private:
 
 #define Fase_CE constexpr static inline
 
-#define FaseAutoAddingFunctionBuilder__(func_name, code, c)                    \
+#define FaseAutoAddingFunctionBuilder_B(func_name, code, c)                    \
     code template <size_t... Seq>                                              \
     class AutoFunctionBuilderAdder_##func_name##c {                            \
     public:                                                                    \
@@ -929,14 +929,14 @@ private:
 
 #ifdef __COUNTER__
 #define FaseAutoAddingFunctionBuilder_(func_name, code, c) \
-    FaseAutoAddingFunctionBuilder__(func_name, code, c)
+    FaseAutoAddingFunctionBuilder_B(func_name, code, c)
 #define FaseAutoAddingFunctionBuilder(func_name, code) \
     FaseAutoAddingFunctionBuilder_(func_name, code, __COUNTER__)
 
 #else  // ifdef __COUNTER__
 
 #define FaseAutoAddingFunctionBuilder(func_name, code) \
-    FaseAutoAddingFunctionBuilder__(func_name, code, 0)
+    FaseAutoAddingFunctionBuilder_B(func_name, code, 0)
 
 #endif
 

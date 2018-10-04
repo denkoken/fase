@@ -136,7 +136,11 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
         for (size_t i = 0; i < std::get<1>(pair).arg_values.size(); i++) {
             const Variable& var = std::get<1>(pair).arg_values[i];
             std::string type = getTypeStr(var, utils);
-            sstream << type << " " << toString(type, var, utils) << " ";
+            if (exists(utils.serializers, type)) {
+                sstream << type << " " << toString(type, var, utils) << " ";
+            } else {
+                sstream << "  ";
+            }
         }
 
         sstream << std::endl;

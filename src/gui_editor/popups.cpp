@@ -1,9 +1,20 @@
 
+#include "view.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "view.h"
 #include "../core_util.h"
+
+#if __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+#define FileSystem
+using stdfs = std::experimental::filesystem;
+#elif __has_include(<filesystem>)
+#include <filesystem>
+#define FileSystem
+using stdfs = std::filesystem;
+#endif
 
 namespace fase {
 
@@ -171,7 +182,7 @@ private:
 
         bool success;
         if (throwIssue(IssuePattern::AddNode,
-                       ImGui::Button(label("OK")) || enter_pushed,
+                       ImGui::Button(label("Add Node")) || enter_pushed,
                        AddNodeInfo{name_buf, func_reprs[size_t(curr_idx)]},
                        &success)) {
             if (success) {
@@ -301,7 +312,7 @@ private:
     } pattern = Pattern::Save;
 
     bool init() {
-        std::strcpy(save_filename_buf, (core.getProjectName() + ".txt").c_str());
+        std::strcpy(save_filename_buf, (core.getProjectName()).c_str());
         combo_idx = 0;
         return true;
     }
@@ -312,16 +323,18 @@ private:
 
         ImGui::Text("File path :");
         ImGui::SameLine();
-        ImGui::InputText(label(""), save_filename_buf,
+        ImGui::PushItemWidth(-150);
+        ImGui::InputText(label(".project.txt"), save_filename_buf,
                          sizeof(save_filename_buf));
+        ImGui::PopItemWidth();
 
         if (!error_msg.empty()) {
             ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
         }
 
         bool success;
-        if (issueButton(IssuePattern::Save, std::string(save_filename_buf),
-                        &success, "OK")) {
+        if (issueButton(IssuePattern::Save, std::string(save_filename_buf) + ".project.txt",
+                        &success, "Save")) {
             if (success) {
                 ImGui::CloseCurrentPopup();
                 error_msg = "";
@@ -347,7 +360,7 @@ private:
 
         bool success;
         if (issueButton(IssuePattern::Load, std::string(load_filename_buf),
-                        &success, "OK")) {
+                        &success, "Load")) {
             if (success) {
                 ImGui::CloseCurrentPopup();
                 error_msg = "";
@@ -355,6 +368,15 @@ private:
                 error_msg = "Failed to load pipeline";  // Failed
             }
         }
+#ifdef FileSystem
+        stdfs::directory_iterator iter("."), end ;
+        for (;iter != end; iter++) {
+            std::string path_str = iter->path().filename().generic_u8string();
+            if (path_str.find(".project.txt") != std::string::npos ) {
+                std::cout << path_str << std::endl;
+            }
+        }
+#endif
     }
 
     void new_project() {
@@ -405,7 +427,7 @@ private:
 
     void layout() {
         // ImGui::BeginMenuBar();
-        ImGui::BeginChild(label("project left panel"), ImVec2(200, 400));
+        ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
         ImGui::Text("");
         ImGui::Separator();
         if (ImGui::Selectable(label("New Project"), pattern == Pattern::New)) {
@@ -426,7 +448,7 @@ private:
         ImGui::EndChild();
         ImGui::SameLine();
 
-        ImGui::BeginChild(label("project right panel"), ImVec2(300, 400));
+        ImGui::BeginChild(label("project right panel"), ImVec2(500, 400));
         if (pattern == Pattern::Save) {
             save();
         } else if (pattern == Pattern::Load) {
@@ -450,6 +472,29 @@ public:
 
     ~PreferencePopup() {}
 private:
+
+    const std::string build_status_str =
+        std::string("c++ version : ") + std::to_string(__cplusplus) +
+        "\nc++ stdlib filesystem : " +
+#ifdef FileSystem
+        "True" +
+#else
+        "False" +
+#endif
+        "\nconstexpr if : " +
+#ifdef __cpp_if_constexpr
+        "True" +
+#else
+        "False" +
+#endif
+        "\ninline variables : " +
+#ifdef __cpp_inline_variables
+        "True" +
+#else
+        "False" +
+#endif
+        "";
+
     void layout() {
 
         { // Node edit Settings
@@ -495,8 +540,48 @@ private:
             ImGui::DragInt(label("edit panel size"),
                            &preference.edit_panel_size, v_speed, v_min, v_max);
         }
-    }
 
+        ImGui::Separator();
+
+        ImGui::Text("Build Status");
+        // show Build Status
+        ImGui::InputTextMultiline(label("##build status"),
+                                  const_cast<char*>(build_status_str.c_str()),
+                                  build_status_str.size(), ImVec2(0, 0),
+                                  ImGuiInputTextFlags_ReadOnly);
+    }
+};
+
+class RenameNodePopup : public PopupContent {
+public:
+    template <class... Args>
+    RenameNodePopup(Args&&... args)
+        : PopupContent(POPUP_RENAME_NODE, false, args...) {}
+
+    ~RenameNodePopup() {}
+private:
+    std::string renaming_node;
+    char new_node_name[64] = "";
+
+    bool init() {
+        if (state.selected_nodes.empty()) {
+            return false;
+        }
+        renaming_node = state.selected_nodes[0];
+        return true;
+    }
+    void layout() {
+        ImGui::InputText(label("New node name (ID)"), new_node_name,
+                         sizeof(new_node_name));
+
+        bool success;
+        if (issueButton(
+                    IssuePattern::RenameNode,
+                    RenameNodeInfo{renaming_node, new_node_name},
+                    &success, "OK")) {
+            ImGui::CloseCurrentPopup();
+        }
+    }
 };
 
 /// Dummy class. Don't use this without a calling SetupContents().
@@ -520,7 +605,7 @@ void SetupContents<Footer>(const FaseCore&, LabelWrapper&, GUIState&,
 
 void View::setupPopups(std::function<void(Issue)>&& issue_f) {
     SetupContents<PreferencePopup, NativeCodePopup, AddingNodePopup, InputOutputPopup,
-                  ProjectPopup, Footer>(
+                  ProjectPopup, RenameNodePopup, Footer>(
             core, label, state, utils, issue_f, &popups);
 }
 

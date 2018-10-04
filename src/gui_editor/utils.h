@@ -78,6 +78,7 @@ constexpr char POPUP_NATIVE_CODE[] = "genarate native code popup";
 constexpr char POPUP_INPUT_OUTPUT[] = "in/output popup";
 constexpr char POPUP_PROJECT[] = "project popup";
 constexpr char POPUP_PREFERENCE[] = "preference popup";
+constexpr char POPUP_RENAME_NODE[] = "rename node popup";
 
 }  // namespace fase
 
