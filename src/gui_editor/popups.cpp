@@ -211,44 +211,52 @@ public:
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
 
-    char buf[64] = "";
+    char in_name_buf[64] = "";
+    char out_name_buf[64] = "";
     std::string error_msg;
 
+    size_t selected_in_arg;
+    size_t selected_out_arg;
+
+    bool init() {
+        selected_in_arg = size_t(-1);
+        selected_out_arg = size_t(-1);
+        return true;
+    }
+
     void layout() {
-        ImGui::InputText(label("Name"), buf, sizeof(buf));
+        bool success = false;
 
-        if (!error_msg.empty()) {
-            ImGui::TextColored(ImVec4(255.f, 0.f, 0.f, 255.f), "%s",
-                               error_msg.c_str());
-        }
+        const Node& input_node = core.getNodes().at(InputNodeStr());
+        const Function& input_func = core.getFunctions().at(InputFuncStr());
 
-        bool success;
-        if (issueButton(IssuePattern::AddInput, std::string(buf), &success,
-                        "Make input")) {
-            if (success) {
-                ImGui::CloseCurrentPopup();
-                error_msg = "";
-            } else {
-                error_msg = "Invalid Name";  // Failed
+        const Node& output_node = core.getNodes().at(OutputNodeStr());
+        const Function& output_func = core.getFunctions().at(OutputFuncStr());
+
+        const ImVec2 panel_size(450,
+                                120 + 25 * std::max(input_node.links.size(),
+                                                   output_node.links.size()));
+        ImGui::BeginChild(label("input_panel"), panel_size, true);
+
+        for (size_t idx = 0; idx < input_func.arg_names.size(); idx++) {
+            const std::string& arg_name = input_func.arg_names[idx];
+            if (ImGui::Selectable(label(arg_name), selected_in_arg == idx)) {
+                selected_in_arg = idx;
+                selected_out_arg = size_t(-1);
             }
+            ImGui::Spacing();
         }
 
-        if (issueButton(IssuePattern::AddOutput, std::string(buf), &success,
-                        "Make output")) {
-            if (success) {
-                ImGui::CloseCurrentPopup();
-                error_msg = "";
-            } else {
-                error_msg = "Invalid Name";  // Failed
+        ImGui::Spacing();
+
+        if (input_node.links.size() > 0 && selected_in_arg != size_t(-1)) {
+            bool success_ = false;
+            if (issueButton(IssuePattern::DelInput, selected_in_arg,
+                        &success_, "Delelte input")) {
+                if (success_) {
+                    selected_in_arg = size_t(-1);
+                }
             }
-        }
-
-        if (core.getNodes().at(InputNodeStr()).links.size() > 0) {
-            issueButton(
-                    IssuePattern::DelInput,
-                    size_t(core.getNodes().at(InputNodeStr()).links.size() -
-                           1),
-                    &success, "Delelte input");
 #if 0
             // TODO
             ImGui::SameLine();
@@ -262,14 +270,43 @@ private:
                 ImGui::CloseCurrentPopup();
             }
 #endif
+            ImGui::Spacing();
         }
-        if (core.getNodes().at(OutputNodeStr()).links.size() > 0) {
-            issueButton(IssuePattern::DelOutput,
-                        size_t(core.getNodes()
-                                       .at(OutputNodeStr())
-                                       .links.size() -
-                               1),
-                        &success, "Delelte output");
+        ImGui::InputText(label("New Input Name"), in_name_buf,
+                         sizeof(in_name_buf));
+
+        if (issueButton(IssuePattern::AddInput, std::string(in_name_buf), &success,
+                        "Make input")) {
+            if (success) {
+                error_msg = "";
+                in_name_buf[0] = '\0';
+            } else {
+                error_msg = "Invalid Name";  // Failed
+            }
+        }
+        ImGui::EndChild();
+
+        ImGui::SameLine();
+        ImGui::BeginChild(label("output_panel"), panel_size, true);
+
+        for (size_t idx = 0; idx < output_func.arg_names.size(); idx++) {
+            const std::string& arg_name = output_func.arg_names[idx];
+            if (ImGui::Selectable(label(arg_name), selected_out_arg == idx)) {
+                selected_in_arg = size_t(-1);
+                selected_out_arg = idx;
+            }
+            ImGui::Spacing();
+        }
+        ImGui::Spacing();
+
+        if (output_node.links.size() > 0 && selected_out_arg != size_t(-1)) {
+            bool success_ = false;
+            if (issueButton(IssuePattern::DelOutput, selected_out_arg,
+                        &success_, "Delelte output")) {
+                if (success_) {
+                    selected_out_arg = size_t(-1);
+                }
+            }
 #if 0
             // TODO
             ImGui::SameLine();
@@ -283,6 +320,25 @@ private:
                 ImGui::CloseCurrentPopup();
             }
 #endif
+            ImGui::Spacing();
+        }
+
+        ImGui::InputText(label("New Output Name"), out_name_buf,
+                         sizeof(out_name_buf));
+        if (issueButton(IssuePattern::AddOutput, std::string(out_name_buf),
+                        &success, "Make output")) {
+            if (success) {
+                error_msg = "";
+                out_name_buf[0] = '\0';
+            } else {
+                error_msg = "Invalid Name";  // Failed
+            }
+        }
+        ImGui::EndChild();
+
+        if (!error_msg.empty()) {
+            ImGui::TextColored(ImVec4(255.f, 0.f, 0.f, 255.f), "%s",
+                               error_msg.c_str());
         }
     }
 };
@@ -547,7 +603,7 @@ private:
         // show Build Status
         ImGui::InputTextMultiline(label("##build status"),
                                   const_cast<char*>(build_status_str.c_str()),
-                                  build_status_str.size(), ImVec2(0, 0),
+                                  build_status_str.size(), ImVec2(-1, 0),
                                   ImGuiInputTextFlags_ReadOnly);
     }
 };

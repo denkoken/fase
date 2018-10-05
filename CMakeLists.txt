@@ -116,40 +116,53 @@ endif()
 # ImGui
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_library(gl3w STATIC
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+    )
     add_library(imgui STATIC
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
-        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
     )
 else()
+    add_library(gl3w SHARED
+        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+    )
     add_library(imgui SHARED
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
         ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
-        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
     )
 endif()
+
 set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/third_party/imgui
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples
                        ${CMAKE_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w
                        /usr/local/include)
 
+list(APPEND IMGUI_LIBS gl3w)
+
 if (BUILD_GLFW)
-    setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "glfw")
+    list(APPEND IMGUI_LIBS "glfw")
 else()
-    setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "GLFW")
+    list(APPEND IMGUI_LIBS "GLFW")
 endif()
+
+setup_target_simple(gl3w "${IMGUI_INCLUDE_DIRS}" "")
+
+setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "${IMGUI_LIBS}")
+
 if ((NOT BUILD_GLFW) AND APPLE)
     SET_TARGET_PROPERTIES(imgui PROPERTIES LINK_FLAGS "-framework CoreFoundation")
+    SET_TARGET_PROPERTIES(gl3w PROPERTIES LINK_FLAGS "-framework CoreFoundation")
 endif()
 
 list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
-list(APPEND FASE_LIBRARY imgui)
+list(APPEND FASE_LIBRARY imgui gl3w)
 
 # For tests
 if (BUILD_TEST)
@@ -176,7 +189,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         ${CMAKE_SOURCE_DIR}/src/gui_editor/popups.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
     )
-else()
+else ()
     add_library(fase SHARED
         ${CMAKE_SOURCE_DIR}/src/fase.cpp
         ${CMAKE_SOURCE_DIR}/src/core.cpp
@@ -189,7 +202,8 @@ else()
         ${CMAKE_SOURCE_DIR}/src/gui_editor/popups.cpp
         ${CMAKE_SOURCE_DIR}/src/gui_editor/menus.cpp
     )
-endif()
+endif ()
+
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)

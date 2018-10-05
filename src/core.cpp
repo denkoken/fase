@@ -47,6 +47,38 @@ void delRevLink(const Node& node, const size_t& idx, FaseCore* core) {
     }
 }
 
+bool checkVarName(const std::string& name) {
+    if (name.empty()) {
+        return false;
+    }
+
+    std::string invalid_strs[] = {
+        " ", "__", ",", "@", ":", "&", "%", "+", "-", "\\", "^", "~", "=",
+        "(", ")", "#", "$", "\"", "!", "<", ">", "?", "{", "}", "[", "]", "`",
+    };
+
+    for (auto& str : invalid_strs) {
+        if (name.find(str) != std::string::npos) {
+            return false;
+        }
+    }
+
+    // check _ + Large character start
+    for (size_t i = 0; i < 27; i++) {
+        if (name.find("_" + std::string({char('A' + i)})) == 0) {
+            return false;
+        }
+    }
+    // check Number start
+    for (size_t i = 0; i < 10; i++) {
+        if (name.find(std::string({char('0' + i)})) == 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 std::vector<Variable*> BindVariables(
         const Node& node,
         const std::map<std::string, std::vector<Variable>>& exists_variables,
@@ -396,7 +428,7 @@ void FaseCore::clearNodeArg(const std::string& node_name,
 }
 
 bool FaseCore::addInput(const std::string& name) {
-    if (name.empty()) {
+    if (!checkVarName(name)) {
         return false;
     }
 
@@ -426,12 +458,14 @@ bool FaseCore::delInput(const size_t& idx) {
         return false;
     }
 
-    // TODO
-
     Node& node = projects[primary_project].nodes[InputNodeStr()];
     Function& func = functions[InputFuncStr()];
 
-    delRevLink(node, idx, this);
+    // store all linking info, and delete all links.
+    const std::vector<std::tuple<size_t, Link>> rev_links_buf = node.rev_links;
+    for (size_t i = 0; i < node.links.size(); i++) {
+        delRevLink(node, i, this);
+    }
 
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
@@ -444,11 +478,22 @@ bool FaseCore::delInput(const size_t& idx) {
     node.links.erase(std::begin(node.links) + long(idx));
     node.arg_values.erase(std::begin(node.arg_values) + long(idx));
 
+    for (const auto& old_rev_link : rev_links_buf) {
+        size_t link_slot = std::get<0>(old_rev_link);
+        if (link_slot == idx) {
+            continue;
+        } else if (link_slot > idx) {
+            link_slot -= 1;
+        }
+        Link link = std::get<1>(old_rev_link);
+        addLink(InputNodeStr(), link_slot, link.node_name, link.arg_idx);
+    }
+
     return true;
 }
 
 bool FaseCore::addOutput(const std::string& name) {
-    if (name.empty()) {
+    if (!checkVarName(name)) {
         return false;
     }
 
@@ -477,11 +522,16 @@ bool FaseCore::delOutput(const size_t& idx) {
     if (idx >= functions[OutputFuncStr()].arg_names.size()) {
         return false;
     }
-    // TODO
 
-    delLink(OutputFuncStr(), idx);
-
+    Node& node = projects[primary_project].nodes[OutputNodeStr()];
     Function& func = functions[OutputFuncStr()];
+
+    // store all linking info, and delete all links.
+    const std::vector<Link> links_buf = node.links;
+    for (size_t i = 0; i < node.links.size(); i++) {
+        delLink(OutputFuncStr(), i);
+    }
+
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
     func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + long(idx));
@@ -489,11 +539,20 @@ bool FaseCore::delOutput(const size_t& idx) {
     func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
     func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
-    Node& node = projects[primary_project].nodes[OutputNodeStr()];
-
     node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
     node.links.erase(std::begin(node.links) + long(idx));
     node.arg_values.erase(std::begin(node.arg_values) + long(idx));
+
+    for (size_t i = 0; i < node.links.size(); i++) {
+        size_t link_slot = i;
+        if (i == idx) {
+            continue;
+        } else if (i > idx) {
+            link_slot -= 1;
+        }
+        const auto& link = links_buf[link_slot];
+        addLink(link.node_name, link.arg_idx, OutputNodeStr(), link_slot);
+    }
 
     return true;
 }

@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <sstream>
+#include <mutex>
+#include <atomic>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -624,10 +626,9 @@ private:
         if (diff.x < 0.f) {
             x_d = std::pow(-diff.x, .7f) * 3.f;
         }
-        float y_d = diff.y * .2f;
-        const ImVec2 s_pos_2 = s_pos + ImVec2(x_d, y_d);
+        const ImVec2 s_pos_2 = s_pos + ImVec2(x_d, 0);
         const ImVec2 d_pos_2 =
-                d_pos - ImVec2(x_d, y_d) - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0);
+                d_pos - ImVec2(x_d, 0) - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0);
         draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
                                   d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
                                   GenNodeColor(order), 3.0f);
@@ -1411,7 +1412,9 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     ImGui::End();  // End window
 
+    ImGui::BeginChild(label("report_window"));
     report_window->draw(resp);
+    ImGui::EndChild();
 
     return issues;
 }
