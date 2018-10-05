@@ -2,6 +2,8 @@
 #include "view.h"
 
 #include <sstream>
+#include <chrono>
+#include <cmath>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -12,6 +14,13 @@ namespace fase {
 
 namespace {
 
+inline ImVec4 operator*(const ImVec4& lhs, const float& rhs) {
+    return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
+}
+
+inline ImVec4 operator+(const ImVec4& lhs, const ImVec4& rhs) {
+    return ImVec4(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
+}
 
 class PreferenceMenu : public Content {
 public:
@@ -40,7 +49,8 @@ public:
 private:
 
     void main() {
-        if (ImGui::MenuItem(label("Show code"))) {
+        bool not_empty = core.getNodes().size() != 2;
+        if (ImGui::MenuItem(label("Show code"), NULL, false, not_empty)) {
             // Open pop up window
             state.popup_issue.emplace_back(POPUP_NATIVE_CODE);
         }
@@ -69,6 +79,8 @@ public:
     template <class... Args>
     RunPipelineMenu(Args&&... args) : Content(args...) {}
 
+    ~RunPipelineMenu(){}
+
 private:
     // Private status
     bool multi = false;
@@ -81,8 +93,9 @@ private:
     }
 
     void main() {
+        bool not_empty = core.getNodes().size() != 2;
         bool is_running = getRunning();
-        if (!is_running && ImGui::BeginMenu("Run")) {
+        if (!is_running && ImGui::BeginMenu(label("Run"), not_empty)) {
             // Run once
             if (ImGui::MenuItem(label("Run")) && !is_running) {
                 throwIssue(RUNNING_RESPONSE_ID, IssuePattern::BuildAndRun,
@@ -117,15 +130,29 @@ private:
 class NodeAddingMenu : public Content {
 public:
     template <class... Args>
-    NodeAddingMenu(Args&&... args) : Content(args...) {}
+    NodeAddingMenu(Args&&... args) :
+        Content(args...), start_t(std::chrono::system_clock::now()) {}
 
     ~NodeAddingMenu() {}
 
 private:
+    std::chrono::system_clock::time_point start_t;
 
     void main() {
+        bool empty = core.getNodes().size() == 2;
+        if (empty) {
+            using namespace std::chrono;
+            auto time = duration_cast<milliseconds>(system_clock::now() - start_t);
+            float wave = std::cosf(time.count() / 120.f);
+            ImVec4 col = ImVec4(0, 0, 1.f, 1.f) +
+                         (ImVec4(1.f, 1.f, 0, 0) * (0.2f * wave + 0.8f));
+            ImGui::PushStyleColor(ImGuiCol_Text, col);
+        }
         if (ImGui::MenuItem(label("Add node"))) {
             state.popup_issue.emplace_back(POPUP_ADDING_NODE);
+        }
+        if (empty) {
+            ImGui::PopStyleColor();
         }
     }
 };
@@ -157,7 +184,7 @@ public:
             preference.auto_layout = false;
             f = false;
         }
-        if (ImGui::MenuItem(label("Optimize layout"))) {
+        if (ImGui::MenuItem(label("Optimize layout"), NULL, false, !preference.auto_layout)) {
             f = !preference.auto_layout;
             preference.auto_layout = true;
         }

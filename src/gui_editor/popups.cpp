@@ -356,8 +356,11 @@ private:
     char load_filename_buf[128] = "fase_save.txt";
     char save_filename_buf[128];
     char project_name_buf[128] = "NewProject";
+    char rename_buf[128] = "";
     int combo_idx = 0;
     std::string error_msg;
+    int input_f = ImGuiInputTextFlags_AutoSelectAll |
+                  ImGuiInputTextFlags_AlwaysInsertMode;
 
     enum struct Pattern {
         New,
@@ -365,11 +368,12 @@ private:
         Load,
         Rename,
         Switch,
-    } pattern = Pattern::Save;
+    } pattern = Pattern::Load;
 
     bool init() {
-        std::strcpy(save_filename_buf, (core.getProjectName()).c_str());
+        std::strcpy(save_filename_buf, core.getProjectName().c_str());
         combo_idx = 0;
+        std::strcpy(rename_buf, core.getProjectName().c_str());
         return true;
     }
 
@@ -381,7 +385,7 @@ private:
         ImGui::SameLine();
         ImGui::PushItemWidth(-150);
         ImGui::InputText(label(".project.txt"), save_filename_buf,
-                         sizeof(save_filename_buf));
+                         sizeof(save_filename_buf), input_f);
         ImGui::PopItemWidth();
 
         if (!error_msg.empty()) {
@@ -408,7 +412,7 @@ private:
         ImGui::SameLine();
 
         ImGui::InputText(label(""), load_filename_buf,
-                         sizeof(load_filename_buf));
+                         sizeof(load_filename_buf), input_f);
 
         if (!error_msg.empty()) {
             ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
@@ -442,7 +446,7 @@ private:
         ImGui::Text("Project Name :");
         ImGui::SameLine();
         ImGui::InputText(label(""), project_name_buf,
-                         sizeof(project_name_buf));
+                         sizeof(project_name_buf), input_f);
 
         bool success;
         if (issueButton(IssuePattern::SwitchProject,
@@ -459,12 +463,12 @@ private:
         ImGui::Text("Project New Name :");
         ImGui::SameLine();
         // Input elements
-        ImGui::InputText(label(""), project_name_buf,
-                         sizeof(project_name_buf));
+        ImGui::InputText(label(""), rename_buf,
+                         sizeof(rename_buf), input_f);
 
         bool success;
         if (issueButton(IssuePattern::RenameProject,
-                        std::string(project_name_buf), &success,
+                        std::string(rename_buf), &success,
                         "Rename")) {
             ImGui::CloseCurrentPopup();
         }
@@ -495,9 +499,11 @@ private:
         if (ImGui::Selectable(label("Load Project"), pattern == Pattern::Load)) {
             pattern = Pattern::Load;
         }
+#if 0
         if (ImGui::Selectable(label("Switch Project"), pattern == Pattern::Switch)) {
             pattern = Pattern::Switch;
         }
+#endif
         if (ImGui::Selectable(label("Rename Project"), pattern == Pattern::Rename)) {
             pattern = Pattern::Rename;
         }
