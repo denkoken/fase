@@ -532,7 +532,7 @@ inline char* FromString<char*>(const std::string& str) {
     }
 
     // check fase::for_macro::Delete.
-    char* ch_a = new char[str_.size() + 1]; // contain '\0'.
+    char* ch_a = new char[str_.size() + 1];  // contain '\0'.
 
     for (size_t i = 0; i <= str_.size(); i++) {
         ch_a[i] = str_[i];
@@ -541,7 +541,6 @@ inline char* FromString<char*>(const std::string& str) {
 }
 
 inline std::vector<std::string> GetArgStrs(std::string args_str) {
-
     while (args_str.find(' ') == 0 || args_str.find('{') == 0 ||
            args_str.find('(') == 0) {
         args_str = std::string(std::begin(args_str) + 1, std::end(args_str));
@@ -849,44 +848,66 @@ private:
                 return fase::TypeSequence<std::string>();                      \
             } else if constexpr (Fase_StrFound(code_str, Start, End, "\"")) {  \
                 return fase::TypeSequence<char*>();                            \
-            }                                                                  \
-            /* cast type */                                                    \
-            Fase_SpecifyTypeStr(code_str, Start, End, std::string)            \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned char)          \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned short)         \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned int)           \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned long long)     \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned long)          \
-            Fase_SpecifyTypeStr(code_str, Start, End, unsigned)               \
-            Fase_SpecifyTypeStr(code_str, Start, End, float)                  \
-            Fase_SpecifyTypeStr(code_str, Start, End, double)                 \
-            Fase_SpecifyTypeStr(code_str, Start, End, long double)            \
-            Fase_SpecifyTypeStr(code_str, Start, End, short)                  \
-            Fase_SpecifyTypeStr(code_str, Start, End, char)                   \
-            Fase_SpecifyTypeStr(code_str, Start, End, int)                    \
-            Fase_SpecifyTypeStr(code_str, Start, End, long)                   \
-            Fase_SpecifyTypeStr(code_str, Start, End, size_t)                 \
-            /* literal type */                                                 \
+            } /* cast type */                                                  \
+            else if constexpr (Fase_StrFound(code_str, Start, End,             \
+                                             "string")) {                      \
+                return fase::TypeSequence<std::string>();                      \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned char")) {             \
+                return fase::TypeSequence<unsigned char>();                    \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned short")) {            \
+                return fase::TypeSequence<unsigned short>();                   \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned int")) {              \
+                return fase::TypeSequence<unsigned int>();                     \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned long long")) {        \
+                return fase::TypeSequence<unsigned long long>();               \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned long")) {             \
+                return fase::TypeSequence<unsigned long>();                    \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "unsigned")) {                  \
+                return fase::TypeSequence<unsigned>();                         \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "float")) {                     \
+                return fase::TypeSequence<float>();                            \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "double")) {                    \
+                return fase::TypeSequence<double>();                           \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "long double")) {               \
+                return fase::TypeSequence<long double>();                      \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "short")) {                     \
+                return fase::TypeSequence<short>();                            \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "char")) {                      \
+                return fase::TypeSequence<char>();                             \
+            } else if constexpr (Fase_StrFound(code_str, Start, End, "int")) { \
+                return fase::TypeSequence<int>();                              \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "long")) {                      \
+                return fase::TypeSequence<long>();                             \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "size_t")) {                    \
+                return fase::TypeSequence<size_t>();                           \
+            } /* literal type */                                               \
             else if constexpr (Fase_StrFound(code_str, Start, End, "ull")) {   \
                 return fase::TypeSequence<unsigned long long>();               \
-            }                                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End, "ul")) {    \
+            } else if constexpr (Fase_StrFound(code_str, Start, End, "ul")) {  \
                 return fase::TypeSequence<unsigned long>();                    \
-            }                                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End, "l")) {     \
+            } else if constexpr (Fase_StrFound(code_str, Start, End, "l")) {   \
                 return fase::TypeSequence<long>();                             \
-            }                                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End, ".")) {     \
+            } else if constexpr (Fase_StrFound(code_str, Start, End, ".")) {   \
                 return fase::TypeSequence<double>();                           \
-            }                                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End, "f")) {     \
+            } else if constexpr (Fase_StrFound(code_str, Start, End, "f")) {   \
                 return fase::TypeSequence<float>();                            \
-            }                                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End,             \
-                                             "nullptr")) {                     \
+            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
+                                               "nullptr")) {                   \
                 return fase::TypeSequence<std::nullptr_t>();                   \
-            }                                                                  \
-            else {                                                             \
+            } else {                                                           \
                 return fase::TypeSequence<int>();                              \
             }                                                                  \
         }                                                                      \

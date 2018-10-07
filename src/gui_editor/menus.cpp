@@ -1,9 +1,9 @@
 
 #include "view.h"
 
-#include <sstream>
 #include <chrono>
 #include <cmath>
+#include <sstream>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -30,7 +30,6 @@ public:
     ~PreferenceMenu() {}
 
 private:
-
     void main() {
         if (ImGui::MenuItem(label("Preferences"), NULL)) {
             state.popup_issue.emplace_back(POPUP_PREFERENCE);
@@ -47,7 +46,6 @@ public:
     ~NativeCodeMenu() {}
 
 private:
-
     void main() {
         bool not_empty = core.getNodes().size() != 2;
         if (ImGui::MenuItem(label("Show code"), NULL, false, not_empty)) {
@@ -79,7 +77,7 @@ public:
     template <class... Args>
     RunPipelineMenu(Args&&... args) : Content(args...) {}
 
-    ~RunPipelineMenu(){}
+    ~RunPipelineMenu() {}
 
 private:
     // Private status
@@ -130,8 +128,8 @@ private:
 class NodeAddingMenu : public Content {
 public:
     template <class... Args>
-    NodeAddingMenu(Args&&... args) :
-        Content(args...), start_t(std::chrono::system_clock::now()) {}
+    NodeAddingMenu(Args&&... args)
+        : Content(args...), start_t(std::chrono::system_clock::now()) {}
 
     ~NodeAddingMenu() {}
 
@@ -142,7 +140,8 @@ private:
         bool empty = core.getNodes().size() == 2;
         if (empty) {
             using namespace std::chrono;
-            auto time = duration_cast<milliseconds>(system_clock::now() - start_t);
+            auto time =
+                    duration_cast<milliseconds>(system_clock::now() - start_t);
             float wave = std::cosf(time.count() / 120.f);
             ImVec4 col = ImVec4(0, 0, 1.f, 1.f) +
                          (ImVec4(1.f, 1.f, 0, 0) * (0.2f * wave + 0.8f));
@@ -164,8 +163,8 @@ public:
     AddInOutputMenu(Args&&... args) : Content(args...) {}
 
     ~AddInOutputMenu() {}
-private:
 
+private:
     void main() {
         if (ImGui::MenuItem(label("Add input/output"))) {
             // Open pop up window
@@ -184,7 +183,8 @@ public:
             preference.auto_layout = false;
             f = false;
         }
-        if (ImGui::MenuItem(label("Optimize layout"), NULL, false, !preference.auto_layout)) {
+        if (ImGui::MenuItem(label("Optimize layout"), NULL, false,
+                            !preference.auto_layout)) {
             f = !preference.auto_layout;
             preference.auto_layout = true;
         }
@@ -199,8 +199,8 @@ class Footer {};
 
 template <class Head, class... Tail>
 void SetupContents(const FaseCore& core, LabelWrapper& label, GUIState& state,
-                const TypeUtils& utils, std::function<void(Issue)> issue_f,
-                std::vector<std::unique_ptr<Content>>* contents) {
+                   const TypeUtils& utils, std::function<void(Issue)> issue_f,
+                   std::vector<std::unique_ptr<Content>>* contents) {
     contents->emplace_back(
             std::make_unique<Head>(core, label, state, utils, issue_f));
     SetupContents<Tail...>(core, label, state, utils, issue_f, contents);
@@ -208,8 +208,8 @@ void SetupContents(const FaseCore& core, LabelWrapper& label, GUIState& state,
 
 template <>
 void SetupContents<Footer>(const FaseCore&, LabelWrapper&, GUIState&,
-                        const TypeUtils&, std::function<void(Issue)>,
-                        std::vector<std::unique_ptr<Content>>*) {}
+                           const TypeUtils&, std::function<void(Issue)>,
+                           std::vector<std::unique_ptr<Content>>*) {}
 
 }  // namespace
 

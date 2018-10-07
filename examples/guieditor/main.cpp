@@ -2,19 +2,22 @@
 #define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
 #include <fase.h>
 
+#include <random>
 #include <stdexcept>
 #include <thread>
+#include <valarray>
+#include <vector>
 
 #include "fase_gl_utils.h"
 
-FaseAutoAddingFunctionBuilder(Add, void Add(const int& a, const int& b,
-                                            int& dst); );
+FaseAutoAddingFunctionBuilder(Add,
+                              void Add(const int& a, const int& b, int& dst););
 
 void Add(const int& a, const int& b, int& dst) {
-    dst = a + b; 
+    dst = a + b;
 }
 
-        struct X {
+struct X {
     int a = 6;
     size_t b = 123456789;
 };
@@ -58,7 +61,6 @@ void Test0(int& test_dst,
     }
 }
 );
-// clang-format on
 
 FaseAutoAddingFunctionBuilder(Square, void Square(const int& in, int& dst) {
     dst = in * in;
@@ -77,6 +79,65 @@ FaseAutoAddingFunctionBuilder(Assert, void Assert(const int& a, const int& b) {
         throw std::runtime_error("a is not equal to b!");
     }
 });
+
+FaseAutoAddingFunctionBuilder(VARandom,
+void VARandom(const size_t& size,
+              std::valarray<double>& dst) {
+    dst = std::valarray<double>(size);
+
+    std::random_device rnd;
+    std::mt19937 mt(rnd());
+    std::uniform_real_distribution<> rand100(0.0, 1.0);
+    for (size_t i = 0; i < size; i++) {
+        dst[i] = rand100(mt);
+    }
+});
+
+FaseAutoAddingFunctionBuilder(VecRandom,
+void VecRandom(const size_t& size,
+               std::vector<double>& dst) {
+    dst.resize(size);
+
+    std::random_device rnd;
+    std::mt19937 mt(rnd());
+    std::uniform_real_distribution<> rand100(0.0,
+                                             1.0);
+    for (size_t i = 0; i < size; i++) {
+        dst[i] = rand100(mt);
+    }
+});
+
+FaseAutoAddingFunctionBuilder(VASame,
+void VASame(const std::valarray<double>& a, const std::valarray<double>& b,
+            double& dst) {
+    std::valarray<double> test(a.size());
+    for (size_t j = 0; j < a.size(); j++) {
+        test += (a - b);
+    }
+    dst = test.sum();
+});
+
+FaseAutoAddingFunctionBuilder(VAAdd,
+void VAAdd(const std::valarray<double>& a,
+           const std::valarray<double>& b,
+           size_t n, std::valarray<double>& dst) {
+    for (size_t j = 0; j < n; j++) {
+        dst += a + b;
+    }
+});
+
+FaseAutoAddingFunctionBuilder(VecAdd,
+void VecAdd(const std::vector<double>& a,
+            const std::vector<double>& b,
+            size_t n, std::vector<double>& dst) {
+    dst.resize(a.size());
+    for (size_t j = 0; j < n; j++) {
+        for (size_t i = 0; i < a.size(); i++) {
+            dst[i] += a[i] + b[i];
+        }
+    }
+});
+// clang-format on
 
 int main() {
     // Create Fase instance with GUI editor

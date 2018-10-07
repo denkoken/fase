@@ -20,6 +20,25 @@ namespace fase {
 
 namespace {
 
+void replace(const std::string& fr, const std::string& to, std::string* str) {
+    const size_t len = fr.length();
+    for (size_t p = str->find(fr); p != std::string::npos; p = str->find(fr)) {
+        *str = str->replace(p, len, to);
+    }
+}
+
+std::string ToSnakeCase(const std::string& in) {
+    std::string str = in;
+    if (str[0] <= 'Z' && str[0] >= 'A') {
+        str[0] -= 'A' - 'a';
+    }
+
+    for (char c = 'A'; c <= 'Z'; c++) {
+        replace({c}, "_" + std::string({char((c - 'A') + 'a')}), &str);
+    }
+    return str;
+}
+
 // Additional ImGui components
 bool IsItemActivePreviousFrame() {
     ImGuiContext* g = ImGui::GetCurrentContext();
@@ -55,20 +74,20 @@ bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
             static_cast<void*>(&vals), int(vals.size()));
 }
 
-
-
 class PopupContent : public Content {
 public:
     template <class... Args>
     PopupContent(std::string&& popup_name, bool menu, Args&&... args)
         : Content(args...), popup_name(popup_name), menu(menu) {}
 
-    virtual ~PopupContent() {};
+    virtual ~PopupContent(){};
 
 protected:
     virtual void layout() = 0;
 
-    virtual bool init() { return true; }
+    virtual bool init() {
+        return true;
+    }
 
 private:
     std::string popup_name;
@@ -88,7 +107,8 @@ private:
         if (menu) {
             option |= ImGuiWindowFlags_MenuBar;
         }
-        if (ImGui::BeginPopupModal(label(popup_name.c_str()), &opened, option)) {
+        if (ImGui::BeginPopupModal(label(popup_name.c_str()), &opened,
+                                   option)) {
             if (!opened || IsKeyPressed(ImGuiKey_Escape)) {
                 ImGui::CloseCurrentPopup();  // Behavior of close button
             }
@@ -97,12 +117,11 @@ private:
 
             ImGui::Separator();
 
-            if (ImGui::Button(label("Done"))) {
+            if (ImGui::Button(label("Close"))) {
                 ImGui::CloseCurrentPopup();
             }
 
             ImGui::EndPopup();
-
         }
     }
 };
@@ -110,11 +129,12 @@ private:
 class NativeCodePopup : public PopupContent {
 public:
     template <class... Args>
-    NativeCodePopup(Args&&... args) : PopupContent(POPUP_NATIVE_CODE, false, args...) {}
+    NativeCodePopup(Args&&... args)
+        : PopupContent(POPUP_NATIVE_CODE, false, args...) {}
 
     ~NativeCodePopup() {}
-private:
 
+private:
     std::string native_code;
 
     bool init() {
@@ -133,9 +153,11 @@ private:
 class AddingNodePopup : public PopupContent {
 public:
     template <class... Args>
-    AddingNodePopup(Args&&... args) : PopupContent(POPUP_ADDING_NODE, false, args...) {}
+    AddingNodePopup(Args&&... args)
+        : PopupContent(POPUP_ADDING_NODE, false, args...) {}
 
     ~AddingNodePopup() {}
+
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
 
@@ -145,44 +167,47 @@ private:
     std::string error_msg;
 
     void updateFuncReprs(const std::map<std::string, Function>& functions) {
-        if (functions.size() != func_reprs.size()) {
-            // Create all again
-            func_reprs.clear();
-            for (auto it = functions.begin(); it != functions.end(); it++) {
-                if (IsSpecialFuncName(it->first)) {
-                    continue;
-                }
-                func_reprs.push_back(it->first);
+        func_reprs.clear();
+        func_reprs.emplace_back("");
+        for (auto it = functions.begin(); it != functions.end(); it++) {
+            if (IsSpecialFuncName(it->first)) {
+                continue;
             }
+            func_reprs.push_back(it->first);
         }
     }
 
     bool init() {
         error_msg.clear();
         curr_idx = 0;
-        std::stringstream ss;
-        ss << "node_" << core.getNodes().size() - 2;
-        strncpy(name_buf, ss.str().c_str(), sizeof(name_buf));
+
+        // Extract function representations
+        updateFuncReprs(core.getFunctions());
         return true;
     }
 
     void layout() {
+        if (Combo(label("Function"), &curr_idx, func_reprs)) {
+            std::string node_name = ToSnakeCase(func_reprs[size_t(curr_idx)]);
 
-        // Extract function representations
-        updateFuncReprs(core.getFunctions());
+            int i = 0;
+            while (core.getNodes().count(node_name)) {
+                node_name = ToSnakeCase(func_reprs[size_t(curr_idx)]) +
+                            std::to_string(++i);
+            }
+            strncpy(name_buf, node_name.c_str(), sizeof(name_buf));
+        }
 
-        // Input elements
-        ImGui::InputText(label("Node name (ID)"), name_buf,
-                         sizeof(name_buf));
-        const bool enter_pushed = IsKeyPressedOnItem(ImGuiKey_Enter);
-        Combo(label("Function"), &curr_idx, func_reprs);
-        if (!error_msg.empty()) {
-            ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
+        bool throw_f = false;
+
+        if (curr_idx) {
+            ImGui::InputText(label("Node name (ID)"), name_buf,
+                             sizeof(name_buf));
+            throw_f = ImGui::Button(label("Add Node"));
         }
 
         bool success;
-        if (throwIssue(IssuePattern::AddNode,
-                       ImGui::Button(label("Add Node")) || enter_pushed,
+        if (throwIssue(IssuePattern::AddNode, throw_f,
                        AddNodeInfo{name_buf, func_reprs[size_t(curr_idx)]},
                        &success)) {
             if (success) {
@@ -192,10 +217,8 @@ private:
             }
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button(label("Cancel")) ||
-            IsKeyPressed(ImGuiKey_Escape)) {
-            ImGui::CloseCurrentPopup();
+        if (!error_msg.empty()) {
+            ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
         }
     }
 };
@@ -235,7 +258,7 @@ private:
 
         const ImVec2 panel_size(450,
                                 120 + 25 * std::max(input_node.links.size(),
-                                                   output_node.links.size()));
+                                                    output_node.links.size()));
         ImGui::BeginChild(label("input_panel"), panel_size, true);
 
         for (size_t idx = 0; idx < input_func.arg_names.size(); idx++) {
@@ -251,8 +274,8 @@ private:
 
         if (input_node.links.size() > 0 && selected_in_arg != size_t(-1)) {
             bool success_ = false;
-            if (issueButton(IssuePattern::DelInput, selected_in_arg,
-                        &success_, "Delelte input")) {
+            if (issueButton(IssuePattern::DelInput, selected_in_arg, &success_,
+                            "Delelte input")) {
                 if (success_) {
                     selected_in_arg = size_t(-1);
                 }
@@ -275,8 +298,8 @@ private:
         ImGui::InputText(label("New Input Name"), in_name_buf,
                          sizeof(in_name_buf));
 
-        if (issueButton(IssuePattern::AddInput, std::string(in_name_buf), &success,
-                        "Make input")) {
+        if (issueButton(IssuePattern::AddInput, std::string(in_name_buf),
+                        &success, "Make input")) {
             if (success) {
                 error_msg = "";
                 in_name_buf[0] = '\0';
@@ -302,7 +325,7 @@ private:
         if (output_node.links.size() > 0 && selected_out_arg != size_t(-1)) {
             bool success_ = false;
             if (issueButton(IssuePattern::DelOutput, selected_out_arg,
-                        &success_, "Delelte output")) {
+                            &success_, "Delelte output")) {
                 if (success_) {
                     selected_out_arg = size_t(-1);
                 }
@@ -393,7 +416,8 @@ private:
         }
 
         bool success;
-        if (issueButton(IssuePattern::Save, std::string(save_filename_buf) + ".project.txt",
+        if (issueButton(IssuePattern::Save,
+                        std::string(save_filename_buf) + ".project.txt",
                         &success, "Save")) {
             if (success) {
                 ImGui::CloseCurrentPopup();
@@ -429,10 +453,10 @@ private:
             }
         }
 #ifdef FileSystem
-        stdfs::directory_iterator iter("."), end ;
-        for (;iter != end; iter++) {
+        stdfs::directory_iterator iter("."), end;
+        for (; iter != end; iter++) {
             std::string path_str = iter->path().filename().generic_u8string();
-            if (path_str.find(".project.txt") != std::string::npos ) {
+            if (path_str.find(".project.txt") != std::string::npos) {
                 std::cout << path_str << std::endl;
             }
         }
@@ -445,8 +469,8 @@ private:
 
         ImGui::Text("Project Name :");
         ImGui::SameLine();
-        ImGui::InputText(label(""), project_name_buf,
-                         sizeof(project_name_buf), input_f);
+        ImGui::InputText(label(""), project_name_buf, sizeof(project_name_buf),
+                         input_f);
 
         bool success;
         if (issueButton(IssuePattern::SwitchProject,
@@ -463,13 +487,11 @@ private:
         ImGui::Text("Project New Name :");
         ImGui::SameLine();
         // Input elements
-        ImGui::InputText(label(""), rename_buf,
-                         sizeof(rename_buf), input_f);
+        ImGui::InputText(label(""), rename_buf, sizeof(rename_buf), input_f);
 
         bool success;
-        if (issueButton(IssuePattern::RenameProject,
-                        std::string(rename_buf), &success,
-                        "Rename")) {
+        if (issueButton(IssuePattern::RenameProject, std::string(rename_buf),
+                        &success, "Rename")) {
             ImGui::CloseCurrentPopup();
         }
     }
@@ -493,10 +515,12 @@ private:
         if (ImGui::Selectable(label("New Project"), pattern == Pattern::New)) {
             pattern = Pattern::New;
         }
-        if (ImGui::Selectable(label("Save Project"), pattern == Pattern::Save)) {
+        if (ImGui::Selectable(label("Save Project"),
+                              pattern == Pattern::Save)) {
             pattern = Pattern::Save;
         }
-        if (ImGui::Selectable(label("Load Project"), pattern == Pattern::Load)) {
+        if (ImGui::Selectable(label("Load Project"),
+                              pattern == Pattern::Load)) {
             pattern = Pattern::Load;
         }
 #if 0
@@ -504,7 +528,8 @@ private:
             pattern = Pattern::Switch;
         }
 #endif
-        if (ImGui::Selectable(label("Rename Project"), pattern == Pattern::Rename)) {
+        if (ImGui::Selectable(label("Rename Project"),
+                              pattern == Pattern::Rename)) {
             pattern = Pattern::Rename;
         }
         ImGui::EndChild();
@@ -533,33 +558,32 @@ public:
         : PopupContent(POPUP_PREFERENCE, false, args...) {}
 
     ~PreferencePopup() {}
-private:
 
-    const std::string build_status_str =
-        std::string("c++ version : ") + std::to_string(__cplusplus) +
-        "\nc++ stdlib filesystem : " +
+private:
+    const std::string build_status_str = std::string("c++ version : ") +
+                                         std::to_string(__cplusplus) +
+                                         "\nc++ stdlib filesystem : " +
 #ifdef FileSystem
-        "True" +
+                                         "True" +
 #else
-        "False" +
+                                         "False" +
 #endif
-        "\nconstexpr if : " +
+                                         "\nconstexpr if : " +
 #ifdef __cpp_if_constexpr
-        "True" +
+                                         "True" +
 #else
-        "False" +
+                                         "False" +
 #endif
-        "\ninline variables : " +
+                                         "\ninline variables : " +
 #ifdef __cpp_inline_variables
-        "True" +
+                                         "True" +
 #else
-        "False" +
+                                         "False" +
 #endif
-        "";
+                                         "";
 
     void layout() {
-
-        { // Node edit Settings
+        {  // Node edit Settings
             constexpr int v_min = std::numeric_limits<int>::min();
             constexpr int v_max = std::numeric_limits<int>::max();
             constexpr float v_speed = 0.5;
@@ -571,7 +595,7 @@ private:
 
         ImGui::Separator();
 
-        { // Node view Settings
+        {  // Node view Settings
             ImGui::Checkbox(label("Auto Layout Canvas"),
                             &preference.auto_layout);
             ImGui::Checkbox(label("Simple Node Boxes"),
@@ -587,7 +611,7 @@ private:
 
         ImGui::Separator();
 
-        { // Panel Settings
+        {  // Panel Settings
             ImGui::Checkbox(label("Edit Panel View"),
                             &preference.enable_edit_panel);
             ImGui::Checkbox(label("Node List Panel View"),
@@ -621,6 +645,7 @@ public:
         : PopupContent(POPUP_RENAME_NODE, false, args...) {}
 
     ~RenameNodePopup() {}
+
 private:
     std::string renaming_node;
     char new_node_name[64] = "";
@@ -637,10 +662,9 @@ private:
                          sizeof(new_node_name));
 
         bool success;
-        if (issueButton(
-                    IssuePattern::RenameNode,
-                    RenameNodeInfo{renaming_node, new_node_name},
-                    &success, "OK")) {
+        if (issueButton(IssuePattern::RenameNode,
+                        RenameNodeInfo{renaming_node, new_node_name}, &success,
+                        "OK")) {
             ImGui::CloseCurrentPopup();
         }
     }
@@ -651,8 +675,8 @@ class Footer {};
 
 template <class Head, class... Tail>
 void SetupContents(const FaseCore& core, LabelWrapper& label, GUIState& state,
-                const TypeUtils& utils, std::function<void(Issue)> issue_f,
-                std::vector<std::unique_ptr<Content>>* contents) {
+                   const TypeUtils& utils, std::function<void(Issue)> issue_f,
+                   std::vector<std::unique_ptr<Content>>* contents) {
     contents->emplace_back(
             std::make_unique<Head>(core, label, state, utils, issue_f));
     SetupContents<Tail...>(core, label, state, utils, issue_f, contents);
@@ -660,15 +684,15 @@ void SetupContents(const FaseCore& core, LabelWrapper& label, GUIState& state,
 
 template <>
 void SetupContents<Footer>(const FaseCore&, LabelWrapper&, GUIState&,
-                        const TypeUtils&, std::function<void(Issue)>,
-                        std::vector<std::unique_ptr<Content>>*) {}
+                           const TypeUtils&, std::function<void(Issue)>,
+                           std::vector<std::unique_ptr<Content>>*) {}
 
-} // namespace
+}  // namespace
 
 void View::setupPopups(std::function<void(Issue)>&& issue_f) {
-    SetupContents<PreferencePopup, NativeCodePopup, AddingNodePopup, InputOutputPopup,
-                  ProjectPopup, RenameNodePopup, Footer>(
+    SetupContents<PreferencePopup, NativeCodePopup, AddingNodePopup,
+                  InputOutputPopup, ProjectPopup, RenameNodePopup, Footer>(
             core, label, state, utils, issue_f, &popups);
 }
 
-} // namespace fase
+}  // namespace fase

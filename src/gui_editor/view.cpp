@@ -1,10 +1,10 @@
 
 #include "view.h"
 
-#include <cmath>
-#include <sstream>
-#include <mutex>
 #include <atomic>
+#include <cmath>
+#include <mutex>
+#include <sstream>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -97,6 +97,7 @@ struct GuiNode {
     std::vector<ImVec2> arg_poses;
     std::vector<char> arg_inp_hovered;
     std::vector<char> arg_out_hovered;
+    size_t id = size_t(-1);
 
     size_t arg_size() const {
         return arg_poses.size();
@@ -618,8 +619,7 @@ private:
     size_t hovered_slot_idx_prev = 0;
     bool is_hovered_slot_input_prev = false;
 
-    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
-                  const size_t& order) {
+    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos, const size_t& id) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         const ImVec2 diff = d_pos - s_pos;
         float x_d = std::abs(diff.x) * .7f;
@@ -631,14 +631,13 @@ private:
                 d_pos - ImVec2(x_d, 0) - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0);
         draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
                                   d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
-                                  GenNodeColor(order), 3.0f);
+                                  GenNodeColor(id), 3.0f);
         // Arrow's triangle
         const ImVec2 t_pos_1 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
         const ImVec2 t_pos_2 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
-        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2,
-                                     GenNodeColor(order));
+        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, GenNodeColor(id));
     }
 
     void main() {
@@ -664,10 +663,9 @@ private:
                 const ImVec2 d_pos =
                         gui_nodes.at(node_name).getInputSlot(dst_idx);
 
-                const size_t src_node_idx = getIndex(
-                        state.node_order, node.links[dst_idx].node_name);
+                const size_t id = gui_nodes[node.links[dst_idx].node_name].id;
 
-                drawLink(s_pos, d_pos, src_node_idx);
+                drawLink(s_pos, d_pos, id);
             }
         }
 
@@ -707,13 +705,11 @@ private:
                 const GuiNode& gui_node = gui_nodes.at(hovered_slot_name_prev);
                 const size_t& arg_idx = hovered_slot_idx_prev;
                 if (is_hovered_slot_input_prev) {
-                    drawLink(
-                            mouse_pos, gui_node.getInputSlot(arg_idx),
-                            getIndex(state.node_order, hovered_slot_name_prev));
+                    drawLink(mouse_pos, gui_node.getInputSlot(arg_idx),
+                             gui_node.id);
                 } else {
-                    drawLink(
-                            gui_node.getOutputSlot(arg_idx), mouse_pos,
-                            getIndex(state.node_order, hovered_slot_name_prev));
+                    drawLink(gui_node.getOutputSlot(arg_idx), mouse_pos,
+                             gui_node.id);
                 }
             } else {
                 if (c_state.hovered_slot_name.empty() ||
@@ -892,7 +888,7 @@ private:
     }
 
     void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
-                     const bool is_active, const size_t order_idx) {
+                     const bool is_active, const size_t id) {
         const ImVec2 node_rect_max = node_rect_min + node_size;
         ImGui::InvisibleButton(label("node"), node_size);
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -907,10 +903,10 @@ private:
         const ImVec2 node_title_rect_max =
                 node_rect_min + ImVec2(node_size.x, line_height + pad_height);
         draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
-                                 GenNodeColor(order_idx), 4.f);
+                                 GenNodeColor(id), 4.f);
     }
 
-    void drawLinkSlots(const GuiNode& gui_node, const size_t& order_idx) {
+    void drawLinkSlots(const GuiNode& gui_node) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         const size_t n_args = gui_node.arg_poses.size();
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
@@ -921,13 +917,13 @@ private:
             const char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
             const char& out_hov = gui_node.arg_out_hovered[arg_idx];
             // Draw
-            const ImU32 SLOT_NML_COLOR = GenNodeColor(order_idx);
+            const ImU32 SLOT_NML_COLOR = GenNodeColor(gui_node.id);
             const ImU32 inp_col = inp_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
             const ImU32 out_col = out_hov ? SLOT_ACT_COLOR : SLOT_NML_COLOR;
-            if (order_idx != 0) {
+            if (gui_node.id != 0) {
                 draw_list->AddCircleFilled(inp_slot, SLOT_RADIUS, inp_col);
             }
-            if (order_idx != 1) {
+            if (gui_node.id != 1) {
                 draw_list->AddCircleFilled(out_slot, SLOT_RADIUS, out_col);
             }
         }
@@ -967,10 +963,10 @@ private:
             draw_list->ChannelsSetCurrent(0);  // Background
             ImGui::SetCursorScreenPos(node_rect_min);
             drawNodeBox(node_rect_min, gui_node.size,
-                        exists(state.selected_nodes, node_name), order_idx);
+                        exists(state.selected_nodes, node_name), gui_node.id);
 
             // Draw link slot
-            drawLinkSlots(gui_node, order_idx);
+            drawLinkSlots(gui_node);
 
             // Selection
             if (!any_active_old && ImGui::IsAnyItemActive()) {
@@ -1109,6 +1105,22 @@ private:
     CanvasState c_state;
     GUINodePositionOptimizer position_optimizer;
 
+    size_t getUnusedID() {
+        size_t i = 0;
+        while (true) {
+            bool f = true;
+            for (auto& pair : c_state.gui_nodes) {
+                if (std::get<1>(pair).id == i) {
+                    f = false;
+                }
+            }
+            if (f) {
+                return i;
+            }
+            i += 1;
+        }
+    }
+
     void updateCanvasState() {
         state.hovered_node_name.clear();
         c_state.hovered_slot_name.clear();
@@ -1133,7 +1145,7 @@ private:
             const size_t n_args = it->second.links.size();
             // Check GUI node existence
             if (!gui_nodes.count(node_name)) {
-                gui_nodes[node_name];
+                gui_nodes[node_name].id = getUnusedID();
             }
             if (gui_nodes[node_name].arg_size() != n_args) {
                 // Create new node and allocate for link slots
