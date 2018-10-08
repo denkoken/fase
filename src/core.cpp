@@ -340,7 +340,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
     // Register
     nodes[dst_node_name].links[dst_arg_idx] = {src_node_name, src_arg_idx};
     nodes[src_node_name].rev_links.push_back(
-            {src_arg_idx, {dst_node_name, dst_arg_idx}});
+            {src_arg_idx, Link{dst_node_name, dst_arg_idx}});
 
     // Test for loop link
     auto node_order = GetCallOrder(nodes);
