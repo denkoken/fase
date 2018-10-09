@@ -6,6 +6,8 @@
 #include <cmath>
 #include <sstream>
 #include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "../core_util.h"
 #include "view.h"
