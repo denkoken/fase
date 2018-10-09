@@ -121,6 +121,7 @@ FaseAutoAddingFunctionBuilder(VAAdd,
 void VAAdd(const std::valarray<double>& a,
            const std::valarray<double>& b,
            size_t n, std::valarray<double>& dst) {
+    dst = std::valarray<double>(a.size());
     for (size_t j = 0; j < n; j++) {
         dst += a + b;
     }
@@ -130,7 +131,7 @@ FaseAutoAddingFunctionBuilder(VecAdd,
 void VecAdd(const std::vector<double>& a,
             const std::vector<double>& b,
             size_t n, std::vector<double>& dst) {
-    dst.resize(a.size());
+    dst = std::vector<double>(a.size(), 0.0);
     for (size_t j = 0; j < n; j++) {
         for (size_t i = 0; i < a.size(); i++) {
             dst[i] += a[i] + b[i];

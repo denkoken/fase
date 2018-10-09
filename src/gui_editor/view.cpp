@@ -402,6 +402,7 @@ private:
     ViewList view = ViewList::Nodes;
     SortRule sort_rule = SortRule::Name;
     std::map<std::string, ResultReport> report_box;
+    std::map<std::string, unsigned long long> time_buffer;
 
     std::string err_message;
     const ImVec4 err_message_color = ImVec4(1.f, .1f, 0.f, 1.f);
@@ -1351,7 +1352,7 @@ View::View(const FaseCore& core, const TypeUtils& utils,
 
 View::~View() = default;
 
-void View::updateState() {
+void View::updateState(const std::map<std::string, Variable>& resp) {
     // Update Node Order.
     std::vector<std::string> node_keys = getKeys(core.getNodes());
     auto names = RelativeComplement(node_keys, state.node_order);
@@ -1361,6 +1362,11 @@ void View::updateState() {
 
     state.node_order = Intersection(state.node_order, node_keys);
     state.selected_nodes = Intersection(state.selected_nodes, node_keys);
+    if (resp.count(REPORT_RESPONSE_ID)) {
+        state.is_running = true;
+    } else {
+        state.is_running = false;
+    }
 }
 
 std::vector<Issue> View::draw(const std::string& win_title,
@@ -1368,7 +1374,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
                               const std::map<std::string, Variable>& resp) {
     issues.clear();
     if (resp.count(CORE_UPDATED_KEY)) {
-        updateState();
+        updateState(resp);
     }
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);

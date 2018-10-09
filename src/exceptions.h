@@ -52,6 +52,21 @@ private:
     std::string err_message;
 };
 
+class ErrorThrownByNode : public std::runtime_error {
+public:
+    ErrorThrownByNode(const std::string& node_name,
+                      const std::string& err_message)
+        : runtime_error("ErrorThrownByNode"),
+          node_name(node_name), err_message(err_message) {}
+
+    std::string node_name;
+    std::string err_message;
+
+    const char* what() const noexcept {
+        return ("[" + node_name + "] " + err_message).c_str();
+    }
+};
+
 }  // namespace fase
 
 #endif  // FASE_EXCEPTIONS_H_20180617

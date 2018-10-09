@@ -42,6 +42,8 @@ struct GUIState {
     std::vector<std::string> node_order;
 
     std::vector<std::string> popup_issue;
+
+    bool is_running = false;
 };
 
 class Content {
@@ -161,7 +163,7 @@ private:
 
     void setupMenus(std::function<void(Issue)>&&);
     void setupPopups(std::function<void(Issue)>&&);
-    void updateState();
+    void updateState(const std::map<std::string, Variable>& resp);
 };
 
 }  // namespace fase

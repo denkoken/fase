@@ -128,6 +128,27 @@ void initNode(std::map<std::string, Node>* nodes) {
     };
 }
 
+std::function<void()> wrapPipe(const std::string& node_name,
+                               std::function<void()>&& f) {
+    return [node_name, f = std::forward<std::function<void()>>(f)]() {
+        try {
+            f();
+        }
+        catch(std::exception& e) {
+            throw ErrorThrownByNode(node_name, e.what());
+        }
+        catch(std::string e) {
+            throw ErrorThrownByNode(node_name, e);
+        }
+        catch(long long e) {
+            throw ErrorThrownByNode(node_name, std::to_string(e));
+        }
+        catch(...) {
+            throw ErrorThrownByNode(node_name, "something went wrong.");
+        }
+    };
+}
+
 }  // anonymous namespace
 
 bool FaseCore::checkNodeName(const std::string& name) {
@@ -607,9 +628,10 @@ std::function<void()> FaseCore::buildNode(
         return [] {};
     }
     if (report_box_ != nullptr) {
-        return func.builder->build(args, &(*report_box_)[node_name]);
+        return wrapPipe(node_name,
+                        func.builder->build(args, &(*report_box_)[node_name]));
     } else {
-        return func.builder->build(args);
+        return wrapPipe(node_name, func.builder->build(args));
     }
 }
 
@@ -634,11 +656,22 @@ void FaseCore::buildNodesParallel(
         pipeline.push_back([funcs, report_box_, step] {
             auto start = std::chrono::system_clock::now();
             std::vector<std::thread> ths;
+            std::exception_ptr ep;
             for (auto& func : funcs) {
-                ths.emplace_back(func);
+                ths.emplace_back([&ep, &func]() {
+                    try {
+                        func();
+                    }
+                    catch(...) {
+                        ep = std::current_exception();
+                    }
+                });
             }
             for (auto& th : ths) {
                 th.join();
+            }
+            if (ep) {
+                std::rethrow_exception(ep);
             }
             (*report_box_)[StepStr(step)].execution_time =
                     std::chrono::system_clock::now() - start;
@@ -646,11 +679,22 @@ void FaseCore::buildNodesParallel(
     } else {
         pipeline.push_back([funcs] {
             std::vector<std::thread> ths;
+            std::exception_ptr ep;
             for (auto& func : funcs) {
-                ths.emplace_back(func);
+                ths.emplace_back([&ep, &func]() {
+                    try {
+                        func();
+                    }
+                    catch(...) {
+                        ep = std::current_exception();
+                    }
+                });
             }
             for (auto& th : ths) {
                 th.join();
+            }
+            if (ep) {
+                std::rethrow_exception(ep);
             }
         });
     }

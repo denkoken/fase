@@ -14,6 +14,8 @@ namespace fase {
 
 namespace {
 
+constexpr size_t LIST_VIEW_MAX = 32;
+
 // GUI for <bool>
 bool ImGuiInputValue(const char* label, bool* v) {
     return ImGui::Checkbox(label, v);
@@ -69,8 +71,31 @@ bool ImGuiInputValue(const char* label, std::string* v) {
     return ret;
 }
 
+template <class List>
+void AddListViewer(std::map<const std::type_info*, VarEditor>& var_editors) {
+    var_editors[&typeid(List)] =
+            [v_editor = var_editors[&typeid(typename List::value_type)]](
+                    const char* label, const Variable& a) {
+                if (a.getReader<List>()->size() >= LIST_VIEW_MAX) {
+                    ImGui::Text("Too long to show : %s", label);
+                    return Variable();
+                }
+                ImGui::BeginGroup();
+                size_t i = 0;
+                for (auto& v : *a.getReader<List>()) {
+                    v_editor(
+                            (std::string("[") + std::to_string(i) + "]" + label)
+                                    .c_str(),
+                            v);
+                    i++;
+                }
+                ImGui::EndGroup();
+                return Variable();
+            };
+}
+
 template <typename T>
-void EditorMaker(std::map<const std::type_info*, VarEditor>& var_editors) {
+void EditorMaker_(std::map<const std::type_info*, VarEditor>& var_editors) {
     var_editors[&typeid(T)] = [](const char* label, const Variable& a) {
         T copy = *a.getReader<T>();
         if (ImGuiInputValue(label, &copy)) {
@@ -80,10 +105,17 @@ void EditorMaker(std::map<const std::type_info*, VarEditor>& var_editors) {
     };
 }
 
+template <typename T>
+void EditorMaker(std::map<const std::type_info*, VarEditor>& var_editors) {
+    EditorMaker_<T>(var_editors);
+    AddListViewer<std::vector<T>>(var_editors);
+    AddListViewer<std::list<T>>(var_editors);
+}
+
 void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
     EditorMaker<int>(*var_editors);
 
-    EditorMaker<bool>(*var_editors);
+    EditorMaker_<bool>(*var_editors);
     // * Character types
     EditorMaker<char>(*var_editors);
     EditorMaker<unsigned char>(*var_editors);
