@@ -6,6 +6,8 @@
 
 #include "../core_util.h"
 
+#if defined(_WIN64) || defined(_WIN32)
+#else
 #if __has_include(<experimental/filesystem>)
 #include <experimental/filesystem>
 #define FileSystem
@@ -14,6 +16,7 @@ using stdfs = std::experimental::filesystem;
 #include <filesystem>
 #define FileSystem
 using stdfs = std::filesystem;
+#endif
 #endif
 
 namespace fase {
