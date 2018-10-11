@@ -33,8 +33,8 @@ public:
 
     template <typename T>
     bool registerTextIO(const std::string& name,
-                        std::function<std::string(const T&)> serializer,
-                        std::function<T(const std::string&)> deserializer);
+                        std::function<std::string(const T&)>&& serializer,
+                        std::function<T(const std::string&)>&& deserializer);
 
     template <typename T>
     bool registerConstructorAndVieweditor(

@@ -3,6 +3,8 @@
 #include <cassert>
 #include <sstream>
 
+#include "fase.h"
+
 #if defined(FASE_USE_ADD_FUNCTION_BUILDER_MACRO) &&\
     defined(__cpp_if_constexpr) && defined(__cpp_inline_variables)
 #include "auto_fb_adder.h"
@@ -73,14 +75,15 @@ template <class Editor>
 template <typename T>
 bool Fase<Editor>::registerTextIO(
         const std::string& name,
-        std::function<std::string(const T&)> serializer,
-        std::function<T(const std::string&)> deserializer) {
+        std::function<std::string(const T&)>&& serializer,
+        std::function<T(const std::string&)>&& deserializer) {
     type_utils.serializers[name] = [serializer](const Variable& v) {
         return serializer(*v.getReader<T>());
     };
 
-    type_utils.deserializers[name] = [deserializer](Variable& v,
-                                                    const std::string& str) {
+    type_utils.deserializers[name] =
+        [deserializer = std::forward<decltype(deserializer)>(deserializer)]
+            (Variable& v, const std::string& str) {
         v.create<T>(deserializer(str));
     };
     return true;
