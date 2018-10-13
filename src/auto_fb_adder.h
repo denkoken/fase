@@ -644,7 +644,7 @@ public:
         }
         codes[func_name] = code;
         f_buf = [fp, func_name](
-                        auto* app,
+                        auto* core,
                         const std::vector<std::string>& arg_type_reprs,
                         const std::vector<std::string>& default_arg_reprs,
                         const std::vector<std::string>& arg_names,
@@ -665,10 +665,9 @@ public:
             std::copy_n(default_arg_reprs.begin(), N,
                         default_arg_reprs_.begin());
             std::copy_n(default_args.begin(), N, default_args_.begin());
-
-            app->addFunctionBuilder(func_name, std::function<Ret(Args...)>(fp),
-                                    arg_type_reprs_, default_arg_reprs_,
-                                    arg_names_, default_args_);
+            core->template addFunctionBuilder<Ret, Args...>(
+                    func_name, std::function<Ret(Args...)>(fp), arg_type_reprs_,
+                    default_arg_reprs_, arg_names_, default_args_);
         };
     }
 
@@ -737,7 +736,7 @@ public:
         });
     }
 
-    static inline std::vector<std::function<void(Fase<GUIEditor>*)>>
+    static inline std::vector<std::function<void(FaseCore*)>>
             func_builder_adders;
     static inline std::map<std::string, std::string> codes;
 
@@ -783,7 +782,7 @@ private:
         }
     }
 
-    std::function<void(Fase<GUIEditor>*, const std::vector<std::string>&,
+    std::function<void(FaseCore*, const std::vector<std::string>&,
                        const std::vector<std::string>&,
                        const std::vector<std::string>&,
                        const std::vector<Variable>&)>

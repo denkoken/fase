@@ -25,14 +25,16 @@ bool exists(const std::vector<T>& vec, const T& key) {
 
 template <std::size_t N>
 auto CompleteDefaultArgs(int, const std::array<Variable, N>& src_args,
-                         std::array<Variable, N>& dst_args, size_t idx = 0) -> bool {
+                         std::array<Variable, N>& dst_args, size_t idx = 0)
+        -> bool {
     (void)src_args, (void)dst_args, (void)idx;
     return true;
 }
 
 template <std::size_t N, typename Head, typename... Tail>
 auto CompleteDefaultArgs(bool, const std::array<Variable, N>& src_args,
-                         std::array<Variable, N>& dst_args, size_t idx = 0) -> bool {
+                         std::array<Variable, N>& dst_args, size_t idx = 0)
+        -> bool {
     if (src_args[idx].template isSameType<Head>()) {
         // Use input argument
         dst_args[idx] = src_args[idx];
@@ -51,7 +53,7 @@ auto CompleteDefaultArgs(bool, const std::array<Variable, N>& src_args,
 template <std::size_t N, typename Head, typename... Tail>
 auto CompleteDefaultArgs(int, const std::array<Variable, N>& src_args,
                          std::array<Variable, N>& dst_args, size_t idx = 0)
-            -> decltype(typename std::remove_reference<Head>::type(), bool()) {
+        -> decltype(typename std::remove_reference<Head>::type(), bool()) {
     if (src_args[idx].template isSameType<Head>()) {
         // Use input argument
         dst_args[idx] = src_args[idx];

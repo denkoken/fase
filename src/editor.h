@@ -4,25 +4,9 @@
 #include "core.h"
 #include "type_utils.h"
 
+#include "parts_base.h"
+
 namespace fase {
-
-template <typename Parent>
-class EditorBase {
-public:
-    ///
-    /// Add variable generator
-    ///  @return Success or not
-    ///
-    template <typename Gen>
-    bool addVarGenerator(Gen &&) {}
-
-    ///
-    /// Run editor one step
-    ///  @return Flag to continue the editing
-    ///
-    template <typename... Args>
-    bool run(FaseCore *, Args...) {}
-};
 
 #if 0
 // ------------------------------------ CLI ------------------------------------
@@ -59,40 +43,61 @@ private:
 #endif
 
 // ------------------------------------ GUI ------------------------------------
-using GuiGeneratorFunc =
-        std::function<bool(const char *, const Variable &, std::string &)>;
+template <typename T>
+using VarEditor = std::function<std::unique_ptr<T>(const char*, const T&)>;
+using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
-using VarEditor = std::function<Variable(const char *, const Variable &)>;
-
-class GUIEditor : public EditorBase<GUIEditor> {
+class GUIEditor : public PartsBase {
 public:
-    GUIEditor(FaseCore *, const TypeUtils &);
+    GUIEditor(const TypeUtils&);
     ~GUIEditor();
 
-    ///
-    /// Add variable generator for a type "T"
-    ///  It requires a function for drawing GUI.
-    ///
+    /**
+     * @brief
+     *      add variable editor
+     *
+     * @tparam T
+     *      type of variable
+     * @param var_editor
+     *      (const char*, const T&) -> std::unique_ptr<T>
+     *      arguments :
+     *      First argument is name of variable (the argument name of node).
+     *      Second argument is the value of variable.
+     *      return :
+     *      If returned is empty ptr, it means no change of the variable.
+     *      Otherwise, the variable repaced with pointed by returned.
+     *
+     * @return
+     *      succeeded or not. maybe allways true will be returned.
+     */
     template <typename T>
-    bool addVarGenerator(
-            T, const std::function<bool(const char *, const Variable &,
-                                        std::string &)> &func) {
-        if (var_generators.count(&typeid(T))) {
-            return false;
-        } else {
-            var_generators[&typeid(T)] = func;
-            return true;
-        }
-    }
+    bool addVarEditor(VarEditor<T>&& var_editor);
 
-    bool addVarEditor(const std::type_info *p, VarEditor &&f);
-
-    bool run(const std::string &win_title = "Fase Editor",
-             const std::string &label_suffix = "##fase");
+    /**
+     * @brief
+     *      buffer the imgui draw objects.
+     *
+     * @param win_title
+     *      the title of editor imgui window.
+     * @param label_suffix
+     *      label string of imgui object.
+     *
+     * @return
+     *      succeeded or not.
+     */
+    bool runEditing(const std::string& win_title = "Fase Editor",
+                    const std::string& label_suffix = "##fase");
 
 private:
-    // Variable generators
-    std::map<const std::type_info *, GuiGeneratorFunc> var_generators;
+    /**
+     * @brief add wraped variable editor.
+     *
+     * @param p type_info of type of variable.
+     * @param f wraped variable editor
+     *
+     * @return succeeded or not.
+     */
+    bool addVarEditor(const std::type_info* p, VarEditorWraped&& f);
 
     // pImpl pattern
     class Impl;
@@ -100,5 +105,7 @@ private:
 };
 
 }  // namespace fase
+
+#include "gui_editor/editor_impl.h"
 
 #endif  // EDITOR_H_20180628

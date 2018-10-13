@@ -129,12 +129,12 @@ private:
     std::function<void(Issue)> issue_f;
 };
 
-using VarEditor = std::function<Variable(const char*, const Variable&)>;
+using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
 class View {
 public:
     View(const FaseCore&, const TypeUtils&,
-         const std::map<const std::type_info*, VarEditor>&);
+         const std::map<const std::type_info*, VarEditorWraped>&);
     ~View();
 
     std::vector<Issue> draw(const std::string& win_title,
@@ -144,8 +144,9 @@ public:
 private:
     const FaseCore& core;
     const TypeUtils& utils;
-    const std::map<const std::type_info*, VarEditor>& var_editors;
+    const std::map<const std::type_info*, VarEditorWraped>& var_editors;
 
+    // this will be save/load preferences to/from buffer file.
     GUIPreferenceManager preference_manager;
 
     LabelWrapper label;

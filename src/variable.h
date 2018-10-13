@@ -16,7 +16,7 @@ public:
     Variable() = default;
 
     template <typename T>
-    Variable(T &&value) {
+    Variable(T&& value) {
         using TypeCVR = T;
         using TypeCV = typename std::remove_reference<TypeCVR>::type;
         using Type = typename std::remove_cv<TypeCV>::type;
@@ -24,37 +24,37 @@ public:
     }
 
     template <typename T>
-    Variable(std::shared_ptr<T> &v) {
+    Variable(std::shared_ptr<T>& v) {
         set<T>(v);
     }
 
 #if defined(_WIN64) || defined(_WIN32)
-    template<>
+    template <>
     Variable(Variable&& v) {
         data = v.data;
         type = v.type;
         cloner = v.cloner;
     }
 
-    template<>
-    Variable (Variable& v) {
+    template <>
+    Variable(Variable& v) {
         data = v.data;
         type = v.type;
         cloner = v.cloner;
     }
 #else
-    Variable(Variable &) = default;
-    Variable &operator=(Variable &) = default;
+    Variable(Variable&) = default;
+    Variable& operator=(Variable&) = default;
 #endif
-    Variable(const Variable &) = default;
-    Variable &operator=(const Variable &) = default;
-    Variable(Variable &&) = default;
-    Variable &operator=(Variable &&) = default;
+    Variable(const Variable&) = default;
+    Variable& operator=(const Variable&) = default;
+    Variable(Variable&&) = default;
+    Variable& operator=(Variable&&) = default;
 
     ~Variable() = default;
 
     template <typename T, typename... Args>
-    void create(Args &&... args) {
+    void create(Args&&... args) {
         set(std::make_shared<T>(std::forward<Args>(args)...));
     }
 
@@ -62,7 +62,7 @@ public:
     void set(std::shared_ptr<T> v) {
         data = v;
         type = &typeid(T);  // The lifetime extends to the end of the program.
-        cloner = [](Variable &d, const Variable &s) {
+        cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
         };
     }
@@ -72,7 +72,7 @@ public:
         return *type == typeid(T);
     }
 
-    bool isSameType(const Variable &v) const {
+    bool isSameType(const Variable& v) const {
         return *type == *v.type;
     }
 
@@ -94,7 +94,7 @@ public:
         return std::static_pointer_cast<T>(data);
     }
 
-    void copy(Variable &v) const {
+    void copy(Variable& v) const {
         cloner(v, *this);
     }
 
@@ -110,8 +110,8 @@ public:
 
 private:
     std::shared_ptr<void> data;
-    const std::type_info *type = &typeid(void);
-    std::function<void(Variable &, const Variable &)> cloner;
+    const std::type_info* type = &typeid(void);
+    std::function<void(Variable&, const Variable&)> cloner;
 };
 
 }  // namespace fase

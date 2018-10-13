@@ -53,8 +53,9 @@ bool checkVarName(const std::string& name) {
     }
 
     std::string invalid_strs[] = {
-        " ", "__", ",", "@", ":", "&", "%", "+", "-", "\\", "^", "~", "=",
-        "(", ")", "#", "$", "\"", "!", "<", ">", "?", "{", "}", "[", "]", "`",
+            " ",  "__", ",", "@", ":", "&", "%", "+", "-",
+            "\\", "^",  "~", "=", "(", ")", "#", "$", "\"",
+            "!",  "<",  ">", "?", "{", "}", "[", "]", "`",
     };
 
     for (auto& str : invalid_strs) {
@@ -109,23 +110,19 @@ std::vector<Variable*> BindVariables(
 }
 
 void initNode(std::map<std::string, Node>* nodes) {
-    (*nodes)[InputNodeStr()] = {
-            InputFuncStr(),
-            std::vector<Link>(),
-            std::vector<std::tuple<size_t, Link>>(),
-            std::vector<std::string>(),
-            std::vector<Variable>(),
-            std::numeric_limits<int>::min()
-    };
+    (*nodes)[InputNodeStr()] = {InputFuncStr(),
+                                std::vector<Link>(),
+                                std::vector<std::tuple<size_t, Link>>(),
+                                std::vector<std::string>(),
+                                std::vector<Variable>(),
+                                std::numeric_limits<int>::min()};
 
-    (*nodes)[OutputNodeStr()] = {
-            OutputFuncStr(),
-            std::vector<Link>(),
-            std::vector<std::tuple<size_t, Link>>(),
-            std::vector<std::string>(),
-            std::vector<Variable>(),
-            std::numeric_limits<int>::max()
-    };
+    (*nodes)[OutputNodeStr()] = {OutputFuncStr(),
+                                 std::vector<Link>(),
+                                 std::vector<std::tuple<size_t, Link>>(),
+                                 std::vector<std::string>(),
+                                 std::vector<Variable>(),
+                                 std::numeric_limits<int>::max()};
 }
 
 std::function<void()> wrapPipe(const std::string& node_name,
@@ -133,17 +130,13 @@ std::function<void()> wrapPipe(const std::string& node_name,
     return [node_name, f = std::forward<std::function<void()>>(f)]() {
         try {
             f();
-        }
-        catch(std::exception& e) {
+        } catch (std::exception& e) {
             throw ErrorThrownByNode(node_name, e.what());
-        }
-        catch(std::string e) {
+        } catch (std::string e) {
             throw ErrorThrownByNode(node_name, e);
-        }
-        catch(long long e) {
+        } catch (long long e) {
             throw ErrorThrownByNode(node_name, std::to_string(e));
-        }
-        catch(...) {
+        } catch (...) {
             throw ErrorThrownByNode(node_name, "something went wrong.");
         }
     };
@@ -201,12 +194,13 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
     // Register node (arg_values are copied from function's default_arg_values)
     const size_t n_args = functions[func_repr].arg_type_reprs.size();
-    projects[primary_project].nodes[name] = {func_repr,
-                   std::vector<Link>(n_args),
-                   std::vector<std::tuple<size_t, Link>>(),
-                   functions[func_repr].default_arg_reprs,
-                   arg_values,
-                   priority};
+    projects[primary_project].nodes[name] = {
+            func_repr,
+            std::vector<Link>(n_args),
+            std::vector<std::tuple<size_t, Link>>(),
+            functions[func_repr].default_arg_reprs,
+            arg_values,
+            priority};
 
     return true;
 }
@@ -255,8 +249,8 @@ bool FaseCore::delNode(const std::string& node_name) noexcept {
 bool FaseCore::renameNode(const std::string& old_name,
                           const std::string& new_name) {
     auto& nodes = projects[primary_project].nodes;
-    if (!exists(nodes, old_name) || !checkNodeName(new_name)
-            || IsSpecialNodeName(old_name)) {
+    if (!exists(nodes, old_name) || !checkNodeName(new_name) ||
+        IsSpecialNodeName(old_name)) {
         return false;
     }
 
@@ -490,9 +484,11 @@ bool FaseCore::delInput(const size_t& idx) {
 
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
-    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + long(idx));
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) +
+                                 long(idx));
     func.arg_names.erase(std::begin(func.arg_names) + long(idx));
-    func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
+    func.default_arg_values.erase(std::begin(func.default_arg_values) +
+                                  long(idx));
     func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
     node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
@@ -555,9 +551,11 @@ bool FaseCore::delOutput(const size_t& idx) {
 
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
-    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) + long(idx));
+    func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) +
+                                 long(idx));
     func.arg_names.erase(std::begin(func.arg_names) + long(idx));
-    func.default_arg_values.erase(std::begin(func.default_arg_values) + long(idx));
+    func.default_arg_values.erase(std::begin(func.default_arg_values) +
+                                  long(idx));
     func.is_input_args.erase(std::begin(func.is_input_args) + long(idx));
 
     node.arg_reprs.erase(std::begin(node.arg_reprs) + long(idx));
@@ -623,7 +621,8 @@ std::vector<std::string> FaseCore::getProjects() const {
 std::function<void()> FaseCore::buildNode(
         const std::string& node_name, const std::vector<Variable*>& args,
         std::map<std::string, ResultReport>* report_box_) const {
-    const Function& func = functions.at(projects.at(primary_project).nodes.at(node_name).func_repr);
+    const Function& func = functions.at(
+            projects.at(primary_project).nodes.at(node_name).func_repr);
     if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
         return [] {};
     }
@@ -661,8 +660,7 @@ void FaseCore::buildNodesParallel(
                 ths.emplace_back([&ep, &func]() {
                     try {
                         func();
-                    }
-                    catch(...) {
+                    } catch (...) {
                         ep = std::current_exception();
                     }
                 });
@@ -684,8 +682,7 @@ void FaseCore::buildNodesParallel(
                 ths.emplace_back([&ep, &func]() {
                     try {
                         func();
-                    }
-                    catch(...) {
+                    } catch (...) {
                         ep = std::current_exception();
                     }
                 });

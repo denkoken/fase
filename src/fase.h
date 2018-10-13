@@ -10,12 +10,10 @@
 
 namespace fase {
 
-template <class Editor>
-class Fase {
+template <class... Parts>
+class Fase : public Parts... {
 public:
-    Fase() {
-        SetupTypeUtils(&type_utils);
-    };
+    Fase();
 
     template <typename Ret, typename... Args>
     bool addFunctionBuilder(
@@ -26,7 +24,7 @@ public:
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
         // Register to the core system
-        return core.template addFunctionBuilder<Ret, Args...>(
+        return core->template addFunctionBuilder<Ret, Args...>(
                 func_repr, func_val, arg_type_reprs, default_arg_reprs,
                 arg_names, default_args);
     }
@@ -34,30 +32,17 @@ public:
     template <typename T>
     bool registerTextIO(const std::string& name,
                         std::function<std::string(const T&)>&& serializer,
-                        std::function<T(const std::string&)>&& deserializer);
-
-    template <typename T>
-    bool registerConstructorAndVieweditor(
-            const std::string& name,
-            std::function<std::string(const T&)> def_makers,
-            std::function<std::unique_ptr<T>(const char*, const T&)>
-                    view_editor);
-
-    void setupEditor();
-
-    template <typename... Args>
-    bool runEditing(Args&&... args) {
-        assert(editor);  // call setupEditor() brefore this function.
-        return editor->run(std::forward<Args>(args)...);
-    }
+                        std::function<T(const std::string&)>&& deserializer,
+                        std::function<std::string(const T&)>&& def_maker);
 
 private:
-    FaseCore core;
-    std::unique_ptr<Editor> editor;
+    std::shared_ptr<FaseCore> getCore() {
+        return core;
+    }
+
+    std::shared_ptr<FaseCore> core;
 
     TypeUtils type_utils;
-
-    std::vector<std::tuple<const std::type_info*, VarEditor>> var_editor_buffer;
 };
 
 }  // namespace fase

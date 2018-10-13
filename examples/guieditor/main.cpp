@@ -157,17 +157,8 @@ int main() {
 
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },
-            [](const std::string& str) { return std::stoi(str); });
-
-    // app.registerConstructorAndVieweditor<int>("int",
-    //                     [](const int& a) { return std::to_string(a); },
-    //                     [](const char*, const int&) -> std::unique_ptr<int> {
-    //                     return {}; });
-
-    app.setupEditor();
-
-    // Register for argument editing
-    // FaseInstallBasicGuiGenerators(app);
+            [](const std::string& str) { return std::stoi(str); },
+            [](const int& a) { return "int(" + std::to_string(a) + ")"; });
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");

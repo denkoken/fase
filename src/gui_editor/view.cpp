@@ -765,8 +765,9 @@ private:
 class NodeBoxesView : public Content {
 public:
     template <class... Args>
-    NodeBoxesView(const std::map<const std::type_info*, VarEditor>& var_editors,
-                  CanvasState& c_state, Args&&... args)
+    NodeBoxesView(
+            const std::map<const std::type_info*, VarEditorWraped>& var_editors,
+            CanvasState& c_state, Args&&... args)
         : Content(args...), var_editors(var_editors), c_state(c_state) {}
     ~NodeBoxesView() {}
 
@@ -780,7 +781,7 @@ private:
     const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
     const ImU32 SLOT_ACT_COLOR = IM_COL32(255, 255, 100, 255);
 
-    const std::map<const std::type_info*, VarEditor>& var_editors;
+    const std::map<const std::type_info*, VarEditorWraped>& var_editors;
 
     CanvasState& c_state;
 
@@ -837,6 +838,7 @@ private:
 
             // draw default argument editing
             ImGui::SameLine();
+            ImGui::BeginGroup();
             if (simple) {
                 if (int(arg_name.size()) > preference.max_arg_name_chars) {
                     std::string view(std::begin(arg_name),
@@ -868,6 +870,7 @@ private:
                                 arg_repr.c_str());
                 }
             }
+            ImGui::EndGroup();
 
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(SLOT_SPACING, 0));
@@ -1088,7 +1091,7 @@ class NodeCanvasView : public Content {
 public:
     template <class... Args>
     NodeCanvasView(
-            const std::map<const std::type_info*, VarEditor>& var_editors,
+            const std::map<const std::type_info*, VarEditorWraped>& var_editors,
             Args&&... args)
         : Content(args...),
           links_view(c_state, args...),
@@ -1216,7 +1219,7 @@ class NodeArgEditView : public Content {
 public:
     template <class... Args>
     NodeArgEditView(
-            const std::map<const std::type_info*, VarEditor>& var_editors,
+            const std::map<const std::type_info*, VarEditorWraped>& var_editors,
             Args&&... args)
         : Content(args...), var_editors(var_editors) {}
     ~NodeArgEditView() {}
@@ -1225,7 +1228,7 @@ private:
     // type and name
     using argIdentiry = std::tuple<const std::type_info*, std::string, bool>;
 
-    const std::map<const std::type_info*, VarEditor>& var_editors;
+    const std::map<const std::type_info*, VarEditorWraped>& var_editors;
 
     std::vector<argIdentiry> getEdittingArgs() {
         std::vector<argIdentiry> args;
@@ -1266,7 +1269,9 @@ private:
         const Variable& var = node.arg_values[arg_idx];
         std::string expr;
         const std::string view_label = arg_name;
+        ImGui::BeginGroup();
         Variable v = func(label(view_label), var);
+        ImGui::EndGroup();
         for (const std::string& node_name : state.selected_nodes) {
             const Function& f_ = getFunction(core, node_name);
 
@@ -1331,7 +1336,7 @@ private:
 };
 
 View::View(const FaseCore& core, const TypeUtils& utils,
-           const std::map<const std::type_info*, VarEditor>& var_editors)
+           const std::map<const std::type_info*, VarEditorWraped>& var_editors)
     : core(core),
       utils(utils),
       var_editors(var_editors),
