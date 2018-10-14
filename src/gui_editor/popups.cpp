@@ -6,19 +6,6 @@
 
 #include "../core_util.h"
 
-#if defined(_WIN64) || defined(_WIN32)
-#else
-#if __has_include(<experimental/filesystem>)
-#include <experimental/filesystem>
-#define FileSystem
-using stdfs = std::experimental::filesystem;
-#elif __has_include(<filesystem>)
-#include <filesystem>
-#define FileSystem
-using stdfs = std::filesystem;
-#endif
-#endif
-
 namespace fase {
 namespace guieditor {
 
@@ -458,15 +445,6 @@ private:
                 error_msg = "Failed to load pipeline";  // Failed
             }
         }
-#ifdef FileSystem
-        stdfs::directory_iterator iter("."), end;
-        for (; iter != end; iter++) {
-            std::string path_str = iter->path().filename().generic_u8string();
-            if (path_str.find(".project.txt") != std::string::npos) {
-                std::cout << path_str << std::endl;
-            }
-        }
-#endif
     }
 
     void new_project() {
@@ -569,12 +547,6 @@ public:
 private:
     const std::string build_status_str = std::string("c++ version : ") +
                                          std::to_string(__cplusplus) +
-                                         "\nc++ stdlib filesystem : " +
-#ifdef FileSystem
-                                         "True" +
-#else
-                                         "False" +
-#endif
                                          "\nconstexpr if : " +
 #ifdef __cpp_if_constexpr
                                          "True" +
