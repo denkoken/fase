@@ -13,13 +13,6 @@ namespace fase {
 class Callable : public PartsBase {
     class CallableReturn {
     public:
-        CallableReturn(const CallableReturn&) = delete;
-        CallableReturn(CallableReturn&) = delete;
-        CallableReturn(CallableReturn&&) = delete;
-        CallableReturn& operator=(const CallableReturn&) = delete;
-        CallableReturn& operator=(CallableReturn&) = delete;
-        CallableReturn& operator=(CallableReturn&&) = delete;
-
         template <typename... Dsts>
         void get(Dsts*... dsts) const {
             get0(std::tuple<Dsts*...>{dsts...},
