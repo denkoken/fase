@@ -155,11 +155,11 @@ private:
     std::vector<Issue> issues;
 
     // GUI Contents
-    std::vector<std::unique_ptr<Content>> menus;  // Menu bar
-    std::vector<std::unique_ptr<Content>> popups;
-    std::unique_ptr<Content> node_list;
-    std::unique_ptr<Content> canvas;
-    std::unique_ptr<Content> args_editor;
+    std::vector<std::unique_ptr<Content>> menus;   // Menu bar
+    std::vector<std::unique_ptr<Content>> popups;  // popup menus
+    std::unique_ptr<Content> node_list;            // left panel
+    std::unique_ptr<Content> canvas;               // right panel
+    std::unique_ptr<Content> args_editor;          // center panel
     std::unique_ptr<Content> report_window;
 
     void setupMenus(std::function<void(Issue)>&&);

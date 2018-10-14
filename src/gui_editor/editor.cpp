@@ -153,9 +153,9 @@ inline const T& GetVar(const Issue& issue) {
 class GUIEditor::Impl {
 public:
     Impl(const std::shared_ptr<FaseCore>& core, const TypeUtils& utils)
-        : view(*core, utils, var_editors),
-          core(core),
+        : core(core),
           utils(utils),
+          view(*core, utils, var_editors),
           shold_stop_loop(false),
           is_running(false) {
         SetUpVarEditors(&var_editors);
@@ -168,9 +168,10 @@ public:
     bool addVarEditor(const std::type_info* p, VarEditorWraped&& f);
 
 private:
-    View view;
     std::shared_ptr<FaseCore> core;
     const TypeUtils& utils;
+
+    View view;
 
     std::map<std::string, ResultReport> reports;
     std::map<const std::type_info*, VarEditorWraped> var_editors;

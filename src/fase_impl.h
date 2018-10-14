@@ -112,9 +112,14 @@ inline bool Fase<Parts...>::registerTextIO(
                 default_arg_reprs, FaseExpandList(arg_names), {__VA_ARGS__}); \
     }()
 
-#define FaseAddFunctionBuilder(fase, func, arg_types, arg_names, ...) \
-    FaseAddFunctionBuilderImpl(fase, func, arg_types, arg_names, __VA_ARGS__)
+#define FaseAddFunctionBuilder(app, func, arg_types, arg_names, ...) \
+    FaseAddFunctionBuilderImpl(app, func, arg_types, arg_names, __VA_ARGS__)
 
+/** @def FaseRegisterTestIO
+ * @brief
+ *      wrapper of Fase::registerTestIO().
+ * @see Fase::registerTestIO()
+ */
 #define FaseRegisterTestIO(app, type, serializer, deserializer, constructer) \
     app.registerTextIO<type>(#type, serializer, deserializer, constructer)
 
