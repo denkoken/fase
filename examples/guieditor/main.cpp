@@ -13,7 +13,7 @@
 #include "fase_gl_utils.h"
 
 FaseAutoAddingFunctionBuilder(Add,
-                              void Add(const int& a, const int& b, int& dst););
+                              void Add(const int& a, const int& b, int& dst);)
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
@@ -62,25 +62,25 @@ void Test0(int& test_dst,
                 "auto FaseAutoAddingFunctionBuilder bug : constructor");
     }
 }
-);
+)
 
 FaseAutoAddingFunctionBuilder(Square, void Square(const int& in, int& dst) {
     dst = in * in;
-});
+})
 
 FaseAutoAddingFunctionBuilder(Print, void Print(const int& in) {
     std::cout << in << std::endl;
-});
+})
 
 FaseAutoAddingFunctionBuilder(Wait, void Wait(const int& seconds) {
     std::this_thread::sleep_for(std::chrono::seconds(seconds));
-});
+})
 
 FaseAutoAddingFunctionBuilder(Assert, void Assert(const int& a, const int& b) {
     if (a != b) {
         throw std::runtime_error("a is not equal to b!");
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VARandom,
 void VARandom(const size_t& size,
@@ -93,7 +93,7 @@ void VARandom(const size_t& size,
     for (size_t i = 0; i < size; i++) {
         dst[i] = rand100(mt);
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VecRandom,
 void VecRandom(const size_t& size,
@@ -107,7 +107,7 @@ void VecRandom(const size_t& size,
     for (size_t i = 0; i < size; i++) {
         dst[i] = rand100(mt);
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VASame,
 void VASame(const std::valarray<double>& a, const std::valarray<double>& b,
@@ -117,7 +117,7 @@ void VASame(const std::valarray<double>& a, const std::valarray<double>& b,
         test += (a - b);
     }
     dst = test.sum();
-});
+})
 
 FaseAutoAddingFunctionBuilder(VAAdd,
 void VAAdd(const std::valarray<double>& a,
@@ -127,7 +127,7 @@ void VAAdd(const std::valarray<double>& a,
     for (size_t j = 0; j < n; j++) {
         dst += a + b;
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VecAdd,
 void VecAdd(const std::vector<double>& a,
@@ -140,7 +140,7 @@ void VecAdd(const std::vector<double>& a,
             dst[i] += a[i] + b[i];
         }
     }
-});
+})
 // clang-format on
 
 void LastPrintProjectRun(fase::Callable& app) {
