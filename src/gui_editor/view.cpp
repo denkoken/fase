@@ -1,4 +1,3 @@
-
 #include "view.h"
 
 #include <atomic>
@@ -132,21 +131,8 @@ inline float Length(const ImVec2& v) {
     return std::sqrt(v.x * v.x + v.y * v.y);
 }
 
-// Additional ImGui components
-bool IsItemActivePreviousFrame() {
-    ImGuiContext* g = ImGui::GetCurrentContext();
-    if (g->ActiveIdPreviousFrame) {
-        return g->ActiveIdPreviousFrame == GImGui->CurrentWindow->DC.LastItemId;
-    }
-    return false;
-}
-
 bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
     return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
-};
-
-bool IsKeyPressedOnItem(ImGuiKey_ key, bool repeat = true) {
-    return IsItemActivePreviousFrame() && IsKeyPressed(key, repeat);
 };
 
 const Function& getFunction(const FaseCore& core,
@@ -321,9 +307,9 @@ struct CanvasState {
 
 class GUINodePositionOptimizer {
 public:
-    GUINodePositionOptimizer(const FaseCore& core,
-                             std::map<std::string, GuiNode>& gui_nodes)
-        : core(core), gui_nodes(gui_nodes) {}
+    GUINodePositionOptimizer(const FaseCore& core_,
+                             std::map<std::string, GuiNode>& gui_nodes_)
+        : core(core_), gui_nodes(gui_nodes_) {}
 
     void operator()(bool opt) {
         if (opt) {
@@ -621,7 +607,8 @@ private:
     size_t hovered_slot_idx_prev = 0;
     bool is_hovered_slot_input_prev = false;
 
-    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos, const size_t& id) {
+    void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
+                  const size_t& d_id) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         const ImVec2 diff = d_pos - s_pos;
         float x_d = std::abs(diff.x) * .7f;
@@ -633,13 +620,14 @@ private:
                 d_pos - ImVec2(x_d, 0) - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0);
         draw_list->AddBezierCurve(s_pos, s_pos_2, d_pos_2,
                                   d_pos - ImVec2(ARROW_HEAD_SIZE * 0.8f, 0),
-                                  GenNodeColor(id), 3.0f);
+                                  GenNodeColor(d_id), 3.0f);
         // Arrow's triangle
         const ImVec2 t_pos_1 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, ARROW_HEAD_SIZE * 0.5f);
         const ImVec2 t_pos_2 =
                 d_pos + ImVec2(ARROW_HEAD_X_OFFSET, -ARROW_HEAD_SIZE * 0.5f);
-        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2, GenNodeColor(id));
+        draw_list->AddTriangleFilled(d_pos, t_pos_1, t_pos_2,
+                                     GenNodeColor(d_id));
     }
 
     void main() {
@@ -665,9 +653,9 @@ private:
                 const ImVec2 d_pos =
                         gui_nodes.at(node_name).getInputSlot(dst_idx);
 
-                const size_t id = gui_nodes[node.links[dst_idx].node_name].id;
+                const size_t d_id = gui_nodes[node.links[dst_idx].node_name].id;
 
-                drawLink(s_pos, d_pos, id);
+                drawLink(s_pos, d_pos, d_id);
             }
         }
 
@@ -767,9 +755,9 @@ class NodeBoxesView : public Content {
 public:
     template <class... Args>
     NodeBoxesView(
-            const std::map<const std::type_info*, VarEditorWraped>& var_editors,
-            CanvasState& c_state, Args&&... args)
-        : Content(args...), var_editors(var_editors), c_state(c_state) {}
+            const std::map<const std::type_info*, VarEditorWraped>& var_editors_,
+            CanvasState& c_state_, Args&&... args)
+        : Content(args...), var_editors(var_editors_), c_state(c_state_) {}
     ~NodeBoxesView() {}
 
 private:
@@ -893,7 +881,7 @@ private:
     }
 
     void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
-                     const bool is_active, const size_t id) {
+                     const bool is_active, const size_t node_id) {
         const ImVec2 node_rect_max = node_rect_min + node_size;
         ImGui::InvisibleButton(label("node"), node_size);
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -908,7 +896,7 @@ private:
         const ImVec2 node_title_rect_max =
                 node_rect_min + ImVec2(node_size.x, line_height + pad_height);
         draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
-                                 GenNodeColor(id), 4.f);
+                                 GenNodeColor(node_id), 4.f);
     }
 
     void drawLinkSlots(const GuiNode& gui_node) {
@@ -1001,8 +989,8 @@ private:
 class ContextMenu : public Content {
 public:
     template <class... Args>
-    ContextMenu(CanvasState& c_state, Args&&... args)
-        : Content(args...), c_state(c_state) {}
+    ContextMenu(CanvasState& c_state_, Args&&... args)
+        : Content(args...), c_state(c_state_) {}
     ~ContextMenu() {}
 
 private:
@@ -1220,9 +1208,9 @@ class NodeArgEditView : public Content {
 public:
     template <class... Args>
     NodeArgEditView(
-            const std::map<const std::type_info*, VarEditorWraped>& var_editors,
+            const std::map<const std::type_info*, VarEditorWraped>& var_editors_,
             Args&&... args)
-        : Content(args...), var_editors(var_editors) {}
+        : Content(args...), var_editors(var_editors_) {}
     ~NodeArgEditView() {}
 
 private:
@@ -1297,7 +1285,7 @@ private:
                            label(WrapNodeName(node_name).c_str()));
             ImGui::SameLine();
         }
-        ImGui::Text("");
+        ImGui::Text(" ");
         ImGui::Separator();
 
         const Node& node = core.getNodes().at(state.selected_nodes[0]);
@@ -1336,11 +1324,11 @@ private:
     }
 };
 
-View::View(const FaseCore& core, const TypeUtils& utils,
-           const std::map<const std::type_info*, VarEditorWraped>& var_editors)
-    : core(core),
-      utils(utils),
-      var_editors(var_editors),
+View::View(const FaseCore& core_, const TypeUtils& utils_,
+           const std::map<const std::type_info*, VarEditorWraped>& var_editors_)
+    : core(core_),
+      utils(utils_),
+      var_editors(var_editors_),
       preference_manager(),
       state{preference_manager.get(), {}, {}, {}, {}} {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };

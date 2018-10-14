@@ -1,4 +1,3 @@
-
 #ifndef TYPE_UTILS_H_20180911
 #define TYPE_UTILS_H_20180911
 

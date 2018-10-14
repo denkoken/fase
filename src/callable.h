@@ -1,4 +1,3 @@
-
 #ifndef CALLABLE_H_20181014
 #define CALLABLE_H_20181014
 
@@ -56,7 +55,7 @@ class Callable : public PartsBase {
     };
 
 public:
-    Callable(const TypeUtils& utils) : PartsBase(utils) {}
+    Callable(const TypeUtils& utils_) : PartsBase(utils_) {}
 
     template <typename... Args>
     void fixInput(const std::string& project,

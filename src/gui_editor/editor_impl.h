@@ -1,4 +1,3 @@
-
 #ifndef EDITOR_IMPL_H_20181013
 #define EDITOR_IMPL_H_20181013
 
@@ -28,7 +27,7 @@ bool GUIEditor::addVarEditor(VarEditor<T>&& var_editor) {
     [pfunc](const char* label, const Variable& vec_v) {        \
         const auto& vec = *vec_v.getReader<Container<T>>();    \
         std::unique_ptr<Container<T>> dst;                     \
-        size_t i = 0;                                          \
+        long i = 0;                                            \
         for (const auto& v : vec) {                            \
             auto p = (*pfunc)(label, v);                       \
             if (p) {                                           \

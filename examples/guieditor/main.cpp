@@ -25,7 +25,7 @@ struct X {
 };
 
 struct Y {
-    Y(int a, float b, std::string c) : a(a), b(b), c(c) {}
+    Y(int a_, float b_, std::string c_) : a(a_), b(b_), c(c_) {}
 
     int a;
     float b;

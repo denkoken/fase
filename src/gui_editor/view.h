@@ -1,4 +1,3 @@
-
 #ifndef EDITOR_GUI_VIEW_H_20180917
 #define EDITOR_GUI_VIEW_H_20180917
 
@@ -49,15 +48,16 @@ struct GUIState {
 
 class Content {
 public:
-    Content(const FaseCore& core, LabelWrapper& label, GUIState& state,
-            const TypeUtils& utils, const std::function<void(Issue)>& issue_f)
-        : core(core),
-          utils(utils),
-          label(label),
-          state(state),
-          preference(state.preference),
+    Content(const FaseCore& core_, LabelWrapper& label_, GUIState& state_,
+            const TypeUtils& utils_,
+            const std::function<void(Issue)>& issue_f_)
+        : core(core_),
+          utils(utils_),
+          label(label_),
+          state(state_),
+          preference(state_.preference),
           id(id_counter++),
-          issue_f(issue_f) {}
+          issue_f(issue_f_) {}
     virtual ~Content() = 0;
 
     void draw(const std::map<std::string, Variable>& response) {

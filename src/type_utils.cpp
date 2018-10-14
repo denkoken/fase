@@ -1,4 +1,3 @@
-
 #include "type_utils.h"
 
 #include <sstream>

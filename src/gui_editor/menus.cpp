@@ -1,4 +1,3 @@
-
 #include "view.h"
 
 #include <chrono>

@@ -1,4 +1,3 @@
-
 #include "core_util.h"
 
 #include <fstream>

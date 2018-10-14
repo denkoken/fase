@@ -3,11 +3,11 @@
 #include "fase.h"
 using namespace fase;
 
-void Add(const int& a, const int& b, int& dst) {
+static void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
 
-void Square(const int& in, int& dst) {
+static void Square(const int& in, int& dst) {
     dst = in * in;
 }
 

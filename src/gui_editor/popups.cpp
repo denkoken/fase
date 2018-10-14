@@ -1,4 +1,3 @@
-
 #include "view.h"
 
 #include <imgui.h>
@@ -30,21 +29,8 @@ std::string ToSnakeCase(const std::string& in) {
     return str;
 }
 
-// Additional ImGui components
-bool IsItemActivePreviousFrame() {
-    ImGuiContext* g = ImGui::GetCurrentContext();
-    if (g->ActiveIdPreviousFrame) {
-        return g->ActiveIdPreviousFrame == GImGui->CurrentWindow->DC.LastItemId;
-    }
-    return false;
-}
-
 bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
     return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
-};
-
-bool IsKeyPressedOnItem(ImGuiKey_ key, bool repeat = true) {
-    return IsItemActivePreviousFrame() && IsKeyPressed(key, repeat);
 };
 
 bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
@@ -68,8 +54,8 @@ bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
 class PopupContent : public Content {
 public:
     template <class... Args>
-    PopupContent(std::string&& popup_name, bool menu, Args&&... args)
-        : Content(args...), popup_name(popup_name), menu(menu) {}
+    PopupContent(std::string&& popup_name_, bool menu_, Args&&... args)
+        : Content(args...), popup_name(popup_name_), menu(menu_) {}
 
     virtual ~PopupContent(){};
 
@@ -494,7 +480,7 @@ private:
     void layout() {
         // ImGui::BeginMenuBar();
         ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
-        ImGui::Text("");
+        ImGui::Text(" ");
         ImGui::Separator();
         if (ImGui::Selectable(label("New Project"), pattern == Pattern::New)) {
             pattern = Pattern::New;

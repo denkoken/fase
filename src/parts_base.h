@@ -1,4 +1,3 @@
-
 #ifndef PARTS_BASE_H_20181011
 #define PARTS_BASE_H_20181011
 
@@ -12,7 +11,7 @@ namespace fase {
 
 class PartsBase {
 public:
-    PartsBase(const TypeUtils& utils) : utils(utils) {}
+    PartsBase(const TypeUtils& utils_) : utils(utils_) {}
     virtual ~PartsBase(){};
 
 protected:

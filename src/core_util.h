@@ -1,4 +1,3 @@
-
 #ifndef CORE_UTIL_H_20180824
 #define CORE_UTIL_H_20180824
 

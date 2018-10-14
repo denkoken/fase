@@ -154,10 +154,10 @@ inline const T& GetVar(const Issue& issue) {
 
 class GUIEditor::Impl {
 public:
-    Impl(const std::shared_ptr<FaseCore>& core, const TypeUtils& utils)
-        : core(core),
-          utils(utils),
-          view(*core, utils, var_editors),
+    Impl(const std::shared_ptr<FaseCore>& core_, const TypeUtils& utils_)
+        : core(core_),
+          utils(utils_),
+          view(*core_, utils_, var_editors),
           shold_stop_loop(false),
           is_running(false) {
         SetUpVarEditors(&var_editors);
@@ -468,7 +468,7 @@ bool GUIEditor::Impl::addVarEditor(const std::type_info* p,
 }
 
 // ------------------------------- pImpl pattern -------------------------------
-GUIEditor::GUIEditor(const TypeUtils& utils) : PartsBase(utils) {}
+GUIEditor::GUIEditor(const TypeUtils& utils_) : PartsBase(utils_) {}
 bool GUIEditor::addVarEditor(const std::type_info* p, VarEditorWraped&& f) {
     if (!impl) {
         impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
