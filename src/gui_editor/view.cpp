@@ -12,6 +12,7 @@
 #include "../core_util.h"
 
 namespace fase {
+namespace guieditor {
 
 namespace {
 
@@ -163,9 +164,9 @@ std::string WrapNodeName(const std::string& node_name) {
 }
 
 std::string WrapFuncName(const std::string& func_name) {
-    if (func_name == InputFuncStr()) {
+    if (IsInputFuncStr(func_name)) {
         return "Input";
-    } else if (func_name == OutputFuncStr()) {
+    } else if (IsOutputFuncStr(func_name)) {
         return "Output";
     }
     return func_name;
@@ -573,9 +574,9 @@ void NodeListView::main() {
         ImGui::PushID(label(WrapNodeName(node_name)));
 
         std::stringstream view_ss;
-        if (node.func_repr == OutputFuncStr()) {
+        if (node_name == OutputNodeStr()) {
             view_ss << "Output";
-        } else if (node.func_repr == InputFuncStr()) {
+        } else if (node_name == InputNodeStr()) {
             view_ss << "Input";
         } else {
             view_ss << idx - 2 << ") " << node_name;
@@ -787,9 +788,9 @@ private:
 
     std::string getTitleText(const std::string& node_name, const Node& node,
                              const size_t& order_idx) {
-        if (node.func_repr == InputFuncStr()) {
+        if (node_name == InputNodeStr()) {
             return "Input";
-        } else if (node.func_repr == OutputFuncStr()) {
+        } else if (node_name == OutputNodeStr()) {
             return "Output";
         } else {
             std::stringstream sstream;
@@ -1442,4 +1443,5 @@ std::vector<Issue> View::draw(const std::string& win_title,
     return issues;
 }
 
+}  // namespace guieditor
 }  // namespace fase

@@ -11,6 +11,7 @@
 #include "../core_util.h"
 
 namespace fase {
+namespace guieditor {
 
 namespace {
 
@@ -222,4 +223,5 @@ void View::setupMenus(std::function<void(Issue)>&& issue_f) {
             core, label, state, utils, issue_f, &menus);
 }
 
+}  // namespace guieditor
 }  // namespace fase

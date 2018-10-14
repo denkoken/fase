@@ -3,8 +3,12 @@
 #define GUI_PREFERENCE_H_20180923
 
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <vector>
+
+namespace fase {
+namespace guieditor {
 
 struct GUIPreference {
     bool auto_layout = false;
@@ -91,7 +95,7 @@ private:
         ss << "node_list_panel_size: " << data.node_list_panel_size
            << std::endl;
         ss << "edit_panel_size: " << data.edit_panel_size << std::endl;
-        // copy set() and type
+        // copy set() and vi command type
         // :s/else if ("\(.*\)" == line\[0\]) {/ss << "\1: " << data.\1 <<
         // std::endl;
 
@@ -127,5 +131,8 @@ private:
         }
     }
 };
+
+}  // namespace guieditor
+}  // namespace fase
 
 #endif  // GUI_PREFERENCE_H_20180923

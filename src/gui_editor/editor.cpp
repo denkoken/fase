@@ -14,6 +14,8 @@
 
 namespace fase {
 
+namespace guieditor {
+
 namespace {
 
 constexpr size_t LIST_VIEW_MAX = 32;
@@ -481,5 +483,7 @@ bool GUIEditor::runEditing(const std::string& win_title,
     }
     return impl->run(win_title, label_suffix);
 }
+
+}  // namespace guieditor
 
 }  // namespace fase

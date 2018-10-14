@@ -8,6 +8,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include <editor.h>  //fase
+
 static GLFWwindow* InitOpenGL(const std::string& window_title) {
     GLFWwindow* window = nullptr;
 
@@ -81,8 +83,7 @@ static void InitImGui(GLFWwindow* window, const std::string& font_path) {
     });
 }
 
-static void RunRenderingLoop(GLFWwindow* window,
-                             std::function<bool()> proc_func) {
+static void RunRenderingLoop(GLFWwindow* window, fase::GUIEditor& editor) {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -98,7 +99,7 @@ static void RunRenderingLoop(GLFWwindow* window,
         ImGui::NewFrame();
 
         // Call inserted process
-        if (!proc_func()) {
+        if (!editor.runEditing("Fase Editor", "##fase")) {
             break;
         }
 

@@ -114,9 +114,13 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     // Input Arguments
     if (!core.getNodes().at(InputNodeStr()).links.empty()) {
         const std::vector<std::string>& arg_type_reprs =
-                core.getFunctions().at(InputFuncStr()).arg_type_reprs;
+                core.getFunctions()
+                        .at(InputFuncStr(core.getProjectName()))
+                        .arg_type_reprs;
         const std::vector<std::string>& names =
-                core.getFunctions().at(InputFuncStr()).arg_names;
+                core.getFunctions()
+                        .at(InputFuncStr(core.getProjectName()))
+                        .arg_names;
         size_t n_args = core.getNodes().at(InputNodeStr()).links.size();
 
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
@@ -128,8 +132,11 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
         }
     }
     // Output Arguments
-    if (!core.getFunctions().at(OutputFuncStr()).arg_names.empty()) {
-        const Function& out_f = core.getFunctions().at(OutputFuncStr());
+    if (!core.getFunctions()
+                 .at(OutputFuncStr(core.getProjectName()))
+                 .arg_names.empty()) {
+        const Function& out_f =
+                core.getFunctions().at(OutputFuncStr(core.getProjectName()));
         size_t n_args = out_f.arg_names.size();
 
         if (!core.getNodes().at(InputNodeStr()).links.empty()) {
@@ -190,9 +197,10 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
             } else {
                 // Case 2: Use output variable
                 if (link.node_name == InputNodeStr()) {
-                    var_names.push_back(core.getFunctions()
-                                                .at(InputFuncStr())
-                                                .arg_names.at(link.arg_idx));
+                    var_names.push_back(
+                            core.getFunctions()
+                                    .at(InputFuncStr(core.getProjectName()))
+                                    .arg_names.at(link.arg_idx));
                 } else {
                     var_names.push_back(
                             genVarName(link.node_name, link.arg_idx));
@@ -207,8 +215,11 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     assert(node_order.empty());
 
     // Set output
-    if (!core.getFunctions().at(OutputFuncStr()).arg_names.empty()) {
-        const Function& out_f = core.getFunctions().at(OutputFuncStr());
+    if (!core.getFunctions()
+                 .at(OutputFuncStr(core.getProjectName()))
+                 .arg_names.empty()) {
+        const Function& out_f =
+                core.getFunctions().at(OutputFuncStr(core.getProjectName()));
         size_t n_args = out_f.arg_names.size();
         const Node& node = core.getNodes().at(OutputNodeStr());
 

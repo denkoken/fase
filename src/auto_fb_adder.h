@@ -10,6 +10,8 @@
 
 namespace fase {
 
+namespace for_macro {
+
 template <typename Type>
 struct Clean {
     using type = typename std::remove_reference<
@@ -690,6 +692,7 @@ public:
                 {ArgInfoTuples::template at<Seq>::size...}};
 
 #ifndef NDEBUG
+        std::clog << "== fb auto adder debug print begins ==" << std::endl;
         for (auto& str : arg_names) {
             std::clog << str << "|";
         }
@@ -713,6 +716,7 @@ public:
             std::clog << is_braces[i] << " ";
         }
         std::clog << std::endl;
+        std::clog << "== debug print end ==" << std::endl;
 #endif
 
         std::vector<Variable> default_args(N);
@@ -790,162 +794,175 @@ private:
 };
 
 #define Fase_StrFound(code_str, start, end, var) \
-    code_str.isFound(fase::String<sizeof(var)>{var}, start, end)
-#define Fase_SpecifyTypeStr(code_str, start, end, var)                    \
-    else if constexpr (code_str.isFound(fase::String<sizeof(#var)>{#var}, \
-                                        start, end)) {                    \
-        return fase::TypeSequence<var>();                                 \
+    code_str.isFound(String<sizeof(var)>{var}, start, end)
+#define Fase_SpecifyTypeStr(code_str, start, end, var)                     \
+    else if constexpr (code_str.isFound(String<sizeof(#var)>{#var}, start, \
+                                        end)) {                            \
+        return TypeSequence<var>();                                        \
     }
 
 #define Fase_CE constexpr static inline
 
 #define FaseAutoAddingFunctionBuilder_B(func_name, code, c)                    \
-    code template <size_t... Seq>                                              \
-    class AutoFunctionBuilderAdder_##func_name##c {                            \
-    public:                                                                    \
-        template <typename Ret, typename... Args>                              \
-        AutoFunctionBuilderAdder_##func_name##c(Ret (*fp)(Args...)) {          \
-            using namespace fase;                                              \
-            fase::FuncNodeStorer a(#func_name, #code, fp);                     \
-            a.build<N, decltype(infos),                                        \
-                    TypeSequence<typename Clean<Args>::type...>,               \
-                    decltype(existing_default_vs), decltype(is_brace),         \
-                    Seq...>(#code, arg_start_poss, arg_end_poss);              \
-        }                                                                      \
-                                                                               \
-        template <size_t N>                                                    \
-        using Str = fase::String<N>;                                           \
-        template <typename T, size_t N>                                        \
-        using Arr = fase::Array<T, N>;                                         \
-                                                                               \
-        Fase_CE size_t C_L = sizeof(#code) + 10;                               \
-        Fase_CE size_t N = fase::ArgC(func_name);                              \
-        Fase_CE Str<C_L> code_str{#code};                                      \
-        Fase_CE Str<C_L> func_str{#func_name};                                 \
-        Fase_CE size_t start = code_str.find(func_str) + func_str.size() + 1;  \
-        Fase_CE size_t end = fase::getArgsEnd(func_str, code_str);             \
-        Fase_CE Arr<size_t, N> arg_start_poss =                                \
-                fase::getArgStarts<N, C_L>(start, code_str);                   \
-        Fase_CE Arr<size_t, N> arg_end_poss =                                  \
-                fase::getArgEnds<N, C_L>(start, end, code_str);                \
-        Fase_CE Arr<size_t, N> default_v_arg_c =                               \
-                fase::getDefaultVArgC(arg_start_poss, arg_end_poss, code_str); \
-        Fase_CE auto existing_default_vs = fase::make_type_sequence(           \
-                fase::getTruthValue<bool(code_str.count(                       \
-                        '=', arg_start_poss[Seq], arg_end_poss[Seq]))>()...);  \
-        Fase_CE auto is_brace = fase::make_type_sequence(                      \
-                fase::getTruthValue<fase::for_macro::CheckIsBrace(             \
-                        code_str, arg_start_poss[Seq],                         \
-                        arg_end_poss[Seq])>()...);                             \
-                                                                               \
-        template <size_t Start, size_t End>                                    \
-        constexpr static auto specifyType() {                                  \
-            /* other type */                                                   \
-            if constexpr (code_str.find('"', Start, End) != fase::npos &&      \
-                          code_str.find('"', Start, End) <                     \
-                                  code_str.find(Str<3>{"\"s"}, Start, End)) {  \
-                return fase::TypeSequence<std::string>();                      \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, "\"")) {  \
-                return fase::TypeSequence<char*>();                            \
-            } /* cast type */                                                  \
-            else if constexpr (Fase_StrFound(code_str, Start, End,             \
-                                             "string")) {                      \
-                return fase::TypeSequence<std::string>();                      \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned char")) {             \
-                return fase::TypeSequence<unsigned char>();                    \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned short")) {            \
-                return fase::TypeSequence<unsigned short>();                   \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned int")) {              \
-                return fase::TypeSequence<unsigned int>();                     \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned long long")) {        \
-                return fase::TypeSequence<unsigned long long>();               \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned long")) {             \
-                return fase::TypeSequence<unsigned long>();                    \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "unsigned")) {                  \
-                return fase::TypeSequence<unsigned>();                         \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "float")) {                     \
-                return fase::TypeSequence<float>();                            \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "double")) {                    \
-                return fase::TypeSequence<double>();                           \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "long double")) {               \
-                return fase::TypeSequence<long double>();                      \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "short")) {                     \
-                return fase::TypeSequence<short>();                            \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "char")) {                      \
-                return fase::TypeSequence<char>();                             \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, "int")) { \
-                return fase::TypeSequence<int>();                              \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "long")) {                      \
-                return fase::TypeSequence<long>();                             \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "size_t")) {                    \
-                return fase::TypeSequence<size_t>();                           \
-            } /* literal type */                                               \
-            else if constexpr (Fase_StrFound(code_str, Start, End, "ull")) {   \
-                return fase::TypeSequence<unsigned long long>();               \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, "ul")) {  \
-                return fase::TypeSequence<unsigned long>();                    \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, "l")) {   \
-                return fase::TypeSequence<long>();                             \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, ".")) {   \
-                return fase::TypeSequence<double>();                           \
-            } else if constexpr (Fase_StrFound(code_str, Start, End, "f")) {   \
-                return fase::TypeSequence<float>();                            \
-            } else if constexpr (Fase_StrFound(code_str, Start, End,           \
-                                               "nullptr")) {                   \
-                return fase::TypeSequence<std::nullptr_t>();                   \
-            } else {                                                           \
-                return fase::TypeSequence<int>();                              \
+    code namespace fase {                                                      \
+        namespace for_macro {                                                  \
+        template <size_t... Seq>                                               \
+        class AutoFunctionBuilderAdder_##func_name##c {                        \
+        public:                                                                \
+            template <typename Ret, typename... Args>                          \
+            AutoFunctionBuilderAdder_##func_name##c(Ret (*fp)(Args...)) {      \
+                FuncNodeStorer a(#func_name, #code, fp);                       \
+                a.build<N, decltype(infos),                                    \
+                        TypeSequence<typename Clean<Args>::type...>,           \
+                        decltype(existing_default_vs), decltype(is_brace),     \
+                        Seq...>(#code, arg_start_poss, arg_end_poss);          \
             }                                                                  \
-        }                                                                      \
                                                                                \
-        template <size_t Count, size_t ArgN>                                   \
-        constexpr static auto MakeNSizeTuple() {                               \
-            constexpr size_t dv_s = code_str.find('=', arg_start_poss[ArgN]);  \
-            constexpr size_t dv_arg_start =                                    \
-                    ((Count == 0) ?                                            \
-                             dv_s :                                            \
-                             fase::SearchComma(code_str, dv_s,                 \
-                                               arg_end_poss[ArgN], Count));    \
-            constexpr size_t dv_arg_end =                                      \
-                    ((Count == default_v_arg_c[ArgN] - 1) ?                    \
-                             arg_end_poss[ArgN] :                              \
-                             fase::SearchComma(code_str, dv_s,                 \
-                                               arg_end_poss[ArgN],             \
-                                               Count + 1));                    \
+            template <size_t N>                                                \
+            using Str = String<N>;                                             \
+            template <typename T, size_t N>                                    \
+            using Arr = Array<T, N>;                                           \
                                                                                \
-            constexpr auto type = specifyType<dv_arg_start, dv_arg_end>();     \
-            if constexpr (0 == default_v_arg_c[ArgN]) {                        \
-                return fase::TypeSequence<>{};                                 \
-            } else if constexpr (Count == default_v_arg_c[ArgN] - 1) {         \
-                return type;                                                   \
-            } else {                                                           \
-                return fase::joint(type, MakeNSizeTuple<Count + 1, ArgN>());   \
+            Fase_CE size_t C_L = sizeof(#code) + 10;                           \
+            Fase_CE size_t N = ArgC(func_name);                                \
+            Fase_CE Str<C_L> code_str{#code};                                  \
+            Fase_CE Str<C_L> func_str{#func_name};                             \
+            Fase_CE size_t start =                                             \
+                    code_str.find(func_str) + func_str.size() + 1;             \
+            Fase_CE size_t end = getArgsEnd(func_str, code_str);               \
+            Fase_CE Arr<size_t, N> arg_start_poss =                            \
+                    getArgStarts<N, C_L>(start, code_str);                     \
+            Fase_CE Arr<size_t, N> arg_end_poss =                              \
+                    getArgEnds<N, C_L>(start, end, code_str);                  \
+            Fase_CE Arr<size_t, N> default_v_arg_c =                           \
+                    getDefaultVArgC(arg_start_poss, arg_end_poss, code_str);   \
+            Fase_CE auto existing_default_vs =                                 \
+                    make_type_sequence(getTruthValue<bool(code_str.count(      \
+                                               '=', arg_start_poss[Seq],       \
+                                               arg_end_poss[Seq]))>()...);     \
+            Fase_CE auto is_brace =                                            \
+                    make_type_sequence(getTruthValue<for_macro::CheckIsBrace(  \
+                                               code_str, arg_start_poss[Seq],  \
+                                               arg_end_poss[Seq])>()...);      \
+                                                                               \
+            template <size_t Start, size_t End>                                \
+            constexpr static auto specifyType() {                              \
+                /* other type */                                               \
+                if constexpr (code_str.find('"', Start, End) != npos &&        \
+                              code_str.find('"', Start, End) <                 \
+                                      code_str.find(Str<3>{"\"s"}, Start,      \
+                                                    End)) {                    \
+                    return TypeSequence<std::string>();                        \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "\"")) {                    \
+                    return TypeSequence<char*>();                              \
+                } /* cast type */                                              \
+                else if constexpr (Fase_StrFound(code_str, Start, End,         \
+                                                 "string")) {                  \
+                    return TypeSequence<std::string>();                        \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned char")) {         \
+                    return TypeSequence<unsigned char>();                      \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned short")) {        \
+                    return TypeSequence<unsigned short>();                     \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned int")) {          \
+                    return TypeSequence<unsigned int>();                       \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned long long")) {    \
+                    return TypeSequence<unsigned long long>();                 \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned long")) {         \
+                    return TypeSequence<unsigned long>();                      \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "unsigned")) {              \
+                    return TypeSequence<unsigned>();                           \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "float")) {                 \
+                    return TypeSequence<float>();                              \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "double")) {                \
+                    return TypeSequence<double>();                             \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "long double")) {           \
+                    return TypeSequence<long double>();                        \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "short")) {                 \
+                    return TypeSequence<short>();                              \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "char")) {                  \
+                    return TypeSequence<char>();                               \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "int")) {                   \
+                    return TypeSequence<int>();                                \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "long")) {                  \
+                    return TypeSequence<long>();                               \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "size_t")) {                \
+                    return TypeSequence<size_t>();                             \
+                } /* literal type */                                           \
+                else if constexpr (Fase_StrFound(code_str, Start, End,         \
+                                                 "ull")) {                     \
+                    return TypeSequence<unsigned long long>();                 \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "ul")) {                    \
+                    return TypeSequence<unsigned long>();                      \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "l")) {                     \
+                    return TypeSequence<long>();                               \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   ".")) {                     \
+                    return TypeSequence<double>();                             \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "f")) {                     \
+                    return TypeSequence<float>();                              \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   "nullptr")) {               \
+                    return TypeSequence<std::nullptr_t>();                     \
+                } else {                                                       \
+                    return TypeSequence<int>();                                \
+                }                                                              \
             }                                                                  \
+                                                                               \
+            template <size_t Count, size_t ArgN>                               \
+            constexpr static auto MakeNSizeTuple() {                           \
+                constexpr size_t dv_s =                                        \
+                        code_str.find('=', arg_start_poss[ArgN]);              \
+                constexpr size_t dv_arg_start =                                \
+                        ((Count == 0) ?                                        \
+                                 dv_s :                                        \
+                                 SearchComma(code_str, dv_s,                   \
+                                             arg_end_poss[ArgN], Count));      \
+                constexpr size_t dv_arg_end =                                  \
+                        ((Count == default_v_arg_c[ArgN] - 1) ?                \
+                                 arg_end_poss[ArgN] :                          \
+                                 SearchComma(code_str, dv_s,                   \
+                                             arg_end_poss[ArgN], Count + 1));  \
+                                                                               \
+                constexpr auto type = specifyType<dv_arg_start, dv_arg_end>(); \
+                if constexpr (0 == default_v_arg_c[ArgN]) {                    \
+                    return TypeSequence<>{};                                   \
+                } else if constexpr (Count == default_v_arg_c[ArgN] - 1) {     \
+                    return type;                                               \
+                } else {                                                       \
+                    return joint(type, MakeNSizeTuple<Count + 1, ArgN>());     \
+                }                                                              \
+            }                                                                  \
+            Fase_CE auto infos =                                               \
+                    make_type_sequence(MakeNSizeTuple<0, Seq>()...);           \
+        };                                                                     \
+        template <size_t... Seq>                                               \
+        static auto make_AutoFunctionBuilderAdder_##func_name##c(              \
+                std::index_sequence<Seq...>) {                                 \
+            return AutoFunctionBuilderAdder_##func_name##c<Seq...>(func_name); \
         }                                                                      \
-        Fase_CE auto infos =                                                   \
-                fase::make_type_sequence(MakeNSizeTuple<0, Seq>()...);         \
-    };                                                                         \
-    template <size_t... Seq>                                                   \
-    static auto make_AutoFunctionBuilderAdder_##func_name##c(                  \
-            std::index_sequence<Seq...>) {                                     \
-        return AutoFunctionBuilderAdder_##func_name##c<Seq...>(func_name);     \
-    }                                                                          \
-    static auto test##func_name##c =                                           \
-            make_AutoFunctionBuilderAdder_##func_name##c(                      \
-                    std::make_index_sequence<fase::ArgC(func_name)>());
+        static auto test##func_name##c =                                       \
+                make_AutoFunctionBuilderAdder_##func_name##c(                  \
+                        std::make_index_sequence<ArgC(func_name)>());          \
+        } /* namespace for_macro */                                            \
+    }     /* namespace fase */
 
 #ifdef __COUNTER__
 #define FaseAutoAddingFunctionBuilder_(func_name, code, c) \
@@ -959,6 +976,8 @@ private:
     FaseAutoAddingFunctionBuilder_B(func_name, code, 0)
 
 #endif
+
+}  // namespace for_macro
 
 }  // namespace fase
 

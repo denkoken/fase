@@ -13,6 +13,7 @@
 #include "utils.h"
 
 namespace fase {
+namespace guieditor {
 
 constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
 constexpr char RUNNING_ERROR_RESPONSE_ID[] = "RUNNING_ERROR_RESPONSE_ID";
@@ -167,6 +168,7 @@ private:
     void updateState(const std::map<std::string, Variable>& resp);
 };
 
+}  // namespace guieditor
 }  // namespace fase
 
 #endif  // EDITOR_GUI_VIEW_H_20180917

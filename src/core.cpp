@@ -109,15 +109,21 @@ std::vector<Variable*> BindVariables(
     return bound_variables;
 }
 
-void initNode(std::map<std::string, Node>* nodes) {
-    (*nodes)[InputNodeStr()] = {InputFuncStr(),
+void initInOutFunc(const std::string& project, FaseCore* core) {
+    std::function<void()> dummy = [] {};
+    core->addFunctionBuilder(InputFuncStr(project), dummy, {}, {}, {}, {});
+    core->addFunctionBuilder(OutputFuncStr(project), dummy, {}, {}, {}, {});
+}
+
+void initNode(const std::string& project, std::map<std::string, Node>* nodes) {
+    (*nodes)[InputNodeStr()] = {InputFuncStr(project),
                                 std::vector<Link>(),
                                 std::vector<std::tuple<size_t, Link>>(),
                                 std::vector<std::string>(),
                                 std::vector<Variable>(),
                                 std::numeric_limits<int>::min()};
 
-    (*nodes)[OutputNodeStr()] = {OutputFuncStr(),
+    (*nodes)[OutputNodeStr()] = {OutputFuncStr(project),
                                  std::vector<Link>(),
                                  std::vector<std::tuple<size_t, Link>>(),
                                  std::vector<std::string>(),
@@ -162,16 +168,12 @@ bool FaseCore::checkNodeName(const std::string& name) {
 }
 
 FaseCore::FaseCore() {
-    // make dummy functions
-    std::function<void()> dummy = [] {};
-    addFunctionBuilder(InputFuncStr(), dummy, {}, {}, {}, {});
-    addFunctionBuilder(OutputFuncStr(), dummy, {}, {}, {}, {});
-
     primary_project = "Untitled";
     projects[primary_project] = {};
 
+    initInOutFunc(primary_project, this);
     // make input node and output node.
-    initNode(&projects[primary_project].nodes);
+    initNode(primary_project, &projects[primary_project].nodes);
 }
 
 bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
@@ -310,10 +312,11 @@ bool FaseCore::addLink(const std::string& src_node_name,
     }
 
     if (src_node_name == InputNodeStr() &&
+        !projects[primary_project].is_locked_inout &&
         !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
                 nodes[src_node_name].arg_values[src_arg_idx])) {
         const Function& dst_func = functions[nodes[dst_node_name].func_repr];
-        Function& func = functions[InputFuncStr()];
+        Function& func = functions[InputFuncStr(primary_project)];
 
         func.arg_type_reprs[src_arg_idx] = dst_func.arg_type_reprs[dst_arg_idx];
         func.arg_types[src_arg_idx] = dst_func.arg_types[dst_arg_idx];
@@ -328,10 +331,11 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
         delRevLink(nodes[InputNodeStr()], src_arg_idx, this);
     } else if (dst_node_name == OutputNodeStr() &&
+               !projects[primary_project].is_locked_inout &&
                !nodes[dst_node_name].arg_values[dst_arg_idx].isSameType(
                        nodes[src_node_name].arg_values[src_arg_idx])) {
         const Function& src_func = functions[nodes[src_node_name].func_repr];
-        Function& func = functions[OutputFuncStr()];
+        Function& func = functions[OutputFuncStr(primary_project)];
 
         func.arg_type_reprs[dst_arg_idx] = src_func.arg_type_reprs[src_arg_idx];
         func.arg_types[dst_arg_idx] = src_func.arg_types[src_arg_idx];
@@ -378,6 +382,9 @@ void FaseCore::delLink(const std::string& dst_node_name,
     if (nodes[dst_node_name].links.size() <= dst_arg_idx) {
         return;
     }
+    if (nodes[dst_node_name].links[dst_arg_idx].node_name.empty()) {
+        return;
+    }
 
     // Delete
     Link l = nodes[dst_node_name].links[dst_arg_idx];
@@ -413,8 +420,9 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
         return false;
     }
 
-    // Check input type
-    if (!node.arg_values[arg_idx].isSameType(arg_val)) {
+    // Check input type (through if arg_value is empty.)
+    if (node.arg_values[arg_idx] &&
+        !node.arg_values[arg_idx].isSameType(arg_val)) {
         std::cerr << "Invalid input type to set node argument" << std::endl;
         return false;
     }
@@ -447,11 +455,15 @@ bool FaseCore::addInput(const std::string& name) {
         return false;
     }
 
-    if (exists(functions[InputFuncStr()].arg_names, name)) {
+    if (exists(functions[InputFuncStr(primary_project)].arg_names, name)) {
         return false;
     }
 
-    Function& func = functions[InputFuncStr()];
+    if (projects[primary_project].is_locked_inout) {
+        return false;
+    }
+
+    Function& func = functions[InputFuncStr(primary_project)];
     func.arg_type_reprs.push_back("");
     func.arg_types.push_back(nullptr);
     func.default_arg_reprs.push_back("");
@@ -469,12 +481,16 @@ bool FaseCore::addInput(const std::string& name) {
 }
 
 bool FaseCore::delInput(const size_t& idx) {
-    if (idx >= functions[InputFuncStr()].arg_names.size()) {
+    if (idx >= functions[InputFuncStr(primary_project)].arg_names.size()) {
+        return false;
+    }
+
+    if (projects[primary_project].is_locked_inout) {
         return false;
     }
 
     Node& node = projects[primary_project].nodes[InputNodeStr()];
-    Function& func = functions[InputFuncStr()];
+    Function& func = functions[InputFuncStr(primary_project)];
 
     // store all linking info, and delete all links.
     const std::vector<std::tuple<size_t, Link>> rev_links_buf = node.rev_links;
@@ -514,11 +530,15 @@ bool FaseCore::addOutput(const std::string& name) {
         return false;
     }
 
-    if (exists(functions[OutputFuncStr()].arg_names, name)) {
+    if (exists(functions[OutputFuncStr(primary_project)].arg_names, name)) {
         return false;
     }
 
-    Function& func = functions[OutputFuncStr()];
+    if (projects[primary_project].is_locked_inout) {
+        return false;
+    }
+
+    Function& func = functions[OutputFuncStr(primary_project)];
     func.arg_type_reprs.push_back("");
     func.arg_types.push_back(nullptr);
     func.default_arg_reprs.push_back("");
@@ -536,17 +556,21 @@ bool FaseCore::addOutput(const std::string& name) {
 }
 
 bool FaseCore::delOutput(const size_t& idx) {
-    if (idx >= functions[OutputFuncStr()].arg_names.size()) {
+    if (idx >= functions[OutputFuncStr(primary_project)].arg_names.size()) {
+        return false;
+    }
+
+    if (projects[primary_project].is_locked_inout) {
         return false;
     }
 
     Node& node = projects[primary_project].nodes[OutputNodeStr()];
-    Function& func = functions[OutputFuncStr()];
+    Function& func = functions[OutputFuncStr(primary_project)];
 
     // store all linking info, and delete all links.
     const std::vector<Link> links_buf = node.links;
     for (size_t i = 0; i < node.links.size(); i++) {
-        delLink(OutputFuncStr(), i);
+        delLink(OutputNodeStr(), i);
     }
 
     func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
@@ -576,11 +600,19 @@ bool FaseCore::delOutput(const size_t& idx) {
     return true;
 }
 
+void FaseCore::lockInOut() {
+    projects[primary_project].is_locked_inout = true;
+}
+void FaseCore::unlockInOut() {
+    projects[primary_project].is_locked_inout = false;
+}
+
 void FaseCore::switchProject(const std::string& project_name) noexcept {
     primary_project = project_name;
 
     if (projects[primary_project].nodes.empty()) {
-        initNode(&projects[primary_project].nodes);
+        initInOutFunc(primary_project, this);
+        initNode(primary_project, &projects[primary_project].nodes);
     }
 }
 
@@ -616,6 +648,10 @@ std::vector<std::string> FaseCore::getProjects() const {
         dst.emplace_back(std::get<0>(pair));
     }
     return dst;
+}
+
+const std::vector<Variable>& FaseCore::getOutputs() const {
+    return output_variables.at(OutputNodeStr());
 }
 
 std::function<void()> FaseCore::buildNode(

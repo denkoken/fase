@@ -1,5 +1,7 @@
 
 #define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
+#include <callable.h>
+#include <editor.h>
 #include <fase.h>
 
 #include <random>
@@ -141,9 +143,26 @@ void VecAdd(const std::vector<double>& a,
 });
 // clang-format on
 
+void LastPrintProjectRun(fase::Callable& app) {
+    // Both Type returning is OK!
+    std::tuple<int, std::string> dst =
+            app["Last Print Project"](std::string("hello!"), 3)
+                    .get<int, std::string>();
+
+    std::cout << "output1 : " << std::get<0>(dst) << std::endl
+              << "output2 : " << std::get<1>(dst) << std::endl;
+
+    int dst1;
+    std::string dst2;
+    app["Last Print Project"](std::string("good bye!"), 7).get(&dst1, &dst2);
+
+    std::cout << "output1 : " << dst1 << std::endl
+              << "output2 : " << dst2 << std::endl;
+}
+
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::GUIEditor> app;
+    fase::Fase<fase::GUIEditor, fase::Callable> app;
 
 #if !defined(__cpp_if_constexpr) || !defined(__cpp_inline_variables)
     // Register functions
@@ -166,14 +185,16 @@ int main() {
         return 0;
     }
 
+    app.fixInput<std::string, int>("Last Print Project", {{"str", "num"}});
+    app.fixOutput<int, std::string>("Last Print Project", {{"num", "str"}});
+
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    RunRenderingLoop(window, [&]() {
-        // Draw Fase's interface
-        return app.runEditing("Fase Editor", "##fase");
-    });
+    RunRenderingLoop(window, app);
+
+    LastPrintProjectRun(app);
 
     return 0;
 }

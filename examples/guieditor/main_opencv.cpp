@@ -1,3 +1,4 @@
+#include <editor.h>
 #include <fase.h>
 
 #include "fase_gl_utils.h"
@@ -99,10 +100,7 @@ int main() {
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    RunRenderingLoop(window, [&]() {
-        // Draw Fase's interface
-        return app.runEditing("Fase Editor", "##app");
-    });
+    RunRenderingLoop(window, app);
 
     return 0;
 }

@@ -41,6 +41,7 @@ struct Function {
 struct Project {
     std::map<std::string, Node> nodes;  // [name, Node]
     bool multi = false;
+    bool is_locked_inout = false;
 };
 
 class FaseCore {
@@ -84,6 +85,9 @@ public:
     bool addOutput(const std::string& name);
     bool delOutput(const size_t& idx);
 
+    void lockInOut();
+    void unlockInOut();
+
     void switchProject(const std::string& project_name) noexcept;
     void renameProject(const std::string& project_name) noexcept;
     void deleteProject(const std::string& project_name) noexcept;
@@ -100,6 +104,8 @@ public:
     const std::map<std::string, Node>& getNodes() const;
 
     std::vector<std::string> getProjects() const;
+
+    const std::vector<Variable>& getOutputs() const;
 
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,

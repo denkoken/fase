@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace fase {
+namespace guieditor {
 
 template <typename T>
 bool GUIEditor::addVarEditor(VarEditor<T>&& var_editor) {
@@ -51,8 +52,11 @@ bool GUIEditor::addVarEditor(VarEditor<T>&& var_editor) {
     addVarEditor(&typeid(T), std::move(var_editor_wraped));
     addVarEditor(&typeid(std::vector<T>), std::move(vector_var_editor_wraped));
     // addVarEditor(&typeid(std::list<T>), std::move(list_var_editor_wraped));
+
+    return true;
 }
 
+}  // namespace guieditor
 }  // namespace fase
 
 #endif  // EDITOR_IMPL_H_20181013

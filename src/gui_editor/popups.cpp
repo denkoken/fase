@@ -20,6 +20,7 @@ using stdfs = std::filesystem;
 #endif
 
 namespace fase {
+namespace guieditor {
 
 namespace {
 
@@ -254,10 +255,12 @@ private:
         bool success = false;
 
         const Node& input_node = core.getNodes().at(InputNodeStr());
-        const Function& input_func = core.getFunctions().at(InputFuncStr());
+        const Function& input_func =
+                core.getFunctions().at(input_node.func_repr);
 
         const Node& output_node = core.getNodes().at(OutputNodeStr());
-        const Function& output_func = core.getFunctions().at(OutputFuncStr());
+        const Function& output_func =
+                core.getFunctions().at(output_node.func_repr);
 
         const ImVec2 panel_size(450,
                                 120 + 25 * std::max(input_node.links.size(),
@@ -526,8 +529,9 @@ private:
                               pattern == Pattern::Load)) {
             pattern = Pattern::Load;
         }
-#if 0
-        if (ImGui::Selectable(label("Switch Project"), pattern == Pattern::Switch)) {
+#if 1
+        if (ImGui::Selectable(label("Switch Project"),
+                              pattern == Pattern::Switch)) {
             pattern = Pattern::Switch;
         }
 #endif
@@ -698,4 +702,5 @@ void View::setupPopups(std::function<void(Issue)>&& issue_f) {
             core, label, state, utils, issue_f, &popups);
 }
 
+}  // namespace guieditor
 }  // namespace fase

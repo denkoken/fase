@@ -47,6 +47,8 @@ template <typename T>
 using VarEditor = std::function<std::unique_ptr<T>(const char*, const T&)>;
 using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
+namespace guieditor {
+
 class GUIEditor : public PartsBase {
 public:
     GUIEditor(const TypeUtils&);
@@ -103,6 +105,10 @@ private:
     class Impl;
     std::unique_ptr<Impl> impl;
 };
+
+}  // namespace guieditor
+
+using guieditor::GUIEditor;
 
 }  // namespace fase
 

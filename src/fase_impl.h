@@ -60,7 +60,7 @@ inline Fase<Parts...>::Fase()
     SetupTypeUtils(&type_utils);
 #if defined(FASE_USE_ADD_FUNCTION_BUILDER_MACRO) && \
         defined(__cpp_if_constexpr) && defined(__cpp_inline_variables)
-    for (auto& builder_adder : FuncNodeStorer::func_builder_adders) {
+    for (auto& builder_adder : for_macro::FuncNodeStorer::func_builder_adders) {
         builder_adder(core.get());
     }
 #endif
