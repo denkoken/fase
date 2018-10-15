@@ -49,8 +49,7 @@ struct GUIState {
 class Content {
 public:
     Content(const FaseCore& core_, LabelWrapper& label_, GUIState& state_,
-            const TypeUtils& utils_,
-            const std::function<void(Issue)>& issue_f_)
+            const TypeUtils& utils_, const std::function<void(Issue)>& issue_f_)
         : core(core_),
           utils(utils_),
           label(label_),

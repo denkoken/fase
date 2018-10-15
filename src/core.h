@@ -79,10 +79,12 @@ public:
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     // ## Editing Input/Output node ##
-    bool addInput(const std::string& name);
+    bool addInput(const std::string& name,
+                  const std::type_info* type = nullptr);
     bool delInput(const size_t& idx);
 
-    bool addOutput(const std::string& name);
+    bool addOutput(const std::string& name,
+                   const std::type_info* type = nullptr);
     bool delOutput(const size_t& idx);
 
     void lockInOut();

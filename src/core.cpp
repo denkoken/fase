@@ -450,7 +450,7 @@ void FaseCore::clearNodeArg(const std::string& node_name,
     node.arg_values[arg_idx] = functions[func_repr].default_arg_values[arg_idx];
 }
 
-bool FaseCore::addInput(const std::string& name) {
+bool FaseCore::addInput(const std::string& name, const std::type_info* type) {
     if (!checkVarName(name)) {
         return false;
     }
@@ -465,7 +465,7 @@ bool FaseCore::addInput(const std::string& name) {
 
     Function& func = functions[InputFuncStr(primary_project)];
     func.arg_type_reprs.push_back("");
-    func.arg_types.push_back(nullptr);
+    func.arg_types.push_back(type);
     func.default_arg_reprs.push_back("");
     func.arg_names.push_back(name);
     func.default_arg_values.push_back(Variable());
@@ -525,7 +525,7 @@ bool FaseCore::delInput(const size_t& idx) {
     return true;
 }
 
-bool FaseCore::addOutput(const std::string& name) {
+bool FaseCore::addOutput(const std::string& name, const std::type_info* type) {
     if (!checkVarName(name)) {
         return false;
     }
@@ -540,7 +540,7 @@ bool FaseCore::addOutput(const std::string& name) {
 
     Function& func = functions[OutputFuncStr(primary_project)];
     func.arg_type_reprs.push_back("");
-    func.arg_types.push_back(nullptr);
+    func.arg_types.push_back(type);
     func.default_arg_reprs.push_back("");
     func.arg_names.push_back(name);
     func.default_arg_values.push_back(Variable());

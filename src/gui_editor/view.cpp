@@ -754,9 +754,9 @@ private:
 class NodeBoxesView : public Content {
 public:
     template <class... Args>
-    NodeBoxesView(
-            const std::map<const std::type_info*, VarEditorWraped>& var_editors_,
-            CanvasState& c_state_, Args&&... args)
+    NodeBoxesView(const std::map<const std::type_info*, VarEditorWraped>&
+                          var_editors_,
+                  CanvasState& c_state_, Args&&... args)
         : Content(args...), var_editors(var_editors_), c_state(c_state_) {}
     ~NodeBoxesView() {}
 
@@ -1207,9 +1207,9 @@ void NodeCanvasView::main() {
 class NodeArgEditView : public Content {
 public:
     template <class... Args>
-    NodeArgEditView(
-            const std::map<const std::type_info*, VarEditorWraped>& var_editors_,
-            Args&&... args)
+    NodeArgEditView(const std::map<const std::type_info*, VarEditorWraped>&
+                            var_editors_,
+                    Args&&... args)
         : Content(args...), var_editors(var_editors_) {}
     ~NodeArgEditView() {}
 
