@@ -30,7 +30,8 @@ if (HAS_PARENT)
 endif()
 
 message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}, Use c++17: ${FASE_USE_CPP17}")
-message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}, link libraries: ${FASE_EXTERNAL_LIBRARY}")
+message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
+message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
 # ------------------------------------------------------------------------------
 # ----------------------------------- Common -----------------------------------
