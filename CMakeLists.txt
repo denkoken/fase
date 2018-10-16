@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 # ------------------------------------------------------------------------------
+# -------------------------------- Check parent --------------------------------
+# ------------------------------------------------------------------------------
+get_directory_property(HAS_PARENT PARENT_DIRECTORY)
+if(HAS_PARENT)
+    message(STATUS "Build Fase as subdirectory mode")
+else()
+    message(STATUS "Build Fase as independent mode")
+endif()
+
+# ------------------------------------------------------------------------------
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
@@ -207,4 +217,12 @@ if (FASE_BUILD_EXAMPLES_AND_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test_core.cpp
     )
     setup_target(fase_test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+endif()
+
+# ------------------------------------------------------------------------------
+# ----------------------------- Pass to the parent -----------------------------
+# ------------------------------------------------------------------------------
+if(HAS_PARENT)
+    set(FASE_INCLUDE ${FASE_INCLUDE} PARENT_SCOPE)
+    set(FASE_LIBRARY ${FASE_LIBRARY} PARENT_SCOPE)
 endif()
