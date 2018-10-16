@@ -13,11 +13,24 @@ endif()
 # ------------------------------------------------------------------------------
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
+set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
-set(FASE_BUILD_EXAMPLES_AND_TESTS ON CACHE BOOL "Build examples and tests")
+set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
 set(FASE_USE_CPP17 OFF CACHE BOOL "Use c++17 for further feathers")
-set(FASE_EXTERNAL_INCLUDE "" CACHE PATH "External directories for third party")
-message(STATUS "Build glfw: ${FASE_BUILD_GLFW}, examples and tests: ${FASE_BUILD_EXAMPLES_AND_TESTS}, Use c++17: ${FASE_USE_CPP17}, External include directories: ${FASE_EXTERNAL_INCLUDE}")
+set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
+set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
+
+# Overwrite options
+if (HAS_PARENT)
+    set(FASE_BUILD_THIRD_PARTY OFF)
+    set(FASE_BUILD_GLFW OFF)
+    set(FASE_BUILD_EXAMPLES OFF)
+    set(FASE_BUILD_TESTS OFF)
+endif()
+
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}, Use c++17: ${FASE_USE_CPP17}")
+message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}, link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
 # ------------------------------------------------------------------------------
 # ----------------------------------- Common -----------------------------------
@@ -103,9 +116,10 @@ endfunction(setup_target_simple)
 
 # External include directory (assuming external imgui without examples)
 list(APPEND FASE_INCLUDE ${FASE_EXTERNAL_INCLUDE})
+list(APPEND FASE_LIBRARY ${FASE_EXTERNAL_LIBRARY})
 
 # For examples
-if (FASE_BUILD_EXAMPLES_AND_TESTS)
+if (FASE_BUILD_THIRD_PARTY)
     # OpenGL
     find_package(OpenGL REQUIRED)
     list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
@@ -185,8 +199,8 @@ setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)
 
-# ----------------------------- examples and tests -----------------------------
-if (FASE_BUILD_EXAMPLES_AND_TESTS)
+# ---------------------------------- examples ----------------------------------
+if (FASE_BUILD_EXAMPLES)
     # CLI Editor
     # add_executable(clieditor
     #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/clieditor/main.cpp
@@ -208,8 +222,10 @@ if (FASE_BUILD_EXAMPLES_AND_TESTS)
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
         setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
     endif()
+endif()
 
-    # Test
+# ----------------------------------- tests ------------------------------------
+if (FASE_BUILD_TESTS)
     add_executable(fase_test
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test_variable.cpp
