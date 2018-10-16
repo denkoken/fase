@@ -10,7 +10,7 @@ namespace fase {
 namespace guieditor {
 
 struct GUIPreference {
-    bool auto_layout = false;
+    bool auto_layout = true;
     int priority_min = -10;
     int priority_max = 10;
     bool is_simple_node_box = false;
