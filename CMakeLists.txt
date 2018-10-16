@@ -21,14 +21,6 @@ set(FASE_USE_CPP17 OFF CACHE BOOL "Use c++17 for further feathers")
 set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
-# Overwrite options
-if (HAS_PARENT)
-    set(FASE_BUILD_THIRD_PARTY OFF)
-    set(FASE_BUILD_GLFW OFF)
-    set(FASE_BUILD_EXAMPLES OFF)
-    set(FASE_BUILD_TESTS OFF)
-endif()
-
 message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}, Use c++17: ${FASE_USE_CPP17}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
