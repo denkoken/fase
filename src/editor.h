@@ -49,6 +49,10 @@ using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
 namespace guieditor {
 
+/**
+ * @defgroup FaseParts
+ * @{
+ */
 class GUIEditor : public PartsBase {
 public:
     GUIEditor(const TypeUtils&);
@@ -105,6 +109,7 @@ private:
     class Impl;
     std::unique_ptr<Impl> impl;
 };
+///@}
 
 }  // namespace guieditor
 

@@ -481,6 +481,7 @@ bool GUIEditor::runEditing(const std::string& win_title,
     if (!impl) {
         impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
     }
+    std::lock_guard<std::mutex> guard(core_mutex);
     return impl->run(win_title, label_suffix);
 }
 

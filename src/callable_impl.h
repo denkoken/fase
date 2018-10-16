@@ -133,7 +133,10 @@ void Callable::call(std::vector<Variable>* dst, Args&&... args) {
 
     const size_t n_input = pcore->getNodes().at(InputNodeStr()).links.size();
     for (size_t i = 0; i < n_input; i++) {
-        pcore->setNodeArg(InputNodeStr(), i, "", arg_vars[i]);
+        if (!pcore->setNodeArg(InputNodeStr(), i, "", arg_vars[i])) {
+            throw std::runtime_error("invalid type for pipeline : "
+                                     + std::to_string(i) + "th");
+        }
     }
 
     pcore->build();

@@ -8,12 +8,17 @@
 
 namespace fase {
 
+/**
+ * @defgroup FaseParts
+ * @{
+ */
 class DirectlyAccessibleBareCore : public PartsBase {
 public:
     std::shared_ptr<FaseCore> getAccessibleCore() {
         return getCore();
     }
 };
+/// @}
 
 }  // namespace fase
 

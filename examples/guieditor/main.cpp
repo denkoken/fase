@@ -202,6 +202,7 @@ int main() {
 
     app.fixInput<std::string, int>("Last Print Project", {{"str", "num"}});
     app.fixOutput<int, std::string>("Last Print Project", {{"num", "str"}});
+    app.setProject("Last Print Project");
 
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");

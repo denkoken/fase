@@ -36,8 +36,8 @@ public:
 
     /**
      * @brief
-     *      add functions about the type, used when save/load, generate native
-     * code.
+     *      add functions about the type, used when save/load,
+     *      generate native code.
      *
      * @tparam T
      *      User defined type
