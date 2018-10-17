@@ -1,4 +1,3 @@
-
 #ifndef CORE_UTIL_H_20180824
 #define CORE_UTIL_H_20180824
 
@@ -43,12 +42,22 @@ inline std::string TotalTimeStr() {
     return ReportHeaderStr() + std::string("__tatal_time");
 }
 
-inline std::string InputFuncStr() {
-    return ReportHeaderStr() + std::string("__input_f");
+inline std::string InputFuncStr(const std::string& project_name) {
+    return ReportHeaderStr() + std::string("__input_f_") + project_name;
 }
 
-inline std::string OutputFuncStr() {
-    return ReportHeaderStr() + std::string("__output_f");
+inline std::string OutputFuncStr(const std::string& project_name) {
+    return ReportHeaderStr() + std::string("__output_f_") + project_name;
+}
+
+inline bool IsInputFuncStr(const std::string& name) {
+    return name.find(ReportHeaderStr() + std::string("__input_f_")) !=
+           std::string::npos;
+}
+
+inline bool IsOutputFuncStr(const std::string& name) {
+    return name.find(ReportHeaderStr() + std::string("__output_f_")) !=
+           std::string::npos;
 }
 
 inline std::string InputNodeStr() {

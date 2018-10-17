@@ -9,14 +9,15 @@ namespace fase {
 
 class WrongTypeCast : public std::logic_error {
 public:
-    WrongTypeCast(const std::type_info& cast_t, const std::type_info& casted_t)
+    WrongTypeCast(const std::type_info& cast_type_,
+                  const std::type_info& casted_type_)
         : std::logic_error("WrongTypeCast"),
-          cast_type(&cast_t),
-          casted_type(&casted_t),
+          cast_type(&cast_type_),
+          casted_type(&casted_type_),
           err_message(
                   std::string("Variable::getReader() failed : Invalid cast (") +
-                  cast_type->name() + std::string(" vs ") +
-                  casted_type->name() + std::string(")")) {}
+                  cast_type_.name() + std::string(" vs ") +
+                  casted_type_.name() + std::string(")")) {}
 
     const std::type_info* cast_type;
     const std::type_info* casted_type;
@@ -31,15 +32,15 @@ private:
 
 class InvalidArgN : public std::logic_error {
 public:
-    InvalidArgN(const size_t& expect_n, const size_t& input_n)
+    InvalidArgN(const size_t& expected_n_, const size_t& input_n_)
         : std::logic_error("InvalidArgN"),
-          input_n(input_n),
-          expected_n(expect_n),
+          input_n(input_n_),
+          expected_n(expected_n_),
           err_message(std::string("FunctionBuilder::build() failed : Invalid "
                                   "Number of Arguments ( expect ") +
-                      std::to_string(expected_n) +
+                      std::to_string(expected_n_) +
                       std::string(" , but # of arguments is ") +
-                      std::to_string(input_n) + std::string(")")) {}
+                      std::to_string(input_n_) + std::string(")")) {}
 
     const size_t input_n;
     const size_t expected_n;
@@ -54,10 +55,11 @@ private:
 
 class ErrorThrownByNode : public std::runtime_error {
 public:
-    ErrorThrownByNode(const std::string& node_name,
-                      const std::string& err_message)
+    ErrorThrownByNode(const std::string& node_name_,
+                      const std::string& err_message_)
         : runtime_error("ErrorThrownByNode"),
-          node_name(node_name), err_message(err_message) {}
+          node_name(node_name_),
+          err_message(err_message_) {}
 
     std::string node_name;
     std::string err_message;

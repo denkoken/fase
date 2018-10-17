@@ -3,16 +3,18 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <atomic>
 #include <cmath>
+#include <mutex>
 #include <sstream>
 #include <thread>
-#include <mutex>
-#include <atomic>
 
 #include "../core_util.h"
 #include "view.h"
 
 namespace fase {
+
+namespace guieditor {
 
 namespace {
 
@@ -74,7 +76,8 @@ bool ImGuiInputValue(const char* label, std::string* v) {
 }
 
 template <class List>
-void AddListViewer(std::map<const std::type_info*, VarEditor>& var_editors) {
+void AddListViewer(
+        std::map<const std::type_info*, VarEditorWraped>& var_editors) {
     var_editors[&typeid(List)] =
             [v_editor = var_editors[&typeid(typename List::value_type)]](
                     const char* label, const Variable& a) {
@@ -97,7 +100,8 @@ void AddListViewer(std::map<const std::type_info*, VarEditor>& var_editors) {
 }
 
 template <typename T>
-void EditorMaker_(std::map<const std::type_info*, VarEditor>& var_editors) {
+void EditorMaker_(
+        std::map<const std::type_info*, VarEditorWraped>& var_editors) {
     var_editors[&typeid(T)] = [](const char* label, const Variable& a) {
         T copy = *a.getReader<T>();
         if (ImGuiInputValue(label, &copy)) {
@@ -108,13 +112,15 @@ void EditorMaker_(std::map<const std::type_info*, VarEditor>& var_editors) {
 }
 
 template <typename T>
-void EditorMaker(std::map<const std::type_info*, VarEditor>& var_editors) {
+void EditorMaker(
+        std::map<const std::type_info*, VarEditorWraped>& var_editors) {
     EditorMaker_<T>(var_editors);
     AddListViewer<std::vector<T>>(var_editors);
     AddListViewer<std::list<T>>(var_editors);
 }
 
-void SetUpVarEditors(std::map<const std::type_info*, VarEditor>* var_editors) {
+void SetUpVarEditors(
+        std::map<const std::type_info*, VarEditorWraped>* var_editors) {
     EditorMaker<int>(*var_editors);
 
     EditorMaker_<bool>(*var_editors);
@@ -148,10 +154,10 @@ inline const T& GetVar(const Issue& issue) {
 
 class GUIEditor::Impl {
 public:
-    Impl(FaseCore* core, const TypeUtils& utils)
-        : view(*core, utils, var_editors),
-          core(core),
-          utils(utils),
+    Impl(const std::shared_ptr<FaseCore>& core_, const TypeUtils& utils_)
+        : core(core_),
+          utils(utils_),
+          view(*core_, utils_, var_editors),
           shold_stop_loop(false),
           is_running(false) {
         SetUpVarEditors(&var_editors);
@@ -161,15 +167,16 @@ public:
 
     bool run(const std::string& win_title, const std::string& label_suffix);
 
-    bool addVarEditor(const std::type_info* p, VarEditor&& f);
+    bool addVarEditor(const std::type_info* p, VarEditorWraped&& f);
 
 private:
-    View view;
-    FaseCore* core;
+    std::shared_ptr<FaseCore> core;
     const TypeUtils& utils;
 
+    View view;
+
     std::map<std::string, ResultReport> reports;
-    std::map<const std::type_info*, VarEditor> var_editors;
+    std::map<const std::type_info*, VarEditorWraped> var_editors;
     std::map<std::string, Variable> response;
 
     bool is_updated = true;
@@ -326,7 +333,7 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             continue;
         } else if (issue.issue == IssuePattern::Load) {
             const std::string& filename = GetVar<std::string>(issue);
-            responses_[issue.id] = LoadFaseCore(filename, core, utils);
+            responses_[issue.id] = LoadFaseCore(filename, core.get(), utils);
         } else if (issue.issue == IssuePattern::AddInput) {
             const std::string& name = GetVar<std::string>(issue);
             responses_[issue.id] = core->addInput(name);
@@ -454,21 +461,30 @@ bool GUIEditor::Impl::run(const std::string& win_title,
     return true;
 }
 
-bool GUIEditor::Impl::addVarEditor(const std::type_info* p, VarEditor&& f) {
-    var_editors[p] = std::forward<VarEditor>(f);
+bool GUIEditor::Impl::addVarEditor(const std::type_info* p,
+                                   VarEditorWraped&& f) {
+    var_editors[p] = std::forward<VarEditorWraped>(f);
     return true;
 }
 
 // ------------------------------- pImpl pattern -------------------------------
-GUIEditor::GUIEditor(FaseCore* core, const TypeUtils& utils)
-    : impl(new GUIEditor::Impl(core, utils)) {}
-bool GUIEditor::addVarEditor(const std::type_info* p, VarEditor&& f) {
-    return impl->addVarEditor(p, std::forward<VarEditor>(f));
+GUIEditor::GUIEditor(const TypeUtils& utils_) : PartsBase(utils_) {}
+bool GUIEditor::addVarEditor(const std::type_info* p, VarEditorWraped&& f) {
+    if (!impl) {
+        impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
+    }
+    return impl->addVarEditor(p, std::forward<VarEditorWraped>(f));
 }
 GUIEditor::~GUIEditor() {}
-bool GUIEditor::run(const std::string& win_title,
-                    const std::string& label_suffix) {
+bool GUIEditor::runEditing(const std::string& win_title,
+                           const std::string& label_suffix) {
+    if (!impl) {
+        impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
+    }
+    std::lock_guard<std::mutex> guard(core_mutex);
     return impl->run(win_title, label_suffix);
 }
+
+}  // namespace guieditor
 
 }  // namespace fase

@@ -1,4 +1,3 @@
-
 #include "view.h"
 
 #include <chrono>
@@ -11,6 +10,7 @@
 #include "../core_util.h"
 
 namespace fase {
+namespace guieditor {
 
 namespace {
 
@@ -142,7 +142,7 @@ private:
             using namespace std::chrono;
             auto time =
                     duration_cast<milliseconds>(system_clock::now() - start_t);
-            float wave = std::cosf(time.count() / 120.f);
+            float wave = std::cos(time.count() / 120.f);
             ImVec4 col = ImVec4(0, 0, 1.f, 1.f) +
                          (ImVec4(1.f, 1.f, 0, 0) * (0.2f * wave + 0.8f));
             ImGui::PushStyleColor(ImGuiCol_Text, col);
@@ -222,4 +222,5 @@ void View::setupMenus(std::function<void(Issue)>&& issue_f) {
             core, label, state, utils, issue_f, &menus);
 }
 
+}  // namespace guieditor
 }  // namespace fase

@@ -1,4 +1,3 @@
-
 #ifndef EDITOR_GUI_VIEW_H_20180917
 #define EDITOR_GUI_VIEW_H_20180917
 
@@ -13,6 +12,7 @@
 #include "utils.h"
 
 namespace fase {
+namespace guieditor {
 
 constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
 constexpr char RUNNING_ERROR_RESPONSE_ID[] = "RUNNING_ERROR_RESPONSE_ID";
@@ -48,15 +48,15 @@ struct GUIState {
 
 class Content {
 public:
-    Content(const FaseCore& core, LabelWrapper& label, GUIState& state,
-            const TypeUtils& utils, const std::function<void(Issue)>& issue_f)
-        : core(core),
-          utils(utils),
-          label(label),
-          state(state),
-          preference(state.preference),
+    Content(const FaseCore& core_, LabelWrapper& label_, GUIState& state_,
+            const TypeUtils& utils_, const std::function<void(Issue)>& issue_f_)
+        : core(core_),
+          utils(utils_),
+          label(label_),
+          state(state_),
+          preference(state_.preference),
           id(id_counter++),
-          issue_f(issue_f) {}
+          issue_f(issue_f_) {}
     virtual ~Content() = 0;
 
     void draw(const std::map<std::string, Variable>& response) {
@@ -129,12 +129,12 @@ private:
     std::function<void(Issue)> issue_f;
 };
 
-using VarEditor = std::function<Variable(const char*, const Variable&)>;
+using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
 class View {
 public:
     View(const FaseCore&, const TypeUtils&,
-         const std::map<const std::type_info*, VarEditor>&);
+         const std::map<const std::type_info*, VarEditorWraped>&);
     ~View();
 
     std::vector<Issue> draw(const std::string& win_title,
@@ -144,8 +144,9 @@ public:
 private:
     const FaseCore& core;
     const TypeUtils& utils;
-    const std::map<const std::type_info*, VarEditor>& var_editors;
+    const std::map<const std::type_info*, VarEditorWraped>& var_editors;
 
+    // this will be save/load preferences to/from buffer file.
     GUIPreferenceManager preference_manager;
 
     LabelWrapper label;
@@ -154,11 +155,11 @@ private:
     std::vector<Issue> issues;
 
     // GUI Contents
-    std::vector<std::unique_ptr<Content>> menus;  // Menu bar
-    std::vector<std::unique_ptr<Content>> popups;
-    std::unique_ptr<Content> node_list;
-    std::unique_ptr<Content> canvas;
-    std::unique_ptr<Content> args_editor;
+    std::vector<std::unique_ptr<Content>> menus;   // Menu bar
+    std::vector<std::unique_ptr<Content>> popups;  // popup menus
+    std::unique_ptr<Content> node_list;            // left panel
+    std::unique_ptr<Content> canvas;               // right panel
+    std::unique_ptr<Content> args_editor;          // center panel
     std::unique_ptr<Content> report_window;
 
     void setupMenus(std::function<void(Issue)>&&);
@@ -166,6 +167,7 @@ private:
     void updateState(const std::map<std::string, Variable>& resp);
 };
 
+}  // namespace guieditor
 }  // namespace fase
 
 #endif  // EDITOR_GUI_VIEW_H_20180917

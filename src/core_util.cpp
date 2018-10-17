@@ -1,4 +1,3 @@
-
 #include "core_util.h"
 
 #include <fstream>
@@ -110,13 +109,15 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     // Inputs and Outputs
     sstream << std::string(INOUT_HEADER) << std::endl;
 
-    const Function& in_f = core.getFunctions().at(InputFuncStr());
+    const Function& in_f =
+            core.getFunctions().at(InputFuncStr(core.getProjectName()));
     for (const std::string& name : in_f.arg_names) {
         sstream << " " << name;
     }
     sstream << std::endl;
 
-    const Function& out_f = core.getFunctions().at(OutputFuncStr());
+    const Function& out_f =
+            core.getFunctions().at(OutputFuncStr(core.getProjectName()));
     for (const std::string& name : out_f.arg_names) {
         sstream << " " << name;
     }

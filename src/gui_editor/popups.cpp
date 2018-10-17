@@ -1,4 +1,3 @@
-
 #include "view.h"
 
 #include <imgui.h>
@@ -6,20 +5,8 @@
 
 #include "../core_util.h"
 
-#if defined(_WIN64) || defined(_WIN32)
-#else
-#if __has_include(<experimental/filesystem>)
-#include <experimental/filesystem>
-#define FileSystem
-using stdfs = std::experimental::filesystem;
-#elif __has_include(<filesystem>)
-#include <filesystem>
-#define FileSystem
-using stdfs = std::filesystem;
-#endif
-#endif
-
 namespace fase {
+namespace guieditor {
 
 namespace {
 
@@ -42,21 +29,8 @@ std::string ToSnakeCase(const std::string& in) {
     return str;
 }
 
-// Additional ImGui components
-bool IsItemActivePreviousFrame() {
-    ImGuiContext* g = ImGui::GetCurrentContext();
-    if (g->ActiveIdPreviousFrame) {
-        return g->ActiveIdPreviousFrame == GImGui->CurrentWindow->DC.LastItemId;
-    }
-    return false;
-}
-
 bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
     return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
-};
-
-bool IsKeyPressedOnItem(ImGuiKey_ key, bool repeat = true) {
-    return IsItemActivePreviousFrame() && IsKeyPressed(key, repeat);
 };
 
 bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
@@ -80,8 +54,8 @@ bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
 class PopupContent : public Content {
 public:
     template <class... Args>
-    PopupContent(std::string&& popup_name, bool menu, Args&&... args)
-        : Content(args...), popup_name(popup_name), menu(menu) {}
+    PopupContent(std::string&& popup_name_, bool menu_, Args&&... args)
+        : Content(args...), popup_name(popup_name_), menu(menu_) {}
 
     virtual ~PopupContent(){};
 
@@ -254,10 +228,12 @@ private:
         bool success = false;
 
         const Node& input_node = core.getNodes().at(InputNodeStr());
-        const Function& input_func = core.getFunctions().at(InputFuncStr());
+        const Function& input_func =
+                core.getFunctions().at(input_node.func_repr);
 
         const Node& output_node = core.getNodes().at(OutputNodeStr());
-        const Function& output_func = core.getFunctions().at(OutputFuncStr());
+        const Function& output_func =
+                core.getFunctions().at(output_node.func_repr);
 
         const ImVec2 panel_size(450,
                                 120 + 25 * std::max(input_node.links.size(),
@@ -455,15 +431,6 @@ private:
                 error_msg = "Failed to load pipeline";  // Failed
             }
         }
-#ifdef FileSystem
-        stdfs::directory_iterator iter("."), end;
-        for (; iter != end; iter++) {
-            std::string path_str = iter->path().filename().generic_u8string();
-            if (path_str.find(".project.txt") != std::string::npos) {
-                std::cout << path_str << std::endl;
-            }
-        }
-#endif
     }
 
     void new_project() {
@@ -513,7 +480,7 @@ private:
     void layout() {
         // ImGui::BeginMenuBar();
         ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
-        ImGui::Text("");
+        ImGui::Text(" ");
         ImGui::Separator();
         if (ImGui::Selectable(label("New Project"), pattern == Pattern::New)) {
             pattern = Pattern::New;
@@ -526,8 +493,9 @@ private:
                               pattern == Pattern::Load)) {
             pattern = Pattern::Load;
         }
-#if 0
-        if (ImGui::Selectable(label("Switch Project"), pattern == Pattern::Switch)) {
+#if 1
+        if (ImGui::Selectable(label("Switch Project"),
+                              pattern == Pattern::Switch)) {
             pattern = Pattern::Switch;
         }
 #endif
@@ -565,12 +533,6 @@ public:
 private:
     const std::string build_status_str = std::string("c++ version : ") +
                                          std::to_string(__cplusplus) +
-                                         "\nc++ stdlib filesystem : " +
-#ifdef FileSystem
-                                         "True" +
-#else
-                                         "False" +
-#endif
                                          "\nconstexpr if : " +
 #ifdef __cpp_if_constexpr
                                          "True" +
@@ -698,4 +660,5 @@ void View::setupPopups(std::function<void(Issue)>&& issue_f) {
             core, label, state, utils, issue_f, &popups);
 }
 
+}  // namespace guieditor
 }  // namespace fase

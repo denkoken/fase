@@ -1,5 +1,7 @@
 
 #define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
+#include <callable.h>
+#include <editor.h>
 #include <fase.h>
 
 #include <random>
@@ -11,9 +13,9 @@
 #include "fase_gl_utils.h"
 
 FaseAutoAddingFunctionBuilder(Add,
-                              void Add(const int& a, const int& b, int& dst););
+                              void Add(const int& a, const int& b, int& dst);)
 
-void Add(const int& a, const int& b, int& dst) {
+        void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
 
@@ -23,7 +25,7 @@ struct X {
 };
 
 struct Y {
-    Y(int a, float b, std::string c) : a(a), b(b), c(c) {}
+    Y(int a_, float b_, std::string c_) : a(a_), b(b_), c(c_) {}
 
     int a;
     float b;
@@ -60,25 +62,25 @@ void Test0(int& test_dst,
                 "auto FaseAutoAddingFunctionBuilder bug : constructor");
     }
 }
-);
+)
 
 FaseAutoAddingFunctionBuilder(Square, void Square(const int& in, int& dst) {
     dst = in * in;
-});
+})
 
 FaseAutoAddingFunctionBuilder(Print, void Print(const int& in) {
     std::cout << in << std::endl;
-});
+})
 
 FaseAutoAddingFunctionBuilder(Wait, void Wait(const int& seconds) {
     std::this_thread::sleep_for(std::chrono::seconds(seconds));
-});
+})
 
 FaseAutoAddingFunctionBuilder(Assert, void Assert(const int& a, const int& b) {
     if (a != b) {
         throw std::runtime_error("a is not equal to b!");
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VARandom,
 void VARandom(const size_t& size,
@@ -91,7 +93,7 @@ void VARandom(const size_t& size,
     for (size_t i = 0; i < size; i++) {
         dst[i] = rand100(mt);
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VecRandom,
 void VecRandom(const size_t& size,
@@ -105,7 +107,7 @@ void VecRandom(const size_t& size,
     for (size_t i = 0; i < size; i++) {
         dst[i] = rand100(mt);
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VASame,
 void VASame(const std::valarray<double>& a, const std::valarray<double>& b,
@@ -115,7 +117,7 @@ void VASame(const std::valarray<double>& a, const std::valarray<double>& b,
         test += (a - b);
     }
     dst = test.sum();
-});
+})
 
 FaseAutoAddingFunctionBuilder(VAAdd,
 void VAAdd(const std::valarray<double>& a,
@@ -125,7 +127,7 @@ void VAAdd(const std::valarray<double>& a,
     for (size_t j = 0; j < n; j++) {
         dst += a + b;
     }
-});
+})
 
 FaseAutoAddingFunctionBuilder(VecAdd,
 void VecAdd(const std::vector<double>& a,
@@ -138,12 +140,44 @@ void VecAdd(const std::vector<double>& a,
             dst[i] += a[i] + b[i];
         }
     }
-});
-// clang-format on
+})
+        // clang-format on
+
+        void LastPrintProjectRun(fase::Callable& app) {
+    // Both Type returning is OK!
+
+    // Type 1.
+    std::tuple<int, std::string> dst =
+            app["Last Print Project"](std::string("good morning!"), 3)
+                    .get<int, std::string>();
+
+    std::cout << "output1 : " << std::get<0>(dst) << std::endl
+              << "output2 : " << std::get<1>(dst) << std::endl;
+
+    // Type 2.
+    int dst1;
+    std::string dst2;
+    app["Last Print Project"](std::string("good bye!"), 7).get(&dst1, &dst2);
+
+    std::cout << "output1 : " << dst1 << std::endl
+              << "output2 : " << dst2 << std::endl;
+
+    // from c++17, you can use structure bindings, like down.
+#ifdef __cpp_structured_bindings
+    {
+        // Type 1'.
+        auto [dst1, dst2] = app["Last Print Project"](std::string("hello!"), 17)
+                                    .get<int, std::string>();
+
+        std::cout << "output1 : " << dst1 << std::endl
+                  << "output2 : " << dst2 << std::endl;
+    }
+#endif
+}
 
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::GUIEditor> app;
+    fase::Fase<fase::GUIEditor, fase::Callable> app;
 
 #if !defined(__cpp_if_constexpr) || !defined(__cpp_inline_variables)
     // Register functions
@@ -157,17 +191,8 @@ int main() {
 
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },
-            [](const std::string& str) { return std::stoi(str); });
-
-    // app.registerConstructorAndVieweditor<int>("int",
-    //                     [](const int& a) { return std::to_string(a); },
-    //                     [](const char*, const int&) -> std::unique_ptr<int> {
-    //                     return {}; });
-
-    app.setupEditor();
-
-    // Register for argument editing
-    // FaseInstallBasicGuiGenerators(app);
+            [](const std::string& str) { return std::stoi(str); },
+            [](const int& a) { return "int(" + std::to_string(a) + ")"; });
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");
@@ -175,14 +200,17 @@ int main() {
         return 0;
     }
 
+    app.fixInput<std::string, int>("Last Print Project", {{"str", "num"}});
+    app.fixOutput<int, std::string>("Last Print Project", {{"num", "str"}});
+    app.setProject("Last Print Project");
+
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    RunRenderingLoop(window, [&]() {
-        // Draw Fase's interface
-        return app.runEditing("Fase Editor", "##fase");
-    });
+    RunRenderingLoop(window, app);
+
+    LastPrintProjectRun(app);
 
     return 0;
 }

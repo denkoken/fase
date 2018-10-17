@@ -1,10 +1,10 @@
-
 #ifndef EDITOR_GUI_UTIL_H_20180917
 #define EDITOR_GUI_UTIL_H_20180917
 
 #include "../variable.h"
 
 namespace fase {
+namespace guieditor {
 
 enum class IssuePattern {
     AddNode,
@@ -80,6 +80,7 @@ constexpr char POPUP_PROJECT[] = "project popup";
 constexpr char POPUP_PREFERENCE[] = "preference popup";
 constexpr char POPUP_RENAME_NODE[] = "rename node popup";
 
+}  // namespace guieditor
 }  // namespace fase
 
 #endif  // EDITOR_GUI_UTIL_H_20180917

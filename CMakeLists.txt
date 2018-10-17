@@ -1,23 +1,39 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 # ------------------------------------------------------------------------------
+# -------------------------------- Check parent --------------------------------
+# ------------------------------------------------------------------------------
+get_directory_property(HAS_PARENT PARENT_DIRECTORY)
+if(HAS_PARENT)
+    message(STATUS "Build Fase as subdirectory mode")
+else()
+    message(STATUS "Build Fase as independent mode")
+endif()
+
+# ------------------------------------------------------------------------------
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
-option(BUILD_GLFW "Build glfw libraries and link" ON)
-option(BUILD_EXAMPLE "Build example codes" ON)
-option(BUILD_TEST "Build test codes" ON)
-option(USE_CPP_SEVENTEEN "Use c++ 17" OFF)
-message(STATUS "Build glfw: ${BUILD_GLFW}, examples: ${BUILD_EXAMPLE}, tests: ${BUILD_TEST}, Use c++ 17: ${USE_CPP_SEVENTEEN}")
+set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
+set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
+set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
+set(FASE_USE_CPP17 OFF CACHE BOOL "Use c++17 for further feathers")
+set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
+set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
+
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}, Use c++17: ${FASE_USE_CPP17}")
+message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
+message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
 # ------------------------------------------------------------------------------
 # ----------------------------------- Common -----------------------------------
 # ------------------------------------------------------------------------------
 project(fase CXX C)
 
-if (USE_CPP_SEVENTEEN)
-    set (CMAKE_CXX_STANDARD 17)  # C++ 17
+if (FASE_USE_CPP17)
+    set(CMAKE_CXX_STANDARD 17)  # C++ 17
 else()
-    set (CMAKE_CXX_STANDARD 14)  # C++ 14
+    set(CMAKE_CXX_STANDARD 14)  # C++ 14
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -91,11 +107,17 @@ endfunction(setup_target_simple)
 # --------------------------- Third Party Libraries ----------------------------
 # ------------------------------------------------------------------------------
 
-set(IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui
-                       /usr/local/include)
+# External include directory (assuming external imgui without examples)
+list(APPEND FASE_INCLUDE ${FASE_EXTERNAL_INCLUDE})
+list(APPEND FASE_LIBRARY ${FASE_EXTERNAL_LIBRARY})
 
 # For examples
-if (BUILD_EXAMPLE)
+if (FASE_BUILD_THIRD_PARTY)
+    # OpenGL
+    find_package(OpenGL REQUIRED)
+    list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
+    list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
+
     # GL3W
     add_library(gl3w ${LINK_TYPE}
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
@@ -104,18 +126,12 @@ if (BUILD_EXAMPLE)
         SET_TARGET_PROPERTIES(gl3w PROPERTIES LINK_FLAGS "-framework CoreFoundation")
     endif()
     setup_target_simple(gl3w ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w "")
+    list(APPEND FASE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
     list(APPEND FASE_LIBRARY gl3w)
     list(APPEND IMGUI_LIBRARY gl3w)
 
-    list(APPEND FASE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples)
-
-    # OpenGL
-    find_package(OpenGL REQUIRED)
-    list(APPEND FASE_INCLUDE ${OPENGL_INCLUDE_DIR})
-    list(APPEND FASE_LIBRARY ${OPENGL_LIBRARY})
-
     # GLFW3
-    if (BUILD_GLFW)
+    if (FASE_BUILD_GLFW)
         set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
         set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
         set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
@@ -139,35 +155,20 @@ if (BUILD_EXAMPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
     )
-    list(APPEND IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples
+    list(APPEND IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui
+                                   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples
                                    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
-
     setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "${IMGUI_LIBRARY}")
-    list(APPEND FASE_LIBRARY imgui)
-    list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS}
-                             ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
-
-    # OpenCV
-    find_package(OpenCV)
-else()
-    # IMGUI
-    add_library(imgui ${LINK_TYPE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
-    )
-    setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "")
     list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
-endif()
+    list(APPEND FASE_LIBRARY imgui)
 
-# For tests
-if (BUILD_TEST)
+    # OpenCV (not necessary)
+    find_package(OpenCV)
+
     # Catch2
     list(APPEND FASE_INCLUDE
                 ${CMAKE_CURRENT_SOURCE_DIR}/third_party/Catch2/single_include)
 endif()
-
-list(APPEND FASE_LIBRARY imgui)
 
 # ------------------------------------------------------------------------------
 # ----------------------------- Internal Libraries -----------------------------
@@ -191,19 +192,8 @@ setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 list(APPEND FASE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 list(APPEND FASE_LIBRARY fase)
 
-# ----------------------------------- tests ------------------------------------
-if (BUILD_TEST)
-    add_executable(fase_test
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_variable.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_function.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_core.cpp
-    )
-    setup_target(fase_test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
-endif()
-
 # ---------------------------------- examples ----------------------------------
-if (BUILD_EXAMPLE)
+if (FASE_BUILD_EXAMPLES)
     # CLI Editor
     # add_executable(clieditor
     #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/clieditor/main.cpp
@@ -225,4 +215,23 @@ if (BUILD_EXAMPLE)
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
         setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
     endif()
+endif()
+
+# ----------------------------------- tests ------------------------------------
+if (FASE_BUILD_TESTS)
+    add_executable(fase_test
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_variable.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_function.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_core.cpp
+    )
+    setup_target(fase_test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+endif()
+
+# ------------------------------------------------------------------------------
+# ----------------------------- Pass to the parent -----------------------------
+# ------------------------------------------------------------------------------
+if(HAS_PARENT)
+    set(FASE_INCLUDE ${FASE_INCLUDE} PARENT_SCOPE)
+    set(FASE_LIBRARY ${FASE_LIBRARY} PARENT_SCOPE)
 endif()
