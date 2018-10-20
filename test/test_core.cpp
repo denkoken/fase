@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "fase.h"
+#include "fase/fase.h"
 using namespace fase;
 
 static void Add(const int& a, const int& b, int& dst) {

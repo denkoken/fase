@@ -1,5 +1,5 @@
-#include <editor.h>
-#include <fase.h>
+#include <fase/editor.h>
+#include <fase/fase.h>
 
 #include "fase_gl_utils.h"
 

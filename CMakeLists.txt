@@ -176,16 +176,16 @@ endif()
 
 # fase.so
 add_library(fase ${LINK_TYPE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/core.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/core_util.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/type_utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/dst_code.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/editor_cli.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_editor/editor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_editor/view.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_editor/popups.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_editor/menus.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/fase.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core_util.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/type_utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/dst_code.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/editor_cli.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/view.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/popups.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/menus.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")

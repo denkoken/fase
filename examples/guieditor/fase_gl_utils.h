@@ -8,7 +8,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include <editor.h>  //fase
+#include <fase/editor.h>  //fase
 
 static GLFWwindow* InitOpenGL(const std::string& window_title) {
     GLFWwindow* window = nullptr;

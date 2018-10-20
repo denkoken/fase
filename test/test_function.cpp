@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "fase.h"
+#include "fase/fase.h"
 using namespace fase;
 
 TEST_CASE("FunctionBuilder test") {

@@ -1,8 +1,8 @@
 
 #define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
-#include <callable.h>
-#include <editor.h>
-#include <fase.h>
+#include <fase/callable.h>
+#include <fase/editor.h>
+#include <fase/fase.h>
 
 #include <random>
 #include <stdexcept>
