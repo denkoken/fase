@@ -109,15 +109,15 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     // Inputs and Outputs
     sstream << std::string(INOUT_HEADER) << std::endl;
 
-    const Function& in_f =
-            core.getFunctions().at(InputFuncStr(core.getCurrentPipelineName()));
+    const Function& in_f = core.getFunctions().at(
+            core.getNodes().at(InputNodeStr()).func_repr);
     for (const std::string& name : in_f.arg_names) {
         sstream << " " << name;
     }
     sstream << std::endl;
 
-    const Function& out_f =
-            core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
+    const Function& out_f = core.getFunctions().at(
+            core.getNodes().at(OutputNodeStr()).func_repr);
     for (const std::string& name : out_f.arg_names) {
         sstream << " " << name;
     }
@@ -174,6 +174,7 @@ bool StringToCore(const std::string& str, FaseCore* core,
     auto linep = std::begin(lines);
 
     if (*linep != std::string(INOUT_HEADER)) {
+        std::cerr << "invalid file layout" << std::endl;
         return false;
     }
 
@@ -181,18 +182,36 @@ bool StringToCore(const std::string& str, FaseCore* core,
 
     {
         auto words = split(*linep, ' ');
-        for (auto& word : words) {
-            if (!word.empty()) {
-                core->addInput(word);
+        auto in_func = core->getFunctions().at(
+                core->getNodes().at(InputNodeStr()).func_repr);
+        if (words.size() - 1 != in_func.is_input_args.size()) {
+            // input don't match.
+            for (auto& word : words) {
+                if (!word.empty()) {
+                    // try add input (if in/out is fixed, it return false)
+                    if (!core->addInput(word)) {
+                        std::cout << "don't match input" << std::endl;
+                        return false;
+                    }
+                }
             }
         }
         linep++;
     }
     {
         auto words = split(*linep, ' ');
-        for (auto& word : words) {
-            if (!word.empty()) {
-                core->addOutput(word);
+        auto out_func = core->getFunctions().at(
+                core->getNodes().at(OutputNodeStr()).func_repr);
+        if (words.size() - 1 != out_func.is_input_args.size()) {
+            // input don't match.
+            for (auto& word : words) {
+                if (!word.empty()) {
+                    // try add output (if in/out is fixed, it return false)
+                    if (!core->addOutput(word)) {
+                        std::cout << "don't match output" << std::endl;
+                        return false;
+                    }
+                }
             }
         }
         linep++;
@@ -213,6 +232,7 @@ bool StringToCore(const std::string& str, FaseCore* core,
         }
         const auto words = split(*linep, ' ');
         if (!core->addNode(words.at(1), words.at(0))) {
+            std::cerr << "addNode failed" << std::endl;
             return false;
         }
 
@@ -244,6 +264,7 @@ bool StringToCore(const std::string& str, FaseCore* core,
         auto words = split(*linep, ' ');
         if (!core->addLink(words.at(2), std::stoul(words.at(3)), words.at(0),
                            std::stoul(words.at(1)))) {
+            std::cerr << "addLink failed" << std::endl;
             return false;
         }
         linep++;
@@ -278,6 +299,7 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
         std::ifstream input(filename);
 
         if (!input) {
+            std::cerr << "file opening is failed : " << filename;
             return false;
         }
 

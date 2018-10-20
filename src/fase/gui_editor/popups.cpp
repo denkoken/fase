@@ -334,7 +334,7 @@ public:
 
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
-    char load_filename_buf[128] = "fase_save.txt";
+    char load_filename_buf[128] = "Untitled.pipeline.txt";
     char save_filename_buf[128];
     char pipeline_name_buf[128] = "NewPipeline";
     char rename_buf[128] = "";
@@ -365,7 +365,7 @@ private:
         ImGui::Text("File path :");
         ImGui::SameLine();
         ImGui::PushItemWidth(-150);
-        ImGui::InputText(label(".project.txt"), save_filename_buf,
+        ImGui::InputText(label(".pipeline.txt"), save_filename_buf,
                          sizeof(save_filename_buf), input_f);
         ImGui::PopItemWidth();
 
@@ -375,7 +375,7 @@ private:
 
         bool success;
         if (issueButton(IssuePattern::Save,
-                        std::string(save_filename_buf) + ".project.txt",
+                        std::string(save_filename_buf) + ".pipeline.txt",
                         &success, "Save")) {
             if (success) {
                 ImGui::CloseCurrentPopup();
