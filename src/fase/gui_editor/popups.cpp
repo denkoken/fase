@@ -1,8 +1,5 @@
 #include "view.h"
 
-#include <imgui.h>
-#include <imgui_internal.h>
-
 #include "../core_util.h"
 
 namespace fase {
@@ -32,24 +29,6 @@ std::string ToSnakeCase(const std::string& in) {
 bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
     return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
 };
-
-bool Combo(const char* label, int* curr_idx, std::vector<std::string>& vals) {
-    if (vals.empty()) {
-        return false;
-    }
-    return ImGui::Combo(
-            label, curr_idx,
-            [](void* vec, int idx, const char** out_text) {
-                auto& vector = *static_cast<std::vector<std::string>*>(vec);
-                if (idx < 0 || static_cast<int>(vector.size()) <= idx) {
-                    return false;
-                } else {
-                    *out_text = vector.at(size_t(idx)).c_str();
-                    return true;
-                }
-            },
-            static_cast<void*>(&vals), int(vals.size()));
-}
 
 class PopupContent : public Content {
 public:
@@ -345,19 +324,19 @@ private:
     }
 };
 
-class ProjectPopup : public PopupContent {
+class PipelinePopup : public PopupContent {
 public:
     template <class... Args>
-    ProjectPopup(Args&&... args)
+    PipelinePopup(Args&&... args)
         : PopupContent(POPUP_PROJECT, false, args...) {}
 
-    ~ProjectPopup() {}
+    ~PipelinePopup() {}
 
 private:
     const ImVec4 ERROR_COLOR = ImVec4(255, 0, 0, 255);
     char load_filename_buf[128] = "fase_save.txt";
     char save_filename_buf[128];
-    char project_name_buf[128] = "NewProject";
+    char pipeline_name_buf[128] = "NewPipeline";
     char rename_buf[128] = "";
     int combo_idx = 0;
     std::string error_msg;
@@ -380,7 +359,7 @@ private:
     }
 
     void save() {
-        ImGui::Text("Save Project");
+        ImGui::Text("Save Pipeline");
         ImGui::Separator();
 
         ImGui::Text("File path :");
@@ -408,7 +387,7 @@ private:
     }
 
     void load() {
-        ImGui::Text("Load Project");
+        ImGui::Text("Load Pipeline");
         ImGui::Separator();
 
         ImGui::Text("File path :");
@@ -434,27 +413,27 @@ private:
     }
 
     void new_project() {
-        ImGui::Text("New Project");
+        ImGui::Text("New Pipeline");
         ImGui::Separator();
 
-        ImGui::Text("Project Name :");
+        ImGui::Text("Pipeline Name :");
         ImGui::SameLine();
-        ImGui::InputText(label(""), project_name_buf, sizeof(project_name_buf),
-                         input_f);
+        ImGui::InputText(label(""), pipeline_name_buf,
+                         sizeof(pipeline_name_buf), input_f);
 
         bool success;
         if (issueButton(IssuePattern::SwitchPipeline,
-                        std::string(project_name_buf), &success,
-                        "New Project")) {
+                        std::string(pipeline_name_buf), &success,
+                        "New Pipeline")) {
             ImGui::CloseCurrentPopup();
         }
     }
 
     void rename() {
-        ImGui::Text("Rename Project");
+        ImGui::Text("Rename Pipeline");
         ImGui::Separator();
 
-        ImGui::Text("Project New Name :");
+        ImGui::Text("Pipeline New Name :");
         ImGui::SameLine();
         // Input elements
         ImGui::InputText(label(""), rename_buf, sizeof(rename_buf), input_f);
@@ -482,24 +461,24 @@ private:
         ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
         ImGui::Text(" ");
         ImGui::Separator();
-        if (ImGui::Selectable(label("New Project"), pattern == Pattern::New)) {
+        if (ImGui::Selectable(label("New Pipeline"), pattern == Pattern::New)) {
             pattern = Pattern::New;
         }
-        if (ImGui::Selectable(label("Save Project"),
+        if (ImGui::Selectable(label("Save Pipeline"),
                               pattern == Pattern::Save)) {
             pattern = Pattern::Save;
         }
-        if (ImGui::Selectable(label("Load Project"),
+        if (ImGui::Selectable(label("Load Pipeline"),
                               pattern == Pattern::Load)) {
             pattern = Pattern::Load;
         }
 #if 1
-        if (ImGui::Selectable(label("Switch Project"),
+        if (ImGui::Selectable(label("Switch Pipeline"),
                               pattern == Pattern::Switch)) {
             pattern = Pattern::Switch;
         }
 #endif
-        if (ImGui::Selectable(label("Rename Project"),
+        if (ImGui::Selectable(label("Rename Pipeline"),
                               pattern == Pattern::Rename)) {
             pattern = Pattern::Rename;
         }
@@ -656,7 +635,7 @@ void SetupContents<Footer>(const FaseCore&, LabelWrapper&, GUIState&,
 
 void View::setupPopups(std::function<void(Issue)>&& issue_f) {
     SetupContents<PreferencePopup, NativeCodePopup, AddingNodePopup,
-                  InputOutputPopup, ProjectPopup, RenameNodePopup, Footer>(
+                  InputOutputPopup, PipelinePopup, RenameNodePopup, Footer>(
             core, label, state, utils, issue_f, &popups);
 }
 

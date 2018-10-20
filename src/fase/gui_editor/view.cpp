@@ -5,9 +5,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <imgui.h>
-#include <imgui_internal.h>
-
 #include "../core_util.h"
 
 namespace fase {
@@ -1272,7 +1269,6 @@ private:
     }
 
     void main() {
-        ImGui::Separator();
         ImGui::Text("Argument Editor");
         ImGui::Separator();
 
@@ -1396,6 +1392,20 @@ std::vector<Issue> View::draw(const std::string& win_title,
         // draw menu.
         popup->draw(resp);
     }
+
+    // Pipeline Switcher
+    ImGui::Separator();
+    {
+        std::vector<std::string> pipelines = core.getPipelineNames();
+        int curr_idx = int(std::find(pipelines.begin(), pipelines.end(),
+                                     core.getCurrentPipelineName()) -
+                           pipelines.begin());
+        if (Combo(label(""), &curr_idx, pipelines)) {
+            issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
+                                      pipelines[size_t(curr_idx)]});
+        }
+    }
+    ImGui::Separator();
 
     // Left Panel
     if (state.preference.enable_node_list_panel) {

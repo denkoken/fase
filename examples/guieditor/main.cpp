@@ -144,9 +144,8 @@ void VecAdd(const std::vector<double>& a,
         }
     }
 })
-        // clang-format on
 
-        void LastPrintProjectRun(fase::Callable& app) {
+void LastPrintProjectRun(fase::Callable& app) {
     // Both Type returning is OK!
 
     // Type 1.
@@ -176,6 +175,8 @@ void VecAdd(const std::vector<double>& a,
     }
 #endif
 }
+
+// clang-format on
 
 int main() {
     // Create Fase instance with GUI editor

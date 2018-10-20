@@ -1,6 +1,11 @@
 #ifndef EDITOR_GUI_UTIL_H_20180917
 #define EDITOR_GUI_UTIL_H_20180917
 
+#include <vector>
+
+#include <imgui.h>
+#include <imgui_internal.h>
+
 #include "../variable.h"
 
 namespace fase {
@@ -79,6 +84,25 @@ constexpr char POPUP_INPUT_OUTPUT[] = "in/output popup";
 constexpr char POPUP_PROJECT[] = "project popup";
 constexpr char POPUP_PREFERENCE[] = "preference popup";
 constexpr char POPUP_RENAME_NODE[] = "rename node popup";
+
+inline bool Combo(const char* label, int* curr_idx,
+                  std::vector<std::string>& vals) {
+    if (vals.empty()) {
+        return false;
+    }
+    return ImGui::Combo(
+            label, curr_idx,
+            [](void* vec, int idx, const char** out_text) {
+                auto& vector = *static_cast<std::vector<std::string>*>(vec);
+                if (idx < 0 || static_cast<int>(vector.size()) <= idx) {
+                    return false;
+                } else {
+                    *out_text = vector.at(size_t(idx)).c_str();
+                    return true;
+                }
+            },
+            static_cast<void*>(&vals), int(vals.size()));
+}
 
 }  // namespace guieditor
 }  // namespace fase

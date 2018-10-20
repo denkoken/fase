@@ -64,7 +64,7 @@ public:
 
 private:
     void main() {
-        if (ImGui::MenuItem(label("Projects.."))) {
+        if (ImGui::MenuItem(label("Pipelines.."))) {
             state.popup_issue.emplace_back(POPUP_PROJECT);
         }
     }
