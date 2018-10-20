@@ -40,13 +40,12 @@ Tuple Callable::CallableReturn::get1(TypeSequence<Tuple>,
 
 template <typename... Args>
 void Callable::fixInput(
-        const std::string& project,
         const std::array<std::string, sizeof...(Args)>& arg_names,
         const std::array<std::string, sizeof...(Args)>& reprs) {
     assert(arg_names.size() == sizeof...(Args));
+
     std::lock_guard<std::mutex> guard(core_mutex);
-    auto project_buf = getCore()->getCurrentPipelineName();
-    getCore()->switchPipeline(project);
+
     getCore()->unlockInOut();
 
     size_t n_arg = getCore()->getNodes().at(InputNodeStr()).links.size();
@@ -55,26 +54,20 @@ void Callable::fixInput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    for (size_t i = 0; i < arg_names.size(); i++) {
-        getCore()->addInput(arg_names[i], types[i]);
-    }
-
     std::vector<Variable> args = {Args()...};
-    for (size_t i = 0; i < sizeof...(Args); i++) {
-        getCore()->setNodeArg(InputNodeStr(), i, reprs[i], args[i]);
+    for (size_t i = 0; i < arg_names.size(); i++) {
+        getCore()->addInput(arg_names[i], types[i], args[i], reprs[i]);
     }
     getCore()->lockInOut();
-    getCore()->switchPipeline(project_buf);
 }
 
 template <typename... Args>
 void Callable::fixOutput(
-        const std::string& project,
         const std::array<std::string, sizeof...(Args)>& arg_names) {
     assert(arg_names.size() == sizeof...(Args));
+
     std::lock_guard<std::mutex> guard(core_mutex);
-    auto project_buf = getCore()->getCurrentPipelineName();
-    getCore()->switchPipeline(project);
+
     getCore()->unlockInOut();
 
     size_t n_arg = getCore()->getNodes().at(OutputNodeStr()).links.size();
@@ -83,15 +76,11 @@ void Callable::fixOutput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    for (size_t i = 0; i < arg_names.size(); i++) {
-        getCore()->addOutput(arg_names[i], types[i]);
-    }
     std::vector<Variable> args = {Args()...};
-    for (size_t i = 0; i < sizeof...(Args); i++) {
-        getCore()->setNodeArg(OutputNodeStr(), i, "", args[i]);
+    for (size_t i = 0; i < arg_names.size(); i++) {
+        getCore()->addOutput(arg_names[i], types[i], args[i]);
     }
     getCore()->lockInOut();
-    getCore()->switchPipeline(project_buf);
 }
 
 template <typename... Args>
@@ -134,8 +123,8 @@ void Callable::call(std::vector<Variable>* dst, Args&&... args) {
     const size_t n_input = pcore->getNodes().at(InputNodeStr()).links.size();
     for (size_t i = 0; i < n_input; i++) {
         if (!pcore->setNodeArg(InputNodeStr(), i, "", arg_vars[i])) {
-            throw std::runtime_error("invalid type for pipeline : "
-                                     + std::to_string(i) + "th");
+            throw std::runtime_error(
+                    "invalid type for pipeline : " + std::to_string(i) + "th");
         }
     }
 

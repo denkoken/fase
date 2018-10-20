@@ -59,16 +59,13 @@ public:
      *
      * @tparam Args
      *      types of fixed arguments.
-     * @param project
-     *      the project be fixed inputs.
      * @param arg_names
      *      input names.
      * @param reprs
      *      input representations.
      */
     template <typename... Args>
-    void fixInput(const std::string& project,
-                  const std::array<std::string, sizeof...(Args)>& arg_names,
+    void fixInput(const std::array<std::string, sizeof...(Args)>& arg_names,
                   const std::array<std::string, sizeof...(Args)>& reprs = {});
 
     /**
@@ -77,14 +74,11 @@ public:
      *
      * @tparam Args
      *      types of fixed arguments.
-     * @param project
-     *      the project be fixed outputs.
      * @param arg_names
      *      output names.
      */
     template <typename... Args>
-    void fixOutput(const std::string& project,
-                   const std::array<std::string, sizeof...(Args)>& arg_names);
+    void fixOutput(const std::array<std::string, sizeof...(Args)>& arg_names);
 
     /**
      * @brief

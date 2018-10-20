@@ -40,8 +40,11 @@ void Test0(int& test_dst,
            const int& b = 42, const float c = 14.6f,
            const double d = 13.1,
            std::function<float(const int&, float&, float&)> f2 = {},
-           int**** cdsc = nullptr, X x = {}, X x2 = {893, 987654321ul},
-           Y y = Y(3, 10.f, "I'm full.")) {
+           int**** cdsc = nullptr,
+           X x = {}, // you can use initilizer,
+           X x2 = {893, 987654321ul},
+           Y y = Y(3, 10.f, "I'm full.") // and, constructor.
+           ) {
 
     (void) test_dst; (void) f; (void) b; (void) c; (void) d; (void) f2;
     (void) cdsc;
@@ -148,8 +151,7 @@ void VecAdd(const std::vector<double>& a,
 
     // Type 1.
     std::tuple<int, std::string> dst =
-            app["Last Print Project"](std::string("good morning!"), 3)
-                    .get<int, std::string>();
+            app(std::string("good morning!"), 3).get<int, std::string>();
 
     std::cout << "output1 : " << std::get<0>(dst) << std::endl
               << "output2 : " << std::get<1>(dst) << std::endl;
@@ -157,7 +159,7 @@ void VecAdd(const std::vector<double>& a,
     // Type 2.
     int dst1;
     std::string dst2;
-    app["Last Print Project"](std::string("good bye!"), 7).get(&dst1, &dst2);
+    app(std::string("good bye!"), 7).get(&dst1, &dst2);
 
     std::cout << "output1 : " << dst1 << std::endl
               << "output2 : " << dst2 << std::endl;
@@ -166,8 +168,8 @@ void VecAdd(const std::vector<double>& a,
 #ifdef __cpp_structured_bindings
     {
         // Type 1'.
-        auto [dst1, dst2] = app["Last Print Project"](std::string("hello!"), 17)
-                                    .get<int, std::string>();
+        auto [dst1, dst2] =
+                app(std::string("hello!"), 17).get<int, std::string>();
 
         std::cout << "output1 : " << dst1 << std::endl
                   << "output2 : " << dst2 << std::endl;
@@ -200,9 +202,8 @@ int main() {
         return 0;
     }
 
-    app.fixInput<std::string, int>("Last Print Project", {{"str", "num"}});
-    app.fixOutput<int, std::string>("Last Print Project", {{"num", "str"}});
-    app.setProject("Last Print Project");
+    app.fixInput<std::string, int>({{"str", "num"}});
+    app.fixOutput<int, std::string>({{"num", "str"}});
 
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");

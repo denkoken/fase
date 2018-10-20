@@ -41,7 +41,6 @@ struct Function {
 struct Pipeline {
     std::map<std::string, Node> nodes;  // [name, Node]
     bool multi = false;
-    bool is_locked_inout = false;
 };
 
 class FaseCore {
@@ -79,12 +78,15 @@ public:
     void delLink(const std::string& dst_node_name, const size_t& dst_arg_idx);
 
     // ## Editing Input/Output node ##
-    bool addInput(const std::string& name,
-                  const std::type_info* type = nullptr);
+    bool addInput(const std::string& name, const std::type_info* type = nullptr,
+                  const Variable& default_value = {},
+                  const std::string& default_arg_repr = "");
     bool delInput(const size_t& idx);
 
     bool addOutput(const std::string& name,
-                   const std::type_info* type = nullptr);
+                   const std::type_info* type = nullptr,
+                   const Variable& default_value = {},
+                   const std::string& default_arg_repr = "");
     bool delOutput(const size_t& idx);
 
     void lockInOut();
@@ -111,6 +113,7 @@ public:
                 const T& default_value = T());
 
 private:
+    const static char MainPipeInOutName[];
     std::function<void()> buildNode(
             const std::string& node_name, const std::vector<Variable*>& args,
             std::map<std::string, ResultReport>* report_box) const;
@@ -123,8 +126,11 @@ private:
     // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 
-    std::map<std::string, Pipeline> projects;
-    std::string primary_project;
+    std::map<std::string, Pipeline> pipelines;
+    std::map<std::string, Pipeline> sub_pipeline;
+    std::string editting_pipeline;
+
+    bool is_locked_inout = false;  /// about not sub pipelines inout
 
     // Built pipeline
     std::vector<std::function<void()>> built_pipeline;
@@ -132,7 +138,12 @@ private:
 
     std::map<std::string, ResultReport> report_box;
 
+    // Utility functions.
     bool checkNodeName(const std::string& name);
+
+    std::string getEdittingInputFunc();
+    std::string getEdittingOutputFunc();
+    void initInOut();
 };
 
 }  // namespace fase
