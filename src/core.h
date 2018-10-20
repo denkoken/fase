@@ -38,7 +38,7 @@ struct Function {
     std::vector<bool> is_input_args;               // size == |args|
 };
 
-struct Project {
+struct Pipeline {
     std::map<std::string, Node> nodes;  // [name, Node]
     bool multi = false;
     bool is_locked_inout = false;
@@ -90,11 +90,9 @@ public:
     void lockInOut();
     void unlockInOut();
 
-    void switchProject(const std::string& project_name) noexcept;
-    void renameProject(const std::string& project_name) noexcept;
-    void deleteProject(const std::string& project_name) noexcept;
-
-    const std::string& getProjectName() const noexcept;
+    void switchPipeline(const std::string& project_name) noexcept;
+    void renamePipeline(const std::string& project_name) noexcept;
+    void deletePipeline(const std::string& project_name) noexcept;
 
     // ## Building, Running ##
     bool build(bool parallel_exe = false, bool profile = false);
@@ -102,13 +100,12 @@ public:
 
     // ## Getters ##
     const std::map<std::string, Function>& getFunctions() const;
-
     const std::map<std::string, Node>& getNodes() const;
 
-    std::vector<std::string> getProjects() const;
+    const std::string& getCurrentPipelineName() const noexcept;
+    std::vector<std::string> getPipelineNames() const;
 
     const std::vector<Variable>& getOutputs() const;
-
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
                 const T& default_value = T());
@@ -126,11 +123,11 @@ private:
     // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 
-    std::map<std::string, Project> projects;
+    std::map<std::string, Pipeline> projects;
     std::string primary_project;
 
     // Built pipeline
-    std::vector<std::function<void()>> pipeline;
+    std::vector<std::function<void()>> built_pipeline;
     std::map<std::string, std::vector<Variable>> output_variables;
 
     std::map<std::string, ResultReport> report_box;

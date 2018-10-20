@@ -350,13 +350,13 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             const SetArgValueInfo& info = GetVar<SetArgValueInfo>(issue);
             responses_[issue.id] = core->setNodeArg(
                     info.node_name, info.arg_idx, info.arg_repr, info.var);
-        } else if (issue.issue == IssuePattern::SwitchProject) {
+        } else if (issue.issue == IssuePattern::SwitchPipeline) {
             const std::string& name = GetVar<std::string>(issue);
-            core->switchProject(name);
+            core->switchPipeline(name);
             responses_[issue.id] = true;
-        } else if (issue.issue == IssuePattern::RenameProject) {
+        } else if (issue.issue == IssuePattern::RenamePipeline) {
             const std::string& name = GetVar<std::string>(issue);
-            core->renameProject(name);
+            core->renamePipeline(name);
             responses_[issue.id] = true;
         } else {
             remains.emplace_back(std::move(issue));

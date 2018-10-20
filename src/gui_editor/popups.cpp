@@ -57,7 +57,7 @@ public:
     PopupContent(std::string&& popup_name_, bool menu_, Args&&... args)
         : Content(args...), popup_name(popup_name_), menu(menu_) {}
 
-    virtual ~PopupContent(){};
+    virtual ~PopupContent() {}
 
 protected:
     virtual void layout() = 0;
@@ -373,9 +373,9 @@ private:
     } pattern = Pattern::Load;
 
     bool init() {
-        std::strcpy(save_filename_buf, core.getProjectName().c_str());
+        std::strcpy(save_filename_buf, core.getCurrentPipelineName().c_str());
         combo_idx = 0;
-        std::strcpy(rename_buf, core.getProjectName().c_str());
+        std::strcpy(rename_buf, core.getCurrentPipelineName().c_str());
         return true;
     }
 
@@ -443,7 +443,7 @@ private:
                          input_f);
 
         bool success;
-        if (issueButton(IssuePattern::SwitchProject,
+        if (issueButton(IssuePattern::SwitchPipeline,
                         std::string(project_name_buf), &success,
                         "New Project")) {
             ImGui::CloseCurrentPopup();
@@ -460,18 +460,18 @@ private:
         ImGui::InputText(label(""), rename_buf, sizeof(rename_buf), input_f);
 
         bool success;
-        if (issueButton(IssuePattern::RenameProject, std::string(rename_buf),
+        if (issueButton(IssuePattern::RenamePipeline, std::string(rename_buf),
                         &success, "Rename")) {
             ImGui::CloseCurrentPopup();
         }
     }
 
     void switch_project() {
-        std::vector<std::string> projects = core.getProjects();
+        std::vector<std::string> projects = core.getPipelineNames();
         Combo(label("project"), &combo_idx, projects);
 
         bool success;
-        if (issueButton(IssuePattern::SwitchProject,
+        if (issueButton(IssuePattern::SwitchPipeline,
                         projects[size_t(combo_idx)], &success, "Switch")) {
             ImGui::CloseCurrentPopup();
         }

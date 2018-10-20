@@ -110,14 +110,14 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     sstream << std::string(INOUT_HEADER) << std::endl;
 
     const Function& in_f =
-            core.getFunctions().at(InputFuncStr(core.getProjectName()));
+            core.getFunctions().at(InputFuncStr(core.getCurrentPipelineName()));
     for (const std::string& name : in_f.arg_names) {
         sstream << " " << name;
     }
     sstream << std::endl;
 
     const Function& out_f =
-            core.getFunctions().at(OutputFuncStr(core.getProjectName()));
+            core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
     for (const std::string& name : out_f.arg_names) {
         sstream << " " << name;
     }
@@ -272,7 +272,7 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
                   const TypeUtils& utils) {
-    std::string project_name_buf = core->getProjectName();
+    std::string project_name_buf = core->getCurrentPipelineName();
     std::string new_project_name = split(filename, '.')[0];
     try {
         std::ifstream input(filename);
@@ -289,7 +289,7 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
             ss << buf << std::endl;
         }
 
-        core->switchProject(new_project_name);
+        core->switchPipeline(new_project_name);
         if (!StringToCore(ss.str(), core, utils)) {
             throw std::exception();
         }
@@ -297,9 +297,9 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
         input.close();
 
         return true;
-    } catch (std::exception& e) {
-        core->switchProject(project_name_buf);
-        core->deleteProject(new_project_name);
+    } catch (std::exception&) {
+        core->switchPipeline(project_name_buf);
+        core->deletePipeline(new_project_name);
         return false;
     }
 }

@@ -12,14 +12,6 @@ namespace fase {
 
 namespace {
 
-template <typename T>
-void extractKeys(const std::map<std::string, T>& src_map,
-                 std::set<std::string>& dst_set) {
-    for (auto it = src_map.begin(); it != src_map.end(); it++) {
-        dst_set.emplace(it->first);
-    }
-}
-
 void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
     for (auto i = std::begin(*rev_links); i != std::end(*rev_links); i++) {
         auto& r_l = std::get<1>(*i);
@@ -607,7 +599,7 @@ void FaseCore::unlockInOut() {
     projects[primary_project].is_locked_inout = false;
 }
 
-void FaseCore::switchProject(const std::string& project_name) noexcept {
+void FaseCore::switchPipeline(const std::string& project_name) noexcept {
     primary_project = project_name;
 
     if (projects[primary_project].nodes.empty()) {
@@ -616,21 +608,21 @@ void FaseCore::switchProject(const std::string& project_name) noexcept {
     }
 }
 
-void FaseCore::renameProject(const std::string& project_name) noexcept {
-    Project buf = std::move(projects[primary_project]);
+void FaseCore::renamePipeline(const std::string& project_name) noexcept {
+    Pipeline buf = std::move(projects[primary_project]);
     projects.erase(primary_project);
     primary_project = project_name;
     projects[primary_project] = std::move(buf);
 }
 
-void FaseCore::deleteProject(const std::string& project_name) noexcept {
+void FaseCore::deletePipeline(const std::string& project_name) noexcept {
     if (primary_project == project_name) {
         return;
     }
     projects.erase(project_name);
 }
 
-const std::string& FaseCore::getProjectName() const noexcept {
+const std::string& FaseCore::getCurrentPipelineName() const noexcept {
     return primary_project;
 }
 
@@ -642,7 +634,7 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
     return functions;
 }
 
-std::vector<std::string> FaseCore::getProjects() const {
+std::vector<std::string> FaseCore::getPipelineNames() const {
     std::vector<std::string> dst;
     for (const auto& pair : projects) {
         dst.emplace_back(std::get<0>(pair));
@@ -688,7 +680,7 @@ void FaseCore::buildNodesParallel(
                 buildNode(runnable, variable_ps[runnable], report_box_));
     }
     if (report_box_ != nullptr) {
-        pipeline.push_back([funcs, report_box_, step] {
+        built_pipeline.push_back([funcs, report_box_, step] {
             auto start = std::chrono::system_clock::now();
             std::vector<std::thread> ths;
             std::exception_ptr ep;
@@ -711,7 +703,7 @@ void FaseCore::buildNodesParallel(
                     std::chrono::system_clock::now() - start;
         });
     } else {
-        pipeline.push_back([funcs] {
+        built_pipeline.push_back([funcs] {
             std::vector<std::thread> ths;
             std::exception_ptr ep;
             for (auto& func : funcs) {
@@ -743,7 +735,7 @@ void FaseCore::buildNodesNonParallel(
                                              &output_variables[runnable]);
 
         // Build
-        pipeline.emplace_back(
+        built_pipeline.emplace_back(
                 buildNode(runnable, bound_variables, report_box_));
     }
 }
@@ -751,7 +743,7 @@ void FaseCore::buildNodesNonParallel(
 bool FaseCore::build(bool parallel_exe, bool profile) {
     auto& nodes = projects[primary_project].nodes;
     projects[primary_project].multi = parallel_exe;
-    pipeline.clear();
+    built_pipeline.clear();
     output_variables.clear();
     report_box.clear();
 
@@ -763,7 +755,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
 
     if (profile) {
         auto start = std::make_shared<std::chrono::system_clock::time_point>();
-        pipeline.push_back(
+        built_pipeline.push_back(
                 [start] { *start = std::chrono::system_clock::now(); });
 
         size_t step = 0;
@@ -775,7 +767,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
             }
         }
 
-        pipeline.push_back([start, &report_box = this->report_box] {
+        built_pipeline.push_back([start, &report_box = this->report_box] {
             report_box[TotalTimeStr()].execution_time =
                     std::chrono::system_clock::now() - *start;
         });
@@ -793,7 +785,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
 }
 
 const std::map<std::string, ResultReport>& FaseCore::run() {
-    for (auto& f : pipeline) {
+    for (auto& f : built_pipeline) {
         f();
     }
     return report_box;

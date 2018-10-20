@@ -19,6 +19,8 @@ public:
                   cast_type_.name() + std::string(" vs ") +
                   casted_type_.name() + std::string(")")) {}
 
+    ~WrongTypeCast() {}
+
     const std::type_info* cast_type;
     const std::type_info* casted_type;
 
@@ -53,6 +55,7 @@ private:
     std::string err_message;
 };
 
+// TODO change to be extended std::nested_exception
 class ErrorThrownByNode : public std::runtime_error {
 public:
     ErrorThrownByNode(const std::string& node_name_,

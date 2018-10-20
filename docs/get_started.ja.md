@@ -92,3 +92,15 @@ fase::Fase< ... > app;
 // インスタンスを作成した時点ですでにf とg は登録されている.
 ```
 
+## Step 3. 使う
+
+これで`Fase`自体のセットアップは完了です.  
+あとは各Extensionクラスの使い方に従います.  
+
+[FaseParts](@ref FaseParts)グループの各クラスを見ましょう.  
+
+ここでは例として, `GUIEditor`をあげると  
+ImGuiを使ったレンダリングループの中で`GUIEditor::runEditting`を呼び出すことで,
+ImGuiによるグラフィカルなパイプラインエディターを扱えます.  
+
+具体的な例は`example/guieditor`に書いてありますので, 見てください.  
