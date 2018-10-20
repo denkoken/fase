@@ -1,8 +1,13 @@
 #ifndef FASE_CORE_IMPL_H_20180622
 #define FASE_CORE_IMPL_H_20180622
 
+#include <algorithm>
 #include <map>
 #include <set>
+#include <vector>
+
+#include "core.h"
+#include "variable.h"
 
 namespace fase {
 

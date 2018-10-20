@@ -127,7 +127,7 @@ public:
      */
     void setProject(const std::string& project_name) {
         std::lock_guard<std::mutex> guard(core_mutex);
-        getCore()->switchProject(project_name);
+        getCore()->switchPipeline(project_name);
     }
 
 private:

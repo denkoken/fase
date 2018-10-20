@@ -23,8 +23,8 @@ enum class IssuePattern {
     BuildAndRun,
     BuildAndRunLoop,
     StopRunLoop,
-    SwitchProject,
-    RenameProject,
+    SwitchPipeline,
+    RenamePipeline,
 };
 
 /// For AddNode issue

@@ -114,11 +114,11 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     if (!core.getNodes().at(InputNodeStr()).links.empty()) {
         const std::vector<std::string>& arg_type_reprs =
                 core.getFunctions()
-                        .at(InputFuncStr(core.getProjectName()))
+                        .at(InputFuncStr(core.getCurrentPipelineName()))
                         .arg_type_reprs;
         const std::vector<std::string>& names =
                 core.getFunctions()
-                        .at(InputFuncStr(core.getProjectName()))
+                        .at(InputFuncStr(core.getCurrentPipelineName()))
                         .arg_names;
         size_t n_args = core.getNodes().at(InputNodeStr()).links.size();
 
@@ -132,10 +132,10 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     }
     // Output Arguments
     if (!core.getFunctions()
-                 .at(OutputFuncStr(core.getProjectName()))
+                 .at(OutputFuncStr(core.getCurrentPipelineName()))
                  .arg_names.empty()) {
         const Function& out_f =
-                core.getFunctions().at(OutputFuncStr(core.getProjectName()));
+                core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
         size_t n_args = out_f.arg_names.size();
 
         if (!core.getNodes().at(InputNodeStr()).links.empty()) {
@@ -198,7 +198,7 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                 if (link.node_name == InputNodeStr()) {
                     var_names.push_back(
                             core.getFunctions()
-                                    .at(InputFuncStr(core.getProjectName()))
+                                    .at(InputFuncStr(core.getCurrentPipelineName()))
                                     .arg_names.at(link.arg_idx));
                 } else {
                     var_names.push_back(
@@ -215,10 +215,10 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
 
     // Set output
     if (!core.getFunctions()
-                 .at(OutputFuncStr(core.getProjectName()))
+                 .at(OutputFuncStr(core.getCurrentPipelineName()))
                  .arg_names.empty()) {
         const Function& out_f =
-                core.getFunctions().at(OutputFuncStr(core.getProjectName()));
+                core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
         size_t n_args = out_f.arg_names.size();
         const Node& node = core.getNodes().at(OutputNodeStr());
 

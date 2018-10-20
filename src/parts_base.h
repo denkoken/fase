@@ -12,7 +12,7 @@ namespace fase {
 class PartsBase {
 public:
     PartsBase(const TypeUtils& utils_) : utils(utils_) {}
-    virtual ~PartsBase(){};
+    virtual ~PartsBase(){}
 
 protected:
     /// this must be overridden by only Fase class.

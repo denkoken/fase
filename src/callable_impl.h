@@ -45,8 +45,8 @@ void Callable::fixInput(
         const std::array<std::string, sizeof...(Args)>& reprs) {
     assert(arg_names.size() == sizeof...(Args));
     std::lock_guard<std::mutex> guard(core_mutex);
-    auto project_buf = getCore()->getProjectName();
-    getCore()->switchProject(project);
+    auto project_buf = getCore()->getCurrentPipelineName();
+    getCore()->switchPipeline(project);
     getCore()->unlockInOut();
 
     size_t n_arg = getCore()->getNodes().at(InputNodeStr()).links.size();
@@ -64,7 +64,7 @@ void Callable::fixInput(
         getCore()->setNodeArg(InputNodeStr(), i, reprs[i], args[i]);
     }
     getCore()->lockInOut();
-    getCore()->switchProject(project_buf);
+    getCore()->switchPipeline(project_buf);
 }
 
 template <typename... Args>
@@ -73,8 +73,8 @@ void Callable::fixOutput(
         const std::array<std::string, sizeof...(Args)>& arg_names) {
     assert(arg_names.size() == sizeof...(Args));
     std::lock_guard<std::mutex> guard(core_mutex);
-    auto project_buf = getCore()->getProjectName();
-    getCore()->switchProject(project);
+    auto project_buf = getCore()->getCurrentPipelineName();
+    getCore()->switchPipeline(project);
     getCore()->unlockInOut();
 
     size_t n_arg = getCore()->getNodes().at(OutputNodeStr()).links.size();
@@ -91,7 +91,7 @@ void Callable::fixOutput(
         getCore()->setNodeArg(OutputNodeStr(), i, "", args[i]);
     }
     getCore()->lockInOut();
-    getCore()->switchProject(project_buf);
+    getCore()->switchPipeline(project_buf);
 }
 
 template <typename... Args>
@@ -111,15 +111,15 @@ inline auto Callable::operator[](const std::string& project) {
         std::lock_guard<std::mutex> guard(core_mutex);
 
         // buffer now project name.
-        std::string project_buf = getCore()->getProjectName();
+        std::string project_buf = getCore()->getCurrentPipelineName();
 
         // switch to call project, and run pipeline.
-        getCore()->switchProject(project);
+        getCore()->switchPipeline(project);
         std::vector<Variable> output_a;
         this->call(&output_a, args...);
 
         // switch to buffered project.
-        getCore()->switchProject(project_buf);
+        getCore()->switchPipeline(project_buf);
         return CallableReturn{std::move(output_a)};
     };
 }

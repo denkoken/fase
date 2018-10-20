@@ -55,12 +55,12 @@ private:
     }
 };
 
-class ProjectMenu : public Content {
+class PipelineMenu : public Content {
 public:
     template <class... Args>
-    ProjectMenu(Args&&... args) : Content(args...) {}
+    PipelineMenu(Args&&... args) : Content(args...) {}
 
-    ~ProjectMenu() {}
+    ~PipelineMenu() {}
 
 private:
     void main() {
@@ -217,7 +217,7 @@ int Content::id_counter = 0;
 
 void View::setupMenus(std::function<void(Issue)>&& issue_f) {
     // Setup Menu bar
-    SetupContents<PreferenceMenu, ProjectMenu, NativeCodeMenu, NodeAddingMenu,
+    SetupContents<PreferenceMenu, PipelineMenu, NativeCodeMenu, NodeAddingMenu,
                   RunPipelineMenu, AddInOutputMenu, LayoutOptimizeMenu, Footer>(
             core, label, state, utils, issue_f, &menus);
 }
