@@ -10,7 +10,6 @@
 #include "exceptions.h"
 
 namespace fase {
-
 class Variable {
 public:
     Variable() = default;

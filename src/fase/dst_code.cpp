@@ -3,9 +3,7 @@
 #include <sstream>
 
 namespace fase {
-
 namespace {
-
 template <typename T>
 void extractKeys(const std::map<std::string, T>& src_map,
                  std::set<std::string>& dst_set) {
@@ -134,8 +132,8 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     if (!core.getFunctions()
                  .at(OutputFuncStr(core.getCurrentPipelineName()))
                  .arg_names.empty()) {
-        const Function& out_f =
-                core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
+        const Function& out_f = core.getFunctions().at(
+                OutputFuncStr(core.getCurrentPipelineName()));
         size_t n_args = out_f.arg_names.size();
 
         if (!core.getNodes().at(InputNodeStr()).links.empty()) {
@@ -198,7 +196,8 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                 if (link.node_name == InputNodeStr()) {
                     var_names.push_back(
                             core.getFunctions()
-                                    .at(InputFuncStr(core.getCurrentPipelineName()))
+                                    .at(InputFuncStr(
+                                            core.getCurrentPipelineName()))
                                     .arg_names.at(link.arg_idx));
                 } else {
                     var_names.push_back(
@@ -217,8 +216,8 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     if (!core.getFunctions()
                  .at(OutputFuncStr(core.getCurrentPipelineName()))
                  .arg_names.empty()) {
-        const Function& out_f =
-                core.getFunctions().at(OutputFuncStr(core.getCurrentPipelineName()));
+        const Function& out_f = core.getFunctions().at(
+                OutputFuncStr(core.getCurrentPipelineName()));
         size_t n_args = out_f.arg_names.size();
         const Node& node = core.getNodes().at(OutputNodeStr());
 

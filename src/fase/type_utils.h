@@ -6,7 +6,6 @@
 #include "variable.h"
 
 namespace fase {
-
 struct TypeUtils {
     using Serializer = std::function<std::string(const Variable&)>;
     using Deserializer = std::function<void(Variable&, const std::string&)>;

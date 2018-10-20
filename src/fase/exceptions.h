@@ -6,7 +6,6 @@
 #include <typeinfo>
 
 namespace fase {
-
 class WrongTypeCast : public std::logic_error {
 public:
     WrongTypeCast(const std::type_info& cast_type_,

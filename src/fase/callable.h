@@ -8,7 +8,6 @@
 #include "variable.h"
 
 namespace fase {
-
 /**
  * @defgroup FaseParts
  * @{

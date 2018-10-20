@@ -9,9 +9,7 @@
 #include "core_util.h"
 
 namespace fase {
-
 namespace {
-
 void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
     for (auto i = std::begin(*rev_links); i != std::end(*rev_links); i++) {
         auto& r_l = std::get<1>(*i);
@@ -130,12 +128,16 @@ void genNode(const std::string& func_repr, const std::string& node_name,
     // Register node (arg_values are copied from function's
     // default_arg_values)
     const size_t n_args = (*funcs)[func_repr].arg_type_reprs.size();
-    (*nodes)[node_name] = {func_repr,
-                           std::vector<Link>(n_args),
-                           std::vector<std::tuple<size_t, Link>>(),
-                           (*funcs)[func_repr].default_arg_reprs,
-                           arg_values,
-                           priority};
+    // clang-format off
+    (*nodes)[node_name] = {
+        func_repr,
+        std::vector<Link>(n_args),
+        std::vector<std::tuple<size_t, Link>>(),
+        (*funcs)[func_repr].default_arg_reprs,
+        arg_values,
+        priority
+    };
+    // clang-format on
 }
 
 }  // anonymous namespace

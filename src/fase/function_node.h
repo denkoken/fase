@@ -13,7 +13,6 @@
 #include "variable.h"
 
 namespace fase {
-
 struct ResultReport {
     using TimeType = decltype(std::chrono::system_clock::now() -
                               std::chrono::system_clock::now());

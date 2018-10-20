@@ -13,7 +13,6 @@
 #include "variable.h"
 
 namespace fase {
-
 struct Link {
     std::string node_name;
     size_t arg_idx;

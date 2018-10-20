@@ -5,7 +5,6 @@
 #include "callable.h"
 
 namespace fase {
-
 template <typename... Dsts>
 void Callable::CallableReturn::get(Dsts*... dsts) const {
     get0(std::tuple<Dsts*...>{dsts...},

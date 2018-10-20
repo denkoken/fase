@@ -7,7 +7,6 @@
 #include "parts_base.h"
 
 namespace fase {
-
 /**
  * @defgroup FaseParts
  * @{

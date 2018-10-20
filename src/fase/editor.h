@@ -7,7 +7,6 @@
 #include "parts_base.h"
 
 namespace fase {
-
 #if 0
 // ------------------------------------ CLI ------------------------------------
 class CLIEditor : public EditorBase<CLIEditor> {
@@ -48,7 +47,6 @@ using VarEditor = std::function<std::unique_ptr<T>(const char*, const T&)>;
 using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
 namespace guieditor {
-
 /**
  * @defgroup FaseParts
  * @{

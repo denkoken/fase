@@ -6,7 +6,6 @@
 #include "function_node.h"
 
 namespace fase {
-
 class BindedPipeline : public FunctionBuilderBase {
 public:
     BindedPipeline(const FaseCore& core);

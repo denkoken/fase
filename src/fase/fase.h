@@ -8,7 +8,6 @@
 #include "type_utils.h"
 
 namespace fase {
-
 template <class... Parts>
 class Fase : public Parts... {
 public:

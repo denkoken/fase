@@ -6,9 +6,7 @@
 #include <string>
 
 namespace fase {
-
 namespace {
-
 constexpr char INOUT_HEADER[] = "INOUT";
 constexpr char NODE_HEADER[] = "NODE";
 constexpr char LINK_HEADER[] = "LINK";

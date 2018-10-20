@@ -8,9 +8,7 @@
 #include <type_traits>
 
 namespace fase {
-
 namespace for_macro {
-
 template <typename Type>
 struct Clean {
     using type = typename std::remove_reference<
@@ -395,7 +393,6 @@ inline std::string CleanStr(std::string str) {
 }
 
 namespace for_macro {
-
 template <typename T>
 inline bool Delete(T) {
     return false;

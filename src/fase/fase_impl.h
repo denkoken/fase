@@ -13,7 +13,6 @@
 #endif
 
 namespace fase {
-
 template <typename... Args>
 struct NArgs {
     size_t N = sizeof...(Args);

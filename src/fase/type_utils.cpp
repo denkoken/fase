@@ -14,9 +14,7 @@
     }
 
 namespace fase {
-
 namespace {
-
 template <typename T>
 std::function<void(Variable&, const std::string&)> genConverter(
         const std::function<T(const std::string&)>& conv_f) {

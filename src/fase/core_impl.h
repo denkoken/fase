@@ -10,9 +10,7 @@
 #include "variable.h"
 
 namespace fase {
-
 namespace {
-
 template <typename T, typename S>
 inline bool exists(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);

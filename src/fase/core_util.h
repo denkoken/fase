@@ -7,7 +7,6 @@
 #include "type_utils.h"
 
 namespace fase {
-
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                           const std::string& entry_name = "Pipeline",
                           const std::string& indent = "    ");
