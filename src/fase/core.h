@@ -91,12 +91,12 @@ public:
     void lockInOut();
     void unlockInOut();
 
-    void switchPipeline(const std::string& project_name) noexcept;
+    void switchPipeline(const std::string& project_name);
     void renamePipeline(const std::string& project_name) noexcept;
     void deletePipeline(const std::string& project_name) noexcept;
 
     // ## Building, Running ##
-    bool build(bool parallel_exe = false, bool profile = false);
+    bool build(bool parallel_exe = false, bool profile = false, bool forced = false);
     const std::map<std::string, ResultReport>& run();
 
     // ## Getters ##
@@ -110,6 +110,9 @@ public:
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
                 const T& default_value = T());
+
+    /// Get FaseCore version; use this for check nodes have been updated.
+    int getVersion() const;
 
 private:
     const static char MainPipeInOutName[];
@@ -126,18 +129,22 @@ private:
     std::map<std::string, Function> functions;  // [repr, Function]
 
     std::map<std::string, Pipeline> pipelines;
-    std::map<std::string, Pipeline> sub_pipeline;
+    std::map<std::string, Pipeline> sub_pipelines;
     std::string editting_pipeline;
+
+    int version;
 
     bool is_locked_inout = false;  /// about not sub pipelines inout
 
     // Built pipeline
     std::vector<std::function<void()>> built_pipeline;
     std::map<std::string, std::vector<Variable>> output_variables;
+    int built_version;
+    bool is_profiling_built;
 
     std::map<std::string, ResultReport> report_box;
 
-    // Utility functions.
+    // ## Utility functions. ##
     bool checkNodeName(const std::string& name);
 
     std::string getEdittingInputFunc();

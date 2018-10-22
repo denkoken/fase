@@ -10,6 +10,7 @@
 
 namespace fase {
 namespace {
+
 void del(const Link& l, std::vector<std::tuple<size_t, Link>>* rev_links) {
     for (auto i = std::begin(*rev_links); i != std::end(*rev_links); i++) {
         auto& r_l = std::get<1>(*i);
@@ -195,7 +196,7 @@ void FaseCore::initInOut() {
             &pipelines[editting_pipeline].nodes);
 }
 
-FaseCore::FaseCore() {
+FaseCore::FaseCore() : version(0) {
     editting_pipeline = "Untitled";
     pipelines[editting_pipeline] = {};
 
@@ -217,6 +218,8 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 
     genNode(func_repr, name, priority, &functions,
             &pipelines[editting_pipeline].nodes);
+
+    version++;
 
     return true;
 }
@@ -259,6 +262,7 @@ bool FaseCore::delNode(const std::string& node_name) noexcept {
     //                   << std::get<1>(tup).arg_idx << std::endl;
     //     }
     // }
+    version++;
     return true;
 }
 
@@ -409,6 +413,8 @@ void FaseCore::delLink(const std::string& dst_node_name,
         }
     }
     nodes[dst_node_name].links[dst_arg_idx] = {};
+
+    version++;
 }
 
 bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
@@ -417,6 +423,7 @@ bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
         return false;
     }
     nodes[node_name].priority = priority;
+    version++;
     return true;
 }
 
@@ -442,6 +449,8 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
     // Register
     node.arg_reprs[arg_idx] = arg_repr;
     node.arg_values[arg_idx] = arg_val;
+
+    version++;
     return true;
 }
 
@@ -460,6 +469,8 @@ void FaseCore::clearNodeArg(const std::string& node_name,
     const std::string& func_repr = node.func_repr;
     node.arg_reprs[arg_idx] = functions[func_repr].default_arg_reprs[arg_idx];
     node.arg_values[arg_idx] = functions[func_repr].default_arg_values[arg_idx];
+
+    version++;
 }
 
 bool FaseCore::addInput(const std::string& name, const std::type_info* type,
@@ -536,6 +547,7 @@ bool FaseCore::delInput(const size_t& idx) {
         addLink(InputNodeStr(), link_slot, link.node_name, link.arg_idx);
     }
 
+    version++;
     return true;
 }
 
@@ -623,7 +635,7 @@ void FaseCore::unlockInOut() {
     is_locked_inout = false;
 }
 
-void FaseCore::switchPipeline(const std::string& project_name) noexcept {
+void FaseCore::switchPipeline(const std::string& project_name) {
     editting_pipeline = project_name;
 
     if (pipelines[editting_pipeline].nodes.empty()) {
@@ -644,6 +656,8 @@ void FaseCore::switchPipeline(const std::string& project_name) noexcept {
                 std::numeric_limits<int>::max(), &functions,
                 &pipelines[editting_pipeline].nodes);
     }
+
+    version++;
 }
 
 void FaseCore::renamePipeline(const std::string& project_name) noexcept {
@@ -682,6 +696,10 @@ std::vector<std::string> FaseCore::getPipelineNames() const {
 
 const std::vector<Variable>& FaseCore::getOutputs() const {
     return output_variables.at(OutputNodeStr());
+}
+
+int FaseCore::getVersion() const {
+    return version;
 }
 
 std::function<void()> FaseCore::buildNode(
@@ -778,7 +796,11 @@ void FaseCore::buildNodesNonParallel(
     }
 }
 
-bool FaseCore::build(bool parallel_exe, bool profile) {
+bool FaseCore::build(bool parallel_exe, bool profile, bool forced) {
+    if (profile == is_profiling_built && version == built_version && !forced) {
+        return true;
+    }
+
     auto& nodes = pipelines[editting_pipeline].nodes;
     pipelines[editting_pipeline].multi = parallel_exe;
     built_pipeline.clear();
@@ -816,6 +838,9 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
             }
         }
     }
+
+    built_version = version;
+    is_profiling_built = profile;
 
     return true;
 }

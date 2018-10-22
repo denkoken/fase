@@ -146,34 +146,46 @@ void VecAdd(const std::vector<double>& a,
 })
 
 void LastPrintProjectRun(fase::Callable& app) {
-    // Both Type returning is OK!
 
-    // Type 1.
-    std::tuple<int, std::string> dst =
-            app(std::string("good morning!"), 3).get<int, std::string>();
+    try {        // for catching nested error
+        try {    // for catching ErrorThrownByNode
 
-    std::cout << "output1 : " << std::get<0>(dst) << std::endl
-              << "output2 : " << std::get<1>(dst) << std::endl;
+            // Both Type returning is OK!
 
-    // Type 2.
-    int dst1;
-    std::string dst2;
-    app(std::string("good bye!"), 7).get(&dst1, &dst2);
+            // Type 1.
+            std::tuple<int, std::string> dst =
+                    app(std::string("good morning!"), 3).get<int, std::string>();
 
-    std::cout << "output1 : " << dst1 << std::endl
-              << "output2 : " << dst2 << std::endl;
+            std::cout << "output1 : " << std::get<0>(dst) << std::endl
+                      << "output2 : " << std::get<1>(dst) << std::endl;
 
-    // from c++17, you can use structure bindings, like down.
+            // Type 2.
+            int dst1;
+            std::string dst2;
+            app(std::string("good bye!"), 7).get(&dst1, &dst2);
+
+            std::cout << "output1 : " << dst1 << std::endl
+                      << "output2 : " << dst2 << std::endl;
+
+            // from c++17, you can use structure bindings, like down.
 #ifdef __cpp_structured_bindings
-    {
-        // Type 1'.
-        auto [dst1, dst2] =
-                app(std::string("hello!"), 17).get<int, std::string>();
+            {
+                // Type 1'.
+                auto [dst1, dst2] =
+                        app(std::string("hello!"), 17).get<int, std::string>();
 
-        std::cout << "output1 : " << dst1 << std::endl
-                  << "output2 : " << dst2 << std::endl;
-    }
+                std::cout << "output1 : " << dst1 << std::endl
+                          << "output2 : " << dst2 << std::endl;
+            }
 #endif
+        } catch (fase::ErrorThrownByNode& e) {
+            std::cerr << "Node " << e.node_name
+                      << " throws Error;" << std::endl;
+            e.rethrow_nested();
+        }
+    } catch (std::exception& e) {
+        std::cerr << "    " << e.what() << std::endl;
+    }
 }
 
 // clang-format on

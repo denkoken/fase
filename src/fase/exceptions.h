@@ -54,12 +54,11 @@ private:
     std::string err_message;
 };
 
-// TODO change to be extended std::nested_exception
-class ErrorThrownByNode : public std::runtime_error {
+class ErrorThrownByNode : public std::nested_exception {
 public:
     ErrorThrownByNode(const std::string& node_name_,
                       const std::string& err_message_)
-        : runtime_error("ErrorThrownByNode"),
+        : std::nested_exception(),
           node_name(node_name_),
           err_message(err_message_) {}
 
