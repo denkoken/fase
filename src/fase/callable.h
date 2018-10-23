@@ -2,7 +2,9 @@
 #define CALLABLE_H_20181014
 
 #include <tuple>
+#include <vector>
 
+#include "core.h"
 #include "core_util.h"
 #include "parts_base.h"
 #include "variable.h"

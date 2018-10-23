@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "core.h"
+#include "core_util.h"
 #include "variable.h"
 
 namespace fase {
@@ -87,6 +88,14 @@ constexpr bool IsInputArgType() {
            std::is_rvalue_reference<T>();
 }
 
+template <typename... Args>
+void unpackDummy(Args&&...) {}
+
+template <size_t... Seq, typename... Args>
+void setInput_(Node& node, std::index_sequence<Seq...>, Args&&... args) {
+    unpackDummy(*node.arg_values[Seq].getWriter<Args>() = args...);
+}
+
 }  // namespace
 
 template <typename Ret, typename... Args>
@@ -130,6 +139,13 @@ bool FaseCore::addFunctionBuilder(
             std::vector<bool>{IsInputArgType<Args>()...},
     };
     return true;
+}
+
+template <typename... Args>
+void FaseCore::setInput(Args&&... args) {
+    Node& input = pipelines[editting_pipeline].nodes[InputNodeStr()];
+    setInput_(input, std::make_index_sequence<sizeof...(Args)>(),
+              std::forward<Args>(args)...);
 }
 
 template <typename T>

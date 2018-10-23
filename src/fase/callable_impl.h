@@ -114,18 +114,9 @@ inline auto Callable::operator[](const std::string& project) {
 
 template <typename... Args>
 void Callable::call(std::vector<Variable>* dst, Args&&... args) {
-    std::array<Variable, sizeof...(Args)> arg_vars = {
-            {Variable(std::forward<Args>(args))...}};
-
     auto pcore = getCore();
 
-    const size_t n_input = pcore->getNodes().at(InputNodeStr()).links.size();
-    for (size_t i = 0; i < n_input; i++) {
-        if (!pcore->setNodeArg(InputNodeStr(), i, "", arg_vars[i])) {
-            throw std::runtime_error(
-                    "invalid type for pipeline : " + std::to_string(i) + "th");
-        }
-    }
+    pcore->setInput(std::forward<Args>(args)...);
 
     pcore->build();
     pcore->run();

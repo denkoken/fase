@@ -4,10 +4,12 @@
 #include <memory>
 #include <mutex>
 
-#include "core.h"
 #include "type_utils.h"
 
 namespace fase {
+
+class FaseCore;
+
 class PartsBase {
 public:
     PartsBase(const TypeUtils& utils_) : utils(utils_) {}

@@ -196,6 +196,33 @@ void FaseCore::initInOut() {
             &pipelines[editting_pipeline].nodes);
 }
 
+FaseCore::FaseCore(FaseCore& another)
+    : functions(another.functions),
+      pipelines(another.pipelines),
+      sub_pipelines(another.sub_pipelines),
+      editting_pipeline(another.editting_pipeline),
+      version(another.version),
+      built_pipeline(),
+      output_variables(),
+      built_version(version - 1),
+      is_profiling_built(another.is_profiling_built),
+      report_box() {}
+
+FaseCore& FaseCore::operator=(FaseCore& another) {
+    functions = another.functions;
+    pipelines = another.pipelines;
+    sub_pipelines = another.sub_pipelines;
+    editting_pipeline = another.editting_pipeline;
+    version = another.version;
+    built_pipeline = decltype(built_pipeline)();
+
+    output_variables = decltype(output_variables)();
+    built_version = version - 1;
+    is_profiling_built = another.is_profiling_built;
+    report_box = decltype(report_box)();
+    return *this;
+}
+
 FaseCore::FaseCore() : version(0) {
     editting_pipeline = "Untitled";
     pipelines[editting_pipeline] = {};
@@ -484,6 +511,10 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
         return false;
     }
 
+    if (exists(functions[getEdittingOutputFunc()].arg_names, name)) {
+        return false;
+    }
+
     if (is_locked_inout) {
         return false;
     }
@@ -559,6 +590,10 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
     }
 
     if (exists(functions[getEdittingOutputFunc()].arg_names, name)) {
+        return false;
+    }
+
+    if (exists(functions[getEdittingInputFunc()].arg_names, name)) {
         return false;
     }
 
@@ -796,10 +831,12 @@ void FaseCore::buildNodesNonParallel(
     }
 }
 
-bool FaseCore::build(bool parallel_exe, bool profile, bool forced) {
-    if (profile == is_profiling_built && version == built_version && !forced) {
+bool FaseCore::build(bool parallel_exe, bool profile) {
+    if (profile == is_profiling_built && version == built_version) {
         return true;
     }
+
+    // TODO change parallel execution system.
 
     auto& nodes = pipelines[editting_pipeline].nodes;
     pipelines[editting_pipeline].multi = parallel_exe;

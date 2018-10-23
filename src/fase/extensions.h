@@ -3,10 +3,12 @@
 
 #include <memory>
 
-#include "core.h"
 #include "parts_base.h"
 
 namespace fase {
+
+class FaseCore;
+
 /**
  * @defgroup FaseParts
  * @{

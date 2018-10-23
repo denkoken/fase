@@ -1,7 +1,6 @@
 #ifndef EDITOR_H_20180628
 #define EDITOR_H_20180628
 
-#include "core.h"
 #include "type_utils.h"
 
 #include "parts_base.h"

@@ -46,6 +46,13 @@ class FaseCore {
 public:
     FaseCore();
 
+    FaseCore(FaseCore&);
+    FaseCore(const FaseCore&) = delete;
+    FaseCore(FaseCore&&) = default;
+    FaseCore& operator=(FaseCore&);
+    FaseCore& operator=(const FaseCore&) = delete;
+    FaseCore& operator=(FaseCore&&) = default;
+
     // ## Setup ##
     template <typename Ret, typename... Args>
     bool addFunctionBuilder(
@@ -96,8 +103,11 @@ public:
     void deletePipeline(const std::string& project_name) noexcept;
 
     // ## Building, Running ##
-    bool build(bool parallel_exe = false, bool profile = false, bool forced = false);
+    bool build(bool parallel_exe = false, bool profile = false);
     const std::map<std::string, ResultReport>& run();
+
+    template <typename... Args>
+    void setInput(Args&&... args);
 
     // ## Getters ##
     const std::map<std::string, Function>& getFunctions() const;

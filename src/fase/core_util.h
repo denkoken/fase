@@ -1,12 +1,17 @@
 #ifndef CORE_UTIL_H_20180824
 #define CORE_UTIL_H_20180824
 
+#include <set>
 #include <string>
 
-#include "core.h"
 #include "type_utils.h"
 
 namespace fase {
+
+class FaseCore;
+struct Link;
+struct Node;
+
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                           const std::string& entry_name = "Pipeline",
                           const std::string& indent = "    ");

@@ -215,7 +215,7 @@ void GUIEditor::Impl::startRunning<true>() {
     shold_stop_loop = false;
     core_buf = *core;
     err_message = "";
-    core_buf.build(multi_running, true, true);
+    core_buf.build(multi_running, true);
     pipeline_thread = std::thread([this]() {
         while (true) {
             std::map<std::string, ResultReport> ret;
@@ -250,7 +250,7 @@ void GUIEditor::Impl::startRunning<true>() {
             core_mutex.lock();
             *core = core_buf;
             core_mutex.unlock();
-            core_buf.build(multi_running, true, true);
+            core_buf.build(multi_running, true);
 
             // Reduce the speed to about 60 fps
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -269,7 +269,7 @@ void GUIEditor::Impl::startRunning<false>() {
     core_buf = *core;
     err_message = "";
     pipeline_thread = std::thread([this]() {
-        core_buf.build(multi_running, true, true);
+        core_buf.build(multi_running, true);
         std::map<std::string, ResultReport> ret;
         try {      // for catch nested error
             try {  // for catch ErrorThrownByNode.

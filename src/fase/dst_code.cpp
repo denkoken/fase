@@ -1,6 +1,10 @@
 #include "core_util.h"
 
 #include <sstream>
+#include <string>
+#include <vector>
+
+#include "core.h"
 
 namespace fase {
 namespace {
@@ -92,6 +96,52 @@ std::string getValStr(const Variable& v, const TypeUtils& utils) {
     return "";
 }
 
+void makePipelineFuncDef(const std::string& func_name, const FaseCore& core,
+                         const TypeUtils& utils,
+                         std::stringstream& code_stream) {
+    code_stream << "void " << func_name << "(";
+    const Node& in_n = core.getNodes().at(InputNodeStr());
+    const Function& in_f = core.getFunctions().at(in_n.func_repr);
+
+    const Node& out_n = core.getNodes().at(OutputNodeStr());
+    const Function& out_f = core.getFunctions().at(out_n.func_repr);
+    // Input Arguments
+    if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+        const std::vector<const std::type_info*>& arg_types = in_f.arg_types;
+
+        const std::vector<std::string>& names = in_f.arg_names;
+
+        size_t n_args = in_n.links.size();
+
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            code_stream << genVarDeclaration(utils.names.at(arg_types[arg_idx]),
+                                             "", names[arg_idx], "");
+            if (arg_idx != n_args - 1) {
+                code_stream << ", ";
+            }
+        }
+    }
+
+    // Output Arguments
+    if (!out_f.arg_names.empty()) {
+        size_t n_args = out_f.arg_names.size();
+
+        if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+            code_stream << ", ";
+        }
+
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            code_stream << removeReprConst(removeReprRef(
+                                   utils.names.at(out_f.arg_types[arg_idx])))
+                        << "& " << out_f.arg_names[arg_idx];
+            if (arg_idx != n_args - 1) {
+                code_stream << ", ";
+            }
+        }
+    }
+    code_stream << ") ";
+}
+
 }  // namespace
 
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
@@ -107,49 +157,8 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
         func_name = "Pipeline";
     }
 
-    native_code << "void " << func_name << "(";
-    // Input Arguments
-    if (!core.getNodes().at(InputNodeStr()).links.empty()) {
-        const std::vector<std::string>& arg_type_reprs =
-                core.getFunctions()
-                        .at(InputFuncStr(core.getCurrentPipelineName()))
-                        .arg_type_reprs;
-        const std::vector<std::string>& names =
-                core.getFunctions()
-                        .at(InputFuncStr(core.getCurrentPipelineName()))
-                        .arg_names;
-        size_t n_args = core.getNodes().at(InputNodeStr()).links.size();
-
-        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            native_code << genVarDeclaration(arg_type_reprs[arg_idx], "",
-                                             names[arg_idx], "");
-            if (arg_idx != n_args - 1) {
-                native_code << ", ";
-            }
-        }
-    }
-    // Output Arguments
-    if (!core.getFunctions()
-                 .at(OutputFuncStr(core.getCurrentPipelineName()))
-                 .arg_names.empty()) {
-        const Function& out_f = core.getFunctions().at(
-                OutputFuncStr(core.getCurrentPipelineName()));
-        size_t n_args = out_f.arg_names.size();
-
-        if (!core.getNodes().at(InputNodeStr()).links.empty()) {
-            native_code << ", ";
-        }
-
-        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            native_code << removeReprConst(
-                                   removeReprRef(out_f.arg_type_reprs[arg_idx]))
-                        << "& " << out_f.arg_names[arg_idx];
-            if (arg_idx != n_args - 1) {
-                native_code << ", ";
-            }
-        }
-    }
-    native_code << ") {" << std::endl;
+    makePipelineFuncDef(func_name, core, utils, native_code);
+    native_code << "{" << std::endl;
 
     while (true) {
         // Find runnable node
@@ -194,11 +203,10 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
             } else {
                 // Case 2: Use output variable
                 if (link.node_name == InputNodeStr()) {
-                    var_names.push_back(
-                            core.getFunctions()
-                                    .at(InputFuncStr(
-                                            core.getCurrentPipelineName()))
-                                    .arg_names.at(link.arg_idx));
+                    const Node& in_n = core.getNodes().at(InputNodeStr());
+                    const Function& in_f =
+                            core.getFunctions().at(in_n.func_repr);
+                    var_names.push_back(in_f.arg_names.at(link.arg_idx));
                 } else {
                     var_names.push_back(
                             genVarName(link.node_name, link.arg_idx));
@@ -213,19 +221,25 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     assert(node_order.empty());
 
     // Set output
-    if (!core.getFunctions()
-                 .at(OutputFuncStr(core.getCurrentPipelineName()))
-                 .arg_names.empty()) {
-        const Function& out_f = core.getFunctions().at(
-                OutputFuncStr(core.getCurrentPipelineName()));
+    const Node& out_n = core.getNodes().at(OutputNodeStr());
+    const Function& out_f = core.getFunctions().at(out_n.func_repr);
+    if (!out_f.arg_names.empty()) {
         size_t n_args = out_f.arg_names.size();
-        const Node& node = core.getNodes().at(OutputNodeStr());
-
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-            auto& link = node.links[arg_idx];
+            auto& link = out_n.links[arg_idx];
+            if (link.node_name.empty()) {
+                continue;
+            }
+            std::string val_name;
+            if (link.node_name == InputNodeStr()) {
+                const Node& in_n = core.getNodes().at(InputNodeStr());
+                const Function& in_f = core.getFunctions().at(in_n.func_repr);
+                val_name = in_f.arg_names[link.arg_idx];
+            } else {
+                val_name = genVarName(link.node_name, link.arg_idx);
+            }
             native_code << indent;
-            native_code << out_f.arg_names[arg_idx] << " = "
-                        << genVarName(link.node_name, link.arg_idx) << ";"
+            native_code << out_f.arg_names[arg_idx] << " = " << val_name << ";"
                         << std::endl;
         }
     }

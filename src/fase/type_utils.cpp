@@ -103,6 +103,27 @@ void SetupTypeUtils(TypeUtils* type_utils) {
     type_utils->def_makers["std::string"] = [](const Variable& v) {
         return "\"" + *v.getReader<std::string>() + "\"";
     };
+
+#define ADD_NAME(type) type_utils->names[&typeid(type)] = #type
+
+    ADD_NAME(bool);
+    ADD_NAME(char);
+    ADD_NAME(unsigned char);
+    ADD_NAME(short);
+    ADD_NAME(unsigned short);
+    ADD_NAME(int);
+    ADD_NAME(unsigned int);
+    ADD_NAME(long);
+    ADD_NAME(unsigned long);
+    ADD_NAME(long long);
+    ADD_NAME(unsigned long long);
+    ADD_NAME(float);
+    ADD_NAME(double);
+    ADD_NAME(long double);
+
+    ADD_NAME(std::string);
+
+#undef ADD_NAME
 }
 
 }  // namespace fase

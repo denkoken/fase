@@ -216,7 +216,7 @@ int main() {
     }
 
     app.fixInput<std::string, int>({{"str", "num"}});
-    app.fixOutput<int, std::string>({{"num", "str"}});
+    app.fixOutput<int, std::string>({{"dst_num", "dst_str"}});
 
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
