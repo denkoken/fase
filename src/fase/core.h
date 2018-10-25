@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 
+#include "binded_pipe.h"
 #include "function_node.h"
 #include "variable.h"
 
@@ -126,21 +127,16 @@ public:
 
 private:
     const static char MainPipeInOutName[];
-    std::function<void()> buildNode(
-            const std::string& node_name, const std::vector<Variable*>& args,
-            std::map<std::string, ResultReport>* report_box) const;
 
-    void buildNodesParallel(const std::set<std::string>& runnables,
-                            const size_t& step,
-                            std::map<std::string, ResultReport>* report_box);
-    void buildNodesNonParallel(const std::set<std::string>& runnables,
-                               std::map<std::string, ResultReport>* report_box);
     // Registered functions
     std::map<std::string, Function> functions;  // [repr, Function]
 
     std::map<std::string, Pipeline> pipelines;
-    std::map<std::string, Pipeline> sub_pipelines;
     std::string current_pipeline;
+
+    // ## Sub Pipelines ##
+    std::map<std::string, Pipeline> sub_pipelines;
+    std::shared_ptr<BindedPipeline> sub_pipeline_fbs;  /// function builders
 
     int version;
 

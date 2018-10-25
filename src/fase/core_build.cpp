@@ -6,9 +6,15 @@ namespace fase {
 
 namespace {
 
+template <typename T>
+using StrKMap = std::map<std::string, T>;
+
+using NodeMap = StrKMap<Node>;
+using FuncMap = StrKMap<Function>;
+
 std::vector<Variable*> BindVariables(
         const Node& node,
-        const std::map<std::string, std::vector<Variable>>& exists_variables,
+        const StrKMap<std::vector<Variable>>& exists_variables,
         std::vector<Variable>* variables) {
     assert(variables->empty());
 
@@ -52,13 +58,10 @@ std::function<void()> wrapPipe(const std::string& node_name,
     };
 }
 
-}  // namespace
-
-std::function<void()> FaseCore::buildNode(
-        const std::string& node_name, const std::vector<Variable*>& args,
-        std::map<std::string, ResultReport>* report_box_) const {
-    const Function& func = functions.at(
-            pipelines.at(current_pipeline).nodes.at(node_name).func_repr);
+std::function<void()> BuildNode(const std::string& node_name,
+                                const std::vector<Variable*>& args,
+                                const Function& func,
+                                StrKMap<ResultReport>* report_box_) {
     if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
         return [] {};
     }
@@ -70,25 +73,28 @@ std::function<void()> FaseCore::buildNode(
     }
 }
 
-void FaseCore::buildNodesParallel(
-        const std::set<std::string>& runnables,
-        const size_t& step,  // for report.
-        std::map<std::string, ResultReport>* report_box_) {
-    auto& nodes = pipelines[current_pipeline].nodes;
-    std::map<std::string, std::vector<Variable*>> variable_ps;
+void BuildNodesParallel(const std::set<std::string>& runnables,
+                        const size_t& step,  // for report.
+                        const NodeMap& nodes, const FuncMap& functions,
+                        StrKMap<std::vector<Variable>>* output_variables,
+                        StrKMap<ResultReport>* report_box_,
+                        std::vector<std::function<void()>>* built_pipeline) {
+    StrKMap<std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
-        variable_ps[runnable] = BindVariables(nodes[runnable], output_variables,
-                                              &output_variables[runnable]);
+        variable_ps[runnable] =
+                BindVariables(nodes.at(runnable), *output_variables,
+                              &(*output_variables)[runnable]);
     }
 
     // Build
     std::vector<std::function<void()>> funcs;
     for (auto& runnable : runnables) {
-        funcs.emplace_back(
-                buildNode(runnable, variable_ps[runnable], report_box_));
+        funcs.emplace_back(BuildNode(runnable, variable_ps[runnable],
+                                     functions.at(nodes.at(runnable).func_repr),
+                                     report_box_));
     }
     if (report_box_ != nullptr) {
-        built_pipeline.push_back([funcs, report_box_, step] {
+        built_pipeline->emplace_back([funcs, report_box_, step] {
             auto start = std::chrono::system_clock::now();
             std::vector<std::thread> ths;
             std::exception_ptr ep;
@@ -111,7 +117,7 @@ void FaseCore::buildNodesParallel(
                     std::chrono::system_clock::now() - start;
         });
     } else {
-        built_pipeline.push_back([funcs] {
+        built_pipeline->emplace_back([funcs] {
             std::vector<std::thread> ths;
             std::exception_ptr ep;
             for (auto& func : funcs) {
@@ -133,19 +139,68 @@ void FaseCore::buildNodesParallel(
     }
 }
 
-void FaseCore::buildNodesNonParallel(
-        const std::set<std::string>& runnables,
-        std::map<std::string, ResultReport>* report_box_) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+void BuildNodesNonParallel(const std::set<std::string>& runnables,
+                           const NodeMap& nodes, const FuncMap& functions,
+                           StrKMap<std::vector<Variable>>* output_variables,
+                           StrKMap<ResultReport>* report_box_,
+                           std::vector<std::function<void()>>* built_pipeline) {
     for (auto& runnable : runnables) {
-        const Node& node = nodes[runnable];
-        auto bound_variables = BindVariables(node, output_variables,
-                                             &output_variables[runnable]);
+        const Node& node = nodes.at(runnable);
+        auto bound_variables = BindVariables(node, *output_variables,
+                                             &(*output_variables)[runnable]);
 
         // Build
-        built_pipeline.emplace_back(
-                buildNode(runnable, bound_variables, report_box_));
+        built_pipeline->emplace_back(BuildNode(
+                runnable, bound_variables,
+                functions.at(nodes.at(runnable).func_repr), report_box_));
     }
+}
+
+}  // namespace
+
+bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
+                   bool parallel_exe,
+                   std::vector<std::function<void()>>* built_pipeline,
+                   StrKMap<std::vector<Variable>>* output_variables,
+                   StrKMap<ResultReport>* report_box) {
+    // TODO change parallel execution system.
+
+    built_pipeline->clear();
+    output_variables->clear();
+    if (report_box != nullptr) {
+        report_box->clear();
+    }
+
+    // Build running order.
+    auto node_order = GetCallOrder(nodes);
+    assert(!node_order.empty());
+
+    size_t step = 0;
+    for (auto& runnables : node_order) {
+        if (parallel_exe) {
+            BuildNodesParallel(runnables, step++, nodes, functions,
+                               output_variables, report_box, built_pipeline);
+        } else {
+            BuildNodesNonParallel(runnables, nodes, functions, output_variables,
+                                  report_box, built_pipeline);
+        }
+    }
+
+    // Add total time report maker to front and back.
+    if (report_box != nullptr) {
+        auto start = std::make_shared<std::chrono::system_clock::time_point>();
+
+        built_pipeline->insert(std::begin(*built_pipeline), [start] {
+            *start = std::chrono::system_clock::now();
+        });
+
+        built_pipeline->emplace_back([start, report_box] {
+            (*report_box)[TotalTimeStr()].execution_time =
+                    std::chrono::system_clock::now() - *start;
+        });
+    }
+
+    return true;
 }
 
 bool FaseCore::build(bool parallel_exe, bool profile) {
@@ -157,40 +212,15 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
 
     auto& nodes = pipelines[current_pipeline].nodes;
     pipelines[current_pipeline].multi = parallel_exe;
-    built_pipeline.clear();
-    output_variables.clear();
-    report_box.clear();
 
-    // Build running order.
-    auto node_order = GetCallOrder(nodes);
-    assert(!node_order.empty());
+    auto p_reports = &report_box;
+    if (!profile) {
+        p_reports = nullptr;
+    }
 
-    if (profile) {
-        auto start = std::make_shared<std::chrono::system_clock::time_point>();
-        built_pipeline.push_back(
-                [start] { *start = std::chrono::system_clock::now(); });
-
-        size_t step = 0;
-        for (auto& runnables : node_order) {
-            if (parallel_exe) {
-                buildNodesParallel(runnables, step++, &report_box);
-            } else {
-                buildNodesNonParallel(runnables, &report_box);
-            }
-        }
-
-        built_pipeline.push_back([start, &report_box = this->report_box] {
-            report_box[TotalTimeStr()].execution_time =
-                    std::chrono::system_clock::now() - *start;
-        });
-    } else {
-        for (auto& runnables : node_order) {
-            if (parallel_exe) {
-                buildNodesParallel(runnables, 0, nullptr);
-            } else {
-                buildNodesNonParallel(runnables, nullptr);
-            }
-        }
+    if (!BuildPipeline(nodes, functions, parallel_exe, &built_pipeline,
+                       &output_variables, p_reports)) {
+        return false;
     }
 
     built_version = version;

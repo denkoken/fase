@@ -8,9 +8,11 @@
 
 namespace fase {
 
-class FaseCore;
 struct Link;
 struct Node;
+struct Function;
+struct ResultReport;
+class FaseCore;
 
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                           const std::string& entry_name = "Pipeline",
@@ -33,6 +35,13 @@ std::vector<std::vector<Link>> getReverseLinks(
 /// if a empty vector returned, something went wrong.
 std::vector<std::set<std::string>> GetCallOrder(
         const std::map<std::string, Node>& nodes);
+
+bool BuildPipeline(
+        const std::map<std::string, Node>& nodes,
+        const std::map<std::string, Function>& functions, bool parallel_exe,
+        std::vector<std::function<void()>>* built_pipeline,
+        std::map<std::string, std::vector<Variable>>* output_variables,
+        std::map<std::string, ResultReport>* report_box);
 
 inline std::string ReportHeaderStr() {
     return std::string("FASE:");

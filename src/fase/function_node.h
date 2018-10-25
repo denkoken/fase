@@ -23,9 +23,9 @@ class FunctionBuilderBase {
 public:
     virtual ~FunctionBuilderBase() {}
     virtual std::function<void()> build(
-            const std::vector<Variable*>& in_args) = 0;
+            const std::vector<Variable*>& in_args) const = 0;
     virtual std::function<void()> build(const std::vector<Variable*>& in_args,
-                                        ResultReport* report) = 0;
+                                        ResultReport* report) const = 0;
 };
 
 template <typename... Args>
@@ -43,7 +43,7 @@ public:
     /// Build function with input arguments statically.
     ///
     template <typename... VArgs>
-    std::function<void()> build(VArgs*... in_args) noexcept {
+    std::function<void()> build(VArgs*... in_args) const noexcept {
         static_assert(sizeof...(VArgs) == sizeof...(Args),
                       "The number of arguments is not matched");
 
@@ -56,7 +56,7 @@ public:
     ///
     /// Build function with input arguments dynamically.
     ///
-    std::function<void()> build(const std::vector<Variable*>& in_args) {
+    std::function<void()> build(const std::vector<Variable*>& in_args) const {
         if (in_args.size() != sizeof...(Args)) {
             throw(InvalidArgN(sizeof...(Args), in_args.size()));
         }
@@ -71,7 +71,7 @@ public:
     }
 
     std::function<void()> build(const std::vector<Variable*>& in_args,
-                                ResultReport* report) {
+                                ResultReport* report) const {
         if (in_args.size() != sizeof...(Args)) {
             throw(InvalidArgN(sizeof...(Args), in_args.size()));
         }
@@ -88,7 +88,7 @@ public:
 private:
     template <std::size_t... Idx>
     auto bind(std::array<Variable*, sizeof...(Args)>& args,
-              std::index_sequence<Idx...>) {
+              std::index_sequence<Idx...>) const {
         return [=]() {
             func(*(*args[Idx])
                           .template getReader<typename std::remove_reference<
@@ -98,7 +98,7 @@ private:
 
     template <std::size_t... Idx>
     auto bind(std::array<Variable*, sizeof...(Args)>& args,
-              std::index_sequence<Idx...>, ResultReport* report) {
+              std::index_sequence<Idx...>, ResultReport* report) const {
         return [=]() {
             auto start = std::chrono::system_clock::now();
             func(*(*args[Idx])
