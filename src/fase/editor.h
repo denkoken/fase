@@ -50,6 +50,15 @@ namespace guieditor {
  * @defgroup FaseParts
  * @{
  */
+
+// clang-format off
+/**
+ * @brief
+ *      You can use the gui editor using imgui library, with this part class.  
+ *      To know how to use, see `examples/guieditor/fase_gl_utils.h` and
+ *      `examples/guieditor/main.cpp`.
+ */
+// clang-format on
 class GUIEditor : public PartsBase {
 public:
     GUIEditor(const TypeUtils&);

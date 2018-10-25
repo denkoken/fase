@@ -14,6 +14,10 @@ namespace fase {
  * @defgroup FaseParts
  * @{
  */
+/**
+ * @brief
+ *      You can call the pipelines in the core with this part class.
+ */
 class Callable : public PartsBase {
     class CallableReturn {
     public:

@@ -15,13 +15,15 @@ class FaseCore;
  * @{
  */
 
+// clang-format off
 /**
  * @brief
- *      You can touch FaseCore directly with this parts.
- *      But it is depricated.
+ *      You can touch FaseCore directly with this part class.  
+ *      But it is depricated.  
  *      If you want to touch core,
  *      you should make and use the new Part extended PartsBase class.
  */
+// clang-format on
 class DirectlyAccessibleBareCore : public PartsBase {
 public:
     std::shared_ptr<FaseCore> getAccessibleCore() {
@@ -31,7 +33,7 @@ public:
 
 /**
  * @brief
- *      You can load the saved pipeline from *.txt file with this.
+ *      You can load the saved pipeline from *.txt file with this part class.
  */
 class Loadable : public PartsBase {
 public:
@@ -42,7 +44,7 @@ public:
      * @param filename
      *      the file path.
      * @param target_name
-     *      loaded pipeline' name in the core.
+     *      loaded pipeline's name in the core.
      *
      * @return
      *      succeeded or not.
