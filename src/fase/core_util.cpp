@@ -293,9 +293,20 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
 }
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
-                  const TypeUtils& utils) {
-    std::string project_name_buf = core->getCurrentPipelineName();
-    std::string new_project_name = split(filename, '.')[0];
+                  const TypeUtils& utils, const std::string& target_name) {
+    std::string cur_pipeline_name = core->getCurrentPipelineName();
+    std::string new_pipeline_name;
+    if (target_name.empty()) {
+        new_pipeline_name = split(filename, '.')[0];
+    } else {
+        new_pipeline_name = target_name;
+    }
+
+    if (exists(core->getPipelineNames(), new_pipeline_name)) {
+        // already exists the name pipeline.
+        return false;
+    }
+
     try {
         std::ifstream input(filename);
 
@@ -312,7 +323,7 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
             ss << buf << std::endl;
         }
 
-        core->switchPipeline(new_project_name);
+        core->switchPipeline(new_pipeline_name);
         if (!StringToCore(ss.str(), core, utils)) {
             throw std::exception();
         }
@@ -321,8 +332,8 @@ bool LoadFaseCore(const std::string& filename, FaseCore* core,
 
         return true;
     } catch (std::exception&) {
-        core->switchPipeline(project_name_buf);
-        core->deletePipeline(new_project_name);
+        core->switchPipeline(cur_pipeline_name);
+        core->deletePipeline(new_pipeline_name);
         return false;
     }
 }

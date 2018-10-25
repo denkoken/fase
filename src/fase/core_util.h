@@ -25,7 +25,7 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
                   const TypeUtils& utils);
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
-                  const TypeUtils& utils);
+                  const TypeUtils& utils, const std::string& target_name = "");
 
 std::vector<std::vector<Link>> getReverseLinks(
         const std::string& node, const std::map<std::string, Node>& nodes);
@@ -46,12 +46,12 @@ inline std::string TotalTimeStr() {
     return ReportHeaderStr() + std::string("__tatal_time");
 }
 
-inline std::string InputFuncStr(const std::string& project_name) {
-    return ReportHeaderStr() + std::string("__input_f_") + project_name;
+inline std::string InputFuncStr(const std::string& pipeline_name) {
+    return ReportHeaderStr() + std::string("__input_f_") + pipeline_name;
 }
 
-inline std::string OutputFuncStr(const std::string& project_name) {
-    return ReportHeaderStr() + std::string("__output_f_") + project_name;
+inline std::string OutputFuncStr(const std::string& pipeline_name) {
+    return ReportHeaderStr() + std::string("__output_f_") + pipeline_name;
 }
 
 inline bool IsInputFuncStr(const std::string& name) {
