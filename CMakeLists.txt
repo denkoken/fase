@@ -179,6 +179,7 @@ add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/fase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core_util.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core_build.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/type_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/dst_code.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/editor_cli.cpp
