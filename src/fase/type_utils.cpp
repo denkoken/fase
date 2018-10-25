@@ -2,17 +2,6 @@
 
 #include <sstream>
 
-#define ADD_TYPE_CHECKER(map, type) \
-    map[#type] = [](const Variable& v) { return v.isSameType<type>(); }
-#define ADD_DESERIALISER(map, type, conv_f) \
-    map[#type] = genConverter<type>(conv_f);
-#define ADD_SERIALISER(map, type)        \
-    map[#type] = [](const Variable& v) { \
-        std::stringstream sstream;       \
-        sstream << *v.getReader<type>(); \
-        return sstream.str();            \
-    }
-
 namespace fase {
 namespace {
 template <typename T>
@@ -26,103 +15,65 @@ std::function<void(Variable&, const std::string&)> genConverter(
 }  // namespace
 
 void SetupTypeUtils(TypeUtils* type_utils) {
-    // Type checkers
-    ADD_TYPE_CHECKER(type_utils->checkers, bool);
-    ADD_TYPE_CHECKER(type_utils->checkers, char);
-    ADD_TYPE_CHECKER(type_utils->checkers, unsigned char);
-    ADD_TYPE_CHECKER(type_utils->checkers, short);
-    ADD_TYPE_CHECKER(type_utils->checkers, unsigned short);
-    ADD_TYPE_CHECKER(type_utils->checkers, int);
-    ADD_TYPE_CHECKER(type_utils->checkers, unsigned int);
-    ADD_TYPE_CHECKER(type_utils->checkers, long);
-    ADD_TYPE_CHECKER(type_utils->checkers, unsigned long);
-    ADD_TYPE_CHECKER(type_utils->checkers, long long);
-    ADD_TYPE_CHECKER(type_utils->checkers, unsigned long long);
-    ADD_TYPE_CHECKER(type_utils->checkers, float);
-    ADD_TYPE_CHECKER(type_utils->checkers, double);
-    ADD_TYPE_CHECKER(type_utils->checkers, long double);
+#define ADD_TYPE_CHECKER(type)                            \
+    type_utils->checkers[#type] = [](const Variable& v) { \
+        return v.isSameType<type>();                      \
+    }
+#define ADD_SERIALISER(type)                                 \
+    type_utils->serializers[#type] = [](const Variable& v) { \
+        std::stringstream sstream;                           \
+        sstream << *v.getReader<type>();                     \
+        return sstream.str();                                \
+    }
+#define ADD_DESERIALISER(type, conv_f) \
+    type_utils->deserializers[#type] = \
+            genConverter<type>([](const std::string& s) conv_f);
+#define ADD_DEF_MAKER(type)                                 \
+    type_utils->def_makers[#type] = [](const Variable& v) { \
+        std::stringstream sstream;                          \
+        sstream << *v.getReader<type>();                    \
+        return sstream.str();                               \
+    }
+#define ADD_NAME(type) type_utils->names[&typeid(type)] = #type
 
-    ADD_TYPE_CHECKER(type_utils->checkers, std::string);
+#define ADD_ALL(type, conv_f)       \
+    ADD_TYPE_CHECKER(type);         \
+    ADD_SERIALISER(type);           \
+    ADD_DESERIALISER(type, conv_f); \
+    ADD_DEF_MAKER(type);            \
+    ADD_NAME(type);
 
-    // Serializers
-    ADD_SERIALISER(type_utils->serializers, bool);
-    ADD_SERIALISER(type_utils->serializers, char);
-    ADD_SERIALISER(type_utils->serializers, unsigned char);
-    ADD_SERIALISER(type_utils->serializers, short);
-    ADD_SERIALISER(type_utils->serializers, unsigned short);
-    ADD_SERIALISER(type_utils->serializers, int);
-    ADD_SERIALISER(type_utils->serializers, unsigned int);
-    ADD_SERIALISER(type_utils->serializers, long);
-    ADD_SERIALISER(type_utils->serializers, unsigned long);
-    ADD_SERIALISER(type_utils->serializers, long long);
-    ADD_SERIALISER(type_utils->serializers, unsigned long long);
-    ADD_SERIALISER(type_utils->serializers, float);
-    ADD_SERIALISER(type_utils->serializers, double);
-    ADD_SERIALISER(type_utils->serializers, long double);
+    // clang-format off
+    ADD_ALL(bool,               { return std::stoi(s);   });
+    ADD_ALL(bool,               { return std::stoi(s);   });
+    ADD_ALL(char,               { return *s.c_str();     });
+    ADD_ALL(unsigned char,      { return std::stoi(s);   });
+    ADD_ALL(short,              { return std::stoi(s);   });
+    ADD_ALL(unsigned short,     { return std::stoi(s);   });
+    ADD_ALL(int,                { return std::stoi(s);   });
+    ADD_ALL(unsigned int,       { return std::stol(s);   });
+    ADD_ALL(long,               { return std::stol(s);   });
+    ADD_ALL(unsigned long,      { return std::stoul(s);  });
+    ADD_ALL(long long,          { return std::stoll(s);  });
+    ADD_ALL(unsigned long long, { return std::stoull(s); });
+    ADD_ALL(float,              { return std::stof(s);   });
+    ADD_ALL(double,             { return std::stod(s);   });
+    ADD_ALL(long double,        { return std::stold(s);  });
 
-    ADD_SERIALISER(type_utils->serializers, std::string);
+    // clang-format on
 
-    // Deserializers
-    using S = const std::string&;
-    std::map<std::string, TypeUtils::Deserializer>& ss =
-            type_utils->deserializers;
-    ADD_DESERIALISER(ss, bool, [](S s) { return std::stoi(s); });
-    ADD_DESERIALISER(ss, char, [](S s) { return *s.c_str(); });
-    ADD_DESERIALISER(ss, unsigned char, [](S s) { return std::stoi(s); });
-    ADD_DESERIALISER(ss, short, [](S s) { return std::stoi(s); });
-    ADD_DESERIALISER(ss, unsigned short, [](S s) { return std::stoi(s); });
-    ADD_DESERIALISER(ss, int, [](S s) { return std::stoi(s); });
-    ADD_DESERIALISER(ss, unsigned int, [](S s) { return std::stol(s); });
-    ADD_DESERIALISER(ss, long, [](S s) { return std::stol(s); });
-    ADD_DESERIALISER(ss, unsigned long, [](S s) { return std::stoul(s); });
-    ADD_DESERIALISER(ss, long long, [](S s) { return std::stoll(s); });
-    ADD_DESERIALISER(ss, unsigned long long,
-                     [](S s) { return std::stoull(s); });
-    ADD_DESERIALISER(ss, float, [](S s) { return std::stof(s); });
-    ADD_DESERIALISER(ss, double, [](S s) { return std::stod(s); });
-    ADD_DESERIALISER(ss, long double, [](S s) { return std::stold(s); });
-
-    ADD_DESERIALISER(ss, std::string, [](S s) { return s; });
-
-    // DefMaker
-    ADD_SERIALISER(type_utils->def_makers, bool);
-    ADD_SERIALISER(type_utils->def_makers, char);
-    ADD_SERIALISER(type_utils->def_makers, unsigned char);
-    ADD_SERIALISER(type_utils->def_makers, short);
-    ADD_SERIALISER(type_utils->def_makers, unsigned short);
-    ADD_SERIALISER(type_utils->def_makers, int);
-    ADD_SERIALISER(type_utils->def_makers, unsigned int);
-    ADD_SERIALISER(type_utils->def_makers, long);
-    ADD_SERIALISER(type_utils->def_makers, unsigned long);
-    ADD_SERIALISER(type_utils->def_makers, long long);
-    ADD_SERIALISER(type_utils->def_makers, unsigned long long);
-    ADD_SERIALISER(type_utils->def_makers, float);
-    ADD_SERIALISER(type_utils->def_makers, double);
-    ADD_SERIALISER(type_utils->def_makers, long double);
-
+    ADD_TYPE_CHECKER(std::string);
+    ADD_SERIALISER(std::string);
+    ADD_DESERIALISER(std::string, { return s; });  // TODO fix
     type_utils->def_makers["std::string"] = [](const Variable& v) {
         return "\"" + *v.getReader<std::string>() + "\"";
     };
-
-#define ADD_NAME(type) type_utils->names[&typeid(type)] = #type
-
-    ADD_NAME(bool);
-    ADD_NAME(char);
-    ADD_NAME(unsigned char);
-    ADD_NAME(short);
-    ADD_NAME(unsigned short);
-    ADD_NAME(int);
-    ADD_NAME(unsigned int);
-    ADD_NAME(long);
-    ADD_NAME(unsigned long);
-    ADD_NAME(long long);
-    ADD_NAME(unsigned long long);
-    ADD_NAME(float);
-    ADD_NAME(double);
-    ADD_NAME(long double);
-
     ADD_NAME(std::string);
 
+#undef ADD_TYPE_CHECKER
+#undef ADD_SERIALISER
+#undef ADD_DESERIALISER
+#undef ADD_DEF_MAKER
 #undef ADD_NAME
 }
 
