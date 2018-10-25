@@ -517,7 +517,8 @@ private:
 
         // view
         for (auto& key : keys) {
-            float v = getSec(reports.at(key));
+            auto& report = reports.at(key);
+            float v = getSec(report);
             if (key == TotalTimeStr()) {
                 ImGui::Text("total :  %.3f msec", v * 1e3f);
                 continue;
@@ -527,6 +528,17 @@ private:
                     ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
             ImGui::SameLine();
             ImGui::Text("%s : %.3f msec", nameConverter(key).c_str(), v * 1e3f);
+
+            // draw child reports.
+            if (!report.child_reports.empty()) {
+                ImGui::BeginGroup();
+                for (auto& pair : report.child_reports) {
+                    ImGui::Text("%s : %.3f msec",
+                                nameConverter(std::get<0>(pair)).c_str(),
+                                getSec(std::get<1>(pair)) * 1e3f);
+                }
+                ImGui::EndGroup();
+            }
         }
     }
 };

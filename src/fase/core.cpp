@@ -152,8 +152,8 @@ void FaseCore::initInOut() {
 FaseCore::FaseCore(FaseCore& another)
     : functions(another.functions),
       pipelines(another.pipelines),
-      sub_pipelines(another.sub_pipelines),
       current_pipeline(another.current_pipeline),
+      sub_pipelines(another.sub_pipelines),
       version(another.version),
       built_pipeline(),
       output_variables(),

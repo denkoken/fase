@@ -6,6 +6,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -17,6 +18,8 @@ struct ResultReport {
     using TimeType = decltype(std::chrono::system_clock::now() -
                               std::chrono::system_clock::now());
     TimeType execution_time;  // sec
+
+    std::map<std::string, ResultReport> child_reports;
 };
 
 class FunctionBuilderBase {
