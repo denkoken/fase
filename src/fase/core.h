@@ -140,7 +140,7 @@ private:
 
     std::map<std::string, Pipeline> pipelines;
     std::map<std::string, Pipeline> sub_pipelines;
-    std::string editting_pipeline;
+    std::string current_pipeline;
 
     int version;
 

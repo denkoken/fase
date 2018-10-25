@@ -58,7 +58,7 @@ std::function<void()> FaseCore::buildNode(
         const std::string& node_name, const std::vector<Variable*>& args,
         std::map<std::string, ResultReport>* report_box_) const {
     const Function& func = functions.at(
-            pipelines.at(editting_pipeline).nodes.at(node_name).func_repr);
+            pipelines.at(current_pipeline).nodes.at(node_name).func_repr);
     if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
         return [] {};
     }
@@ -74,7 +74,7 @@ void FaseCore::buildNodesParallel(
         const std::set<std::string>& runnables,
         const size_t& step,  // for report.
         std::map<std::string, ResultReport>* report_box_) {
-    auto& nodes = pipelines[editting_pipeline].nodes;
+    auto& nodes = pipelines[current_pipeline].nodes;
     std::map<std::string, std::vector<Variable*>> variable_ps;
     for (auto& runnable : runnables) {
         variable_ps[runnable] = BindVariables(nodes[runnable], output_variables,
@@ -136,7 +136,7 @@ void FaseCore::buildNodesParallel(
 void FaseCore::buildNodesNonParallel(
         const std::set<std::string>& runnables,
         std::map<std::string, ResultReport>* report_box_) {
-    auto& nodes = pipelines[editting_pipeline].nodes;
+    auto& nodes = pipelines[current_pipeline].nodes;
     for (auto& runnable : runnables) {
         const Node& node = nodes[runnable];
         auto bound_variables = BindVariables(node, output_variables,
@@ -155,8 +155,8 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
 
     // TODO change parallel execution system.
 
-    auto& nodes = pipelines[editting_pipeline].nodes;
-    pipelines[editting_pipeline].multi = parallel_exe;
+    auto& nodes = pipelines[current_pipeline].nodes;
+    pipelines[current_pipeline].multi = parallel_exe;
     built_pipeline.clear();
     output_variables.clear();
     report_box.clear();
