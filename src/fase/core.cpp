@@ -96,6 +96,16 @@ void genNode(const std::string& func_repr, const std::string& node_name,
 
 }  // anonymous namespace
 
+Pipeline& FaseCore::getCurrentPipeline() {
+    if (pipelines.count(current_pipeline)) {
+        return pipelines[current_pipeline];
+    } else if (sub_pipelines.count(current_pipeline)) {
+        return sub_pipelines[current_pipeline];
+    } else {
+        return pipelines[current_pipeline];
+    }
+}
+
 bool FaseCore::checkNodeName(const std::string& name) {
     if (name.empty()) {
         return false;
@@ -106,7 +116,7 @@ bool FaseCore::checkNodeName(const std::string& name) {
     }
 
     // check uniqueness of name.
-    if (exists(pipelines[current_pipeline].nodes, name)) {
+    if (exists(getCurrentPipeline().nodes, name)) {
         return false;
     }
 
@@ -141,12 +151,12 @@ void FaseCore::initInOut() {
     // make input node
     genNode(getEdittingInputFunc(), InputNodeStr(),
             std::numeric_limits<int>::min(), &functions,
-            &pipelines[current_pipeline].nodes);
+            &getCurrentPipeline().nodes);
 
     // make output node
     genNode(getEdittingOutputFunc(), OutputNodeStr(),
             std::numeric_limits<int>::max(), &functions,
-            &pipelines[current_pipeline].nodes);
+            &getCurrentPipeline().nodes);
 }
 
 FaseCore::FaseCore(FaseCore& another)
@@ -196,8 +206,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
         return false;
     }
 
-    genNode(func_repr, name, priority, &functions,
-            &pipelines[current_pipeline].nodes);
+    genNode(func_repr, name, priority, &functions, &getCurrentPipeline().nodes);
 
     version++;
 
@@ -205,7 +214,7 @@ bool FaseCore::addNode(const std::string& name, const std::string& func_repr,
 }
 
 bool FaseCore::delNode(const std::string& node_name) noexcept {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
         return false;
     }
@@ -248,7 +257,7 @@ bool FaseCore::delNode(const std::string& node_name) noexcept {
 
 bool FaseCore::renameNode(const std::string& old_name,
                           const std::string& new_name) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, old_name) || !checkNodeName(new_name) ||
         IsSpecialNodeName(old_name)) {
         return false;
@@ -275,7 +284,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
                        const size_t& src_arg_idx,
                        const std::string& dst_node_name,
                        const size_t& dst_arg_idx) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, src_node_name) || !exists(nodes, dst_node_name)) {
         return false;
     }
@@ -371,7 +380,7 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
 void FaseCore::delLink(const std::string& dst_node_name,
                        const size_t& dst_arg_idx) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, dst_node_name)) {
         return;
     }
@@ -398,7 +407,7 @@ void FaseCore::delLink(const std::string& dst_node_name,
 }
 
 bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, node_name) || IsSpecialNodeName(node_name)) {
         return false;
     }
@@ -410,7 +419,7 @@ bool FaseCore::setPriority(const std::string& node_name, const int& priority) {
 bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
                           const std::string& arg_repr,
                           const Variable& arg_val) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, node_name)) {
         return false;
     }
@@ -436,7 +445,7 @@ bool FaseCore::setNodeArg(const std::string& node_name, const size_t arg_idx,
 
 void FaseCore::clearNodeArg(const std::string& node_name,
                             const size_t arg_idx) {
-    auto& nodes = pipelines[current_pipeline].nodes;
+    auto& nodes = getCurrentPipeline().nodes;
     if (!exists(nodes, node_name)) {
         return;
     }
@@ -480,7 +489,7 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
     func.default_arg_values.push_back(default_value);
     func.is_input_args.push_back(false);
 
-    Node& node = pipelines[current_pipeline].nodes[InputNodeStr()];
+    Node& node = getCurrentPipeline().nodes[InputNodeStr()];
 
     node.arg_reprs.push_back(default_arg_repr);
     node.links.push_back({});
@@ -498,7 +507,7 @@ bool FaseCore::delInput(const size_t& idx) {
         return false;
     }
 
-    Node& node = pipelines[current_pipeline].nodes[InputNodeStr()];
+    Node& node = getCurrentPipeline().nodes[InputNodeStr()];
     Function& func = functions[getEdittingInputFunc()];
 
     // store all linking info, and delete all links.
@@ -562,7 +571,7 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
     func.default_arg_values.push_back(default_value);
     func.is_input_args.push_back(true);
 
-    Node& node = pipelines[current_pipeline].nodes[OutputNodeStr()];
+    Node& node = getCurrentPipeline().nodes[OutputNodeStr()];
 
     node.arg_reprs.push_back(default_arg_repr);
     node.links.push_back({});
@@ -580,7 +589,7 @@ bool FaseCore::delOutput(const size_t& idx) {
         return false;
     }
 
-    Node& node = pipelines[current_pipeline].nodes[OutputNodeStr()];
+    Node& node = getCurrentPipeline().nodes[OutputNodeStr()];
     Function& func = functions[getEdittingOutputFunc()];
 
     // store all linking info, and delete all links.
@@ -625,6 +634,9 @@ void FaseCore::unlockInOut() {
 
 void FaseCore::switchPipeline(const std::string& project_name) {
     current_pipeline = project_name;
+    if (sub_pipelines.count(current_pipeline)) {
+        return;
+    }
 
     if (pipelines[current_pipeline].nodes.empty()) {
         initInOut();
@@ -649,10 +661,10 @@ void FaseCore::switchPipeline(const std::string& project_name) {
 }
 
 void FaseCore::renamePipeline(const std::string& project_name) noexcept {
-    Pipeline buf = std::move(pipelines[current_pipeline]);
+    Pipeline buf = std::move(getCurrentPipeline());
     pipelines.erase(current_pipeline);
     current_pipeline = project_name;
-    pipelines[current_pipeline] = std::move(buf);
+    getCurrentPipeline() = std::move(buf);
 }
 
 void FaseCore::deletePipeline(const std::string& project_name) noexcept {
@@ -695,6 +707,25 @@ const std::map<std::string, ResultReport>& FaseCore::run() {
         f();
     }
     return report_box;
+}
+
+void FaseCore::makeSubPipeline(const std::string& name) {
+    if (sub_pipelines.count(name)) {
+        return;
+    }
+    std::function<void()> dummy = [] {};
+
+    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {}, {});
+    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {}, {});
+
+    // make input node
+    genNode(InputFuncStr(name), InputNodeStr(), std::numeric_limits<int>::min(),
+            &functions, &sub_pipelines[name].nodes);
+
+    // make output node
+    genNode(OutputFuncStr(name), OutputNodeStr(),
+            std::numeric_limits<int>::max(), &functions,
+            &sub_pipelines[name].nodes);
 }
 
 }  // namespace fase

@@ -99,9 +99,11 @@ public:
     void lockInOut();
     void unlockInOut();
 
-    void switchPipeline(const std::string& project_name);
-    void renamePipeline(const std::string& project_name) noexcept;
-    void deletePipeline(const std::string& project_name) noexcept;
+    void switchPipeline(const std::string& pipeline_name);
+    void renamePipeline(const std::string& pipeline_name) noexcept;
+    void deletePipeline(const std::string& pipeline_name) noexcept;
+
+    void makeSubPipeline(const std::string& name);
 
     // ## Building, Running ##
     bool build(bool parallel_exe = false, bool profile = false);
@@ -152,6 +154,7 @@ private:
 
     // ## Utility functions. ##
     bool checkNodeName(const std::string& name);
+    Pipeline& getCurrentPipeline();
 
     std::string getEdittingInputFunc();
     std::string getEdittingOutputFunc();
