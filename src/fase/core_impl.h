@@ -102,7 +102,6 @@ template <typename Ret, typename... Args>
 bool FaseCore::addFunctionBuilder(
         const std::string& func_repr,
         const std::function<Ret(Args...)>& func_val,
-        const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
         const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
         const std::array<std::string, sizeof...(Args)>& arg_names,
         const std::array<Variable, sizeof...(Args)>& default_args) {
@@ -120,17 +119,10 @@ bool FaseCore::addFunctionBuilder(
     if (func_repr.empty()) {
         return false;
     }
-    for (auto&& arg_type_repr : arg_type_reprs) {
-        if (arg_type_repr.empty()) {
-            return false;
-        }
-    }
 
     // Register
     functions[func_repr] = {
             std::make_shared<FunctionBuilder<Args...>>(func_val),
-            std::vector<std::string>(arg_type_reprs.begin(),
-                                     arg_type_reprs.end()),
             std::vector<std::string>(default_arg_reprs.begin(),
                                      default_arg_reprs.end()),
             std::vector<std::string>(arg_names.begin(), arg_names.end()),

@@ -643,28 +643,24 @@ public:
         codes[func_name] = code;
         f_buf = [fp, func_name](
                         auto* core,
-                        const std::vector<std::string>& arg_type_reprs,
                         const std::vector<std::string>& default_arg_reprs,
                         const std::vector<std::string>& arg_names,
                         const std::vector<Variable>& default_args) {
             constexpr size_t N = sizeof...(Args);
-            std::array<std::string, N> arg_type_reprs_;
             std::array<std::string, N> default_arg_reprs_;
             std::array<std::string, N> arg_names_;
             std::array<Variable, N> default_args_;
 
-            assert(arg_type_reprs.size() == N);
             assert(default_arg_reprs.size() == N);
             assert(arg_names.size() == N);
             assert(default_args.size() == N);
 
-            std::copy_n(arg_type_reprs.begin(), N, arg_type_reprs_.begin());
             std::copy_n(arg_names.begin(), N, arg_names_.begin());
             std::copy_n(default_arg_reprs.begin(), N,
                         default_arg_reprs_.begin());
             std::copy_n(default_args.begin(), N, default_args_.begin());
             core->template addFunctionBuilder<Ret, Args...>(
-                    func_name, std::function<Ret(Args...)>(fp), arg_type_reprs_,
+                    func_name, std::function<Ret(Args...)>(fp),
                     default_arg_reprs_, arg_names_, default_args_);
         };
     }
@@ -730,9 +726,8 @@ public:
 
         // TODO init default_args
         func_builder_adders.push_back([f = this->f_buf, arg_names, default_args,
-                                       default_arg_reprs,
-                                       arg_type_reprs](auto* app) {
-            f(app, arg_type_reprs, default_arg_reprs, arg_names, default_args);
+                                       default_arg_reprs](auto* app) {
+            f(app, default_arg_reprs, arg_names, default_args);
         });
     }
 
@@ -783,7 +778,6 @@ private:
     }
 
     std::function<void(FaseCore*, const std::vector<std::string>&,
-                       const std::vector<std::string>&,
                        const std::vector<std::string>&,
                        const std::vector<Variable>&)>
             f_buf;

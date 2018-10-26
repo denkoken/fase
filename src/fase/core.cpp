@@ -81,7 +81,7 @@ void genNode(const std::string& func_repr, const std::string& node_name,
 
     // Register node (arg_values are copied from function's
     // default_arg_values)
-    const size_t n_args = (*funcs)[func_repr].arg_type_reprs.size();
+    const size_t n_args = (*funcs)[func_repr].is_input_args.size();
     // clang-format off
     (*nodes)[node_name] = {
         func_repr,
@@ -144,8 +144,8 @@ void FaseCore::initInOut() {
         (!functions.count(getEdittingOutputFunc()))) {
         std::function<void()> dummy = [] {};
 
-        addFunctionBuilder(getEdittingInputFunc(), dummy, {}, {}, {}, {});
-        addFunctionBuilder(getEdittingOutputFunc(), dummy, {}, {}, {}, {});
+        addFunctionBuilder(getEdittingInputFunc(), dummy, {}, {}, {});
+        addFunctionBuilder(getEdittingOutputFunc(), dummy, {}, {}, {});
     }
 
     // make input node
@@ -324,7 +324,6 @@ bool FaseCore::addLink(const std::string& src_node_name,
         const Function& dst_func = functions[nodes[dst_node_name].func_repr];
         Function& func = functions[getEdittingInputFunc()];
 
-        func.arg_type_reprs[src_arg_idx] = dst_func.arg_type_reprs[dst_arg_idx];
         func.arg_types[src_arg_idx] = dst_func.arg_types[dst_arg_idx];
         func.default_arg_reprs[src_arg_idx] =
                 dst_func.default_arg_reprs[dst_arg_idx];
@@ -342,7 +341,6 @@ bool FaseCore::addLink(const std::string& src_node_name,
         const Function& src_func = functions[nodes[src_node_name].func_repr];
         Function& func = functions[getEdittingOutputFunc()];
 
-        func.arg_type_reprs[dst_arg_idx] = src_func.arg_type_reprs[src_arg_idx];
         func.arg_types[dst_arg_idx] = src_func.arg_types[src_arg_idx];
         func.default_arg_reprs[dst_arg_idx] =
                 src_func.default_arg_reprs[src_arg_idx];
@@ -482,7 +480,6 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
     }
 
     Function& func = functions[getEdittingInputFunc()];
-    func.arg_type_reprs.push_back("");
     func.arg_types.push_back(type);
     func.default_arg_reprs.push_back(default_arg_repr);
     func.arg_names.push_back(name);
@@ -516,7 +513,6 @@ bool FaseCore::delInput(const size_t& idx) {
         delRevLink(node, i, this);
     }
 
-    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
     func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) +
                                  long(idx));
@@ -564,7 +560,6 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
     }
 
     Function& func = functions[getEdittingOutputFunc()];
-    func.arg_type_reprs.push_back("");
     func.arg_types.push_back(type);
     func.default_arg_reprs.push_back(default_arg_repr);
     func.arg_names.push_back(name);
@@ -598,7 +593,6 @@ bool FaseCore::delOutput(const size_t& idx) {
         delLink(OutputNodeStr(), i);
     }
 
-    func.arg_type_reprs.erase(std::begin(func.arg_type_reprs) + long(idx));
     func.arg_types.erase(std::begin(func.arg_types) + long(idx));
     func.default_arg_reprs.erase(std::begin(func.default_arg_reprs) +
                                  long(idx));
@@ -715,8 +709,8 @@ void FaseCore::makeSubPipeline(const std::string& name) {
     }
     std::function<void()> dummy = [] {};
 
-    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {}, {});
-    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {}, {});
+    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {});
+    addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {});
 
     // make input node
     genNode(InputFuncStr(name), InputNodeStr(), std::numeric_limits<int>::min(),
@@ -726,6 +720,8 @@ void FaseCore::makeSubPipeline(const std::string& name) {
     genNode(OutputFuncStr(name), OutputNodeStr(),
             std::numeric_limits<int>::max(), &functions,
             &sub_pipelines[name].nodes);
+
+    // TODO
 }
 
 }  // namespace fase

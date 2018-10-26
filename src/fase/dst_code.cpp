@@ -180,8 +180,15 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                     << std::endl;
 
         // Argument representations
-        const std::vector<std::string>& arg_type_reprs =
-                core.getFunctions().at(node.func_repr).arg_type_reprs;
+        const std::vector<std::string>& arg_type_reprs = [&] {
+            std::vector<std::string> dst;
+            for (auto& type :
+                 core.getFunctions().at(node.func_repr).arg_types) {
+                dst.emplace_back(utils.names.at(type));
+            }
+            return dst;
+        }();
+
         std::vector<std::string> arg_reprs;
         for (const auto& v : node.arg_values) {
             arg_reprs.emplace_back(getValStr(v, utils));

@@ -23,14 +23,13 @@ public:
     bool addFunctionBuilder(
             const std::string& func_repr,
             const std::function<Ret(Args...)>& func_val,
-            const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
             const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {}) {
         // Register to the core system
         return core->template addFunctionBuilder<Ret, Args...>(
-                func_repr, func_val, arg_type_reprs, default_arg_reprs,
-                arg_names, default_args);
+                func_repr, func_val, default_arg_reprs, arg_names,
+                default_args);
     }
 
     /**

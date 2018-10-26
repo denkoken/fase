@@ -30,7 +30,6 @@ struct Node {
 
 struct Function {
     std::shared_ptr<FunctionBuilderBase> builder;
-    std::vector<std::string> arg_type_reprs;       // size == |args|
     std::vector<std::string> default_arg_reprs;    // size == |args|
     std::vector<std::string> arg_names;            // size == |args|
     std::vector<Variable> default_arg_values;      // size == |args|
@@ -59,7 +58,6 @@ public:
     bool addFunctionBuilder(
             const std::string& func_repr,
             const std::function<Ret(Args...)>& func_val,
-            const std::array<std::string, sizeof...(Args)>& arg_type_reprs,
             const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
             const std::array<Variable, sizeof...(Args)>& default_args = {});
