@@ -33,6 +33,7 @@ public:
         data = v.data;
         type = v.type;
         cloner = v.cloner;
+        copyer = v.copyer;
     }
 
     template <>
@@ -40,6 +41,7 @@ public:
         data = v.data;
         type = v.type;
         cloner = v.cloner;
+        copyer = v.copyer;
     }
 #else
     Variable(Variable&) = default;
@@ -64,6 +66,9 @@ public:
         cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
         };
+        copyer = [](Variable& d, const Variable& s) {
+            *d.getWriter<T>() = *s.getReader<T>();
+        };
     }
 
     template <typename T>
@@ -78,8 +83,7 @@ public:
     template <typename T>
     std::shared_ptr<T> getWriter() {
         if (!isSameType<T>()) {
-            // Create by force
-            create<T>();
+            throw(WrongTypeCast(typeid(T), *type));
         }
         return std::static_pointer_cast<T>(data);
     }
@@ -87,14 +91,13 @@ public:
     template <typename T>
     std::shared_ptr<T> getReader() const {
         if (!isSameType<T>()) {
-            // Invalid type cast
             throw(WrongTypeCast(typeid(T), *type));
         }
         return std::static_pointer_cast<T>(data);
     }
 
     void copy(Variable& v) const {
-        cloner(v, *this);
+        copyer(v, *this);
     }
 
     Variable clone() const {
@@ -111,6 +114,7 @@ private:
     std::shared_ptr<void> data;
     const std::type_info* type = &typeid(void);
     std::function<void(Variable&, const Variable&)> cloner;
+    std::function<void(Variable&, const Variable&)> copyer;
 };
 
 }  // namespace fase

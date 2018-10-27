@@ -101,7 +101,7 @@ public:
     void renamePipeline(const std::string& pipeline_name) noexcept;
     void deletePipeline(const std::string& pipeline_name) noexcept;
 
-    void makeSubPipeline(const std::string& name);
+    bool makeSubPipeline(const std::string& name);
 
     // ## Building, Running ##
     bool build(bool parallel_exe = false, bool profile = false);
@@ -136,7 +136,8 @@ private:
 
     // ## Sub Pipelines ##
     std::map<std::string, Pipeline> sub_pipelines;
-    std::shared_ptr<BindedPipeline> sub_pipeline_fbs;  /// function builders
+    std::map<std::string, std::shared_ptr<BindedPipeline>>
+            sub_pipeline_fbs;  /// function builders
 
     int version;
 

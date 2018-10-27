@@ -51,7 +51,7 @@ public:
                       "The number of arguments is not matched");
 
         // Copy to an array of variables
-        std::array<Variable*, sizeof...(Args)> args = {in_args...};
+        std::array<Variable*, sizeof...(Args)> args{{in_args...}};
         // Bind arguments
         return bind(args, std::index_sequence_for<Args...>());
     }

@@ -16,7 +16,7 @@ class FaseCore;
 
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
                           const std::string& entry_name = "Pipeline",
-                          const std::string& indent = "    ");
+                          const std::string& indent = "    ") noexcept;
 
 std::string CoreToString(const FaseCore& core, const TypeUtils& utils);
 
@@ -61,6 +61,10 @@ inline std::string InputFuncStr(const std::string& pipeline_name) {
 
 inline std::string OutputFuncStr(const std::string& pipeline_name) {
     return ReportHeaderStr() + std::string("__output_f_") + pipeline_name;
+}
+
+inline std::string SubPipelineFuncStr(const std::string& pipeline_name) {
+    return ReportHeaderStr() + std::string("__sub_pipe_") + pipeline_name;
 }
 
 inline bool IsInputFuncStr(const std::string& name) {

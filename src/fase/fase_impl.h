@@ -95,7 +95,9 @@ inline bool Fase<Parts...>::registerTextIO(
 }
 
 #define FaseExpandListHelper(...) \
-    { __VA_ARGS__ }
+    {                             \
+        { __VA_ARGS__ }           \
+    }
 #define FaseExpandList(v) FaseExpandListHelper v
 
 #define FaseAddFunctionBuilderImpl(cls, func, arg_types, arg_names, ...)       \
@@ -105,7 +107,7 @@ inline bool Fase<Parts...>::registerTextIO(
         fase::extractArgExprs(#__VA_ARGS__, default_arg_reprs);                \
         return cls.addFunctionBuilder(                                         \
                 #func, std::function<void arg_types>(func), default_arg_reprs, \
-                FaseExpandList(arg_names), {__VA_ARGS__});                     \
+                FaseExpandList(arg_names), {{__VA_ARGS__}});                   \
     }()
 
 #define FaseAddFunctionBuilder(app, func, arg_types, arg_names, ...) \

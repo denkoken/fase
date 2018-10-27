@@ -1409,9 +1409,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
     ImGui::Separator();
     {
         std::vector<std::string> pipelines = core.getPipelineNames();
-        int curr_idx = int(std::find(pipelines.begin(), pipelines.end(),
-                                     core.getCurrentPipelineName()) -
-                           pipelines.begin());
+        int curr_idx = int(getIndex(pipelines, core.getCurrentPipelineName()));
         if (Combo(label(""), &curr_idx, pipelines)) {
             issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
                                       pipelines[size_t(curr_idx)]});

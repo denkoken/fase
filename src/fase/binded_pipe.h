@@ -17,7 +17,7 @@ public:
     BindedPipeline(const FaseCore& core, const Pipeline& pipeline);
     ~BindedPipeline();
 
-    void setFunctions(const FaseCore& core);
+    void init(const FaseCore& core, const Pipeline& pipeline);
 
     std::function<void()> build(const std::vector<Variable*>& in_args) const;
     std::function<void()> build(const std::vector<Variable*>& in_args,

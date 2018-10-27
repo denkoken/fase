@@ -204,15 +204,20 @@ bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
 }
 
 bool FaseCore::build(bool parallel_exe, bool profile) {
+    // check if rebuild is necessary.
     if (profile == is_profiling_built && version == built_version) {
         return true;
     }
 
-    // TODO change parallel execution system.
+    // setup sub pipelines
+    for (auto& pair : sub_pipeline_fbs) {
+        std::get<1>(pair)->init(*this, sub_pipelines.at(std::get<0>(pair)));
+    }
 
     auto& nodes = pipelines[current_pipeline].nodes;
     pipelines[current_pipeline].multi = parallel_exe;
 
+    // set report box ptr
     auto p_reports = &report_box;
     if (!profile) {
         p_reports = nullptr;

@@ -19,16 +19,24 @@ auto Build(const std::vector<Variable*>& in_args,
     };
 
     std::vector<std::function<void()>> funcs;
-    std::map<std::string, std::vector<Variable>> variables;
+    auto variables =
+            std::make_shared<std::map<std::string, std::vector<Variable>>>();
 
-    // TODO build funcs
-
-    BuildPipeline(pipeline->nodes, *functions, false, &funcs, &variables,
+    BuildPipeline(pipeline->nodes, *functions, false, &funcs, variables.get(),
                   p_reports);
 
-    return [funcs = std::move(funcs), variables] {
+    return [funcs = std::move(funcs), variables, in_args] {
+        for (size_t i = 0; i < (*variables)[InputNodeStr()].size(); i++) {
+            in_args[i]->copy((*variables)[InputNodeStr()][i]);
+        }
         for (auto& func : funcs) {
             func();
+        }
+
+        const size_t& n_input = variables->at(InputNodeStr()).size();
+        const size_t& n_output = variables->at(OutputNodeStr()).size();
+        for (size_t i = 0; i < n_output; i++) {
+            variables->at(OutputNodeStr())[i].copy(*in_args[n_input + i]);
         }
     };
 }
@@ -40,8 +48,9 @@ BindedPipeline::BindedPipeline(const FaseCore& core, const Pipeline& pipeline)
 
 BindedPipeline::~BindedPipeline() {}
 
-void BindedPipeline::setFunctions(const FaseCore& core) {
+void BindedPipeline::init(const FaseCore& core, const Pipeline& pipeline) {
     functions = &core.getFunctions();
+    binding_pipeline = &pipeline;
 }
 
 std::function<void()> BindedPipeline::build(
