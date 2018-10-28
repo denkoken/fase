@@ -593,7 +593,7 @@ void NodeListView::main() {
         }
         ImGui::PopID();
     }
-    ImGui::EndChild();
+    ImGui::EndChild();  // node list
 }
 
 class LinksView : public Content {
@@ -1393,8 +1393,20 @@ std::vector<Issue> View::draw(const std::string& win_title,
     if (!ImGui::Begin(
                 (win_title + " - " + core.getCurrentPipelineName()).c_str(),
                 nullptr, ImGuiWindowFlags_MenuBar)) {
-        ImGui::End();
+        // ImGui::End();
         return {};
+    }
+
+    bool sub_pipeline_popup = false;
+    if (exists(core.getSubPipelineNames(), core.getCurrentPipelineName())) {
+        std::string popup_name =
+                "Sub Pipeline : " + core.getCurrentPipelineName();
+        ImGui::OpenPopup(popup_name.c_str());
+        sub_pipeline_popup = ImGui::BeginPopupModal(popup_name.c_str(), nullptr,
+                                                    ImGuiWindowFlags_MenuBar);
+        if (sub_pipeline_popup) {
+            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+        }
     }
 
     label.setSuffix(label_suffix);
@@ -1464,6 +1476,11 @@ std::vector<Issue> View::draw(const std::string& win_title,
     ImGui::EndChild();
 
     END_TRY();
+
+    if (sub_pipeline_popup) {
+        ImGui::PopItemFlag();
+        ImGui::EndPopup();  // Sub Pipeline
+    }
 
     ImGui::End();  // End window
 

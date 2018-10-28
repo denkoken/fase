@@ -269,7 +269,7 @@ private:
                 error_msg = "Invalid Name";  // Failed
             }
         }
-        ImGui::EndChild();
+        ImGui::EndChild();  // input_panel
 
         ImGui::SameLine();
         ImGui::BeginChild(label("output_panel"), panel_size, true);
@@ -319,7 +319,7 @@ private:
                 error_msg = "Invalid Name";  // Failed
             }
         }
-        ImGui::EndChild();
+        ImGui::EndChild();  // output panel
 
         if (!error_msg.empty()) {
             ImGui::TextColored(ImVec4(255.f, 0.f, 0.f, 255.f), "%s",
@@ -534,7 +534,7 @@ private:
         WriteMenu("New SubPipeline", NewSub);
 #undef WriteMenu
 
-        ImGui::EndChild();
+        ImGui::EndChild();  // project left panel
         ImGui::SameLine();
 
         ImGui::BeginChild(label("project right panel"), ImVec2(500, 400));
@@ -553,7 +553,7 @@ private:
         } else if (pattern == Pattern::NewSub) {
             new_sub();
         }
-        ImGui::EndChild();
+        ImGui::EndChild();  // project right pannel
     }
 };
 

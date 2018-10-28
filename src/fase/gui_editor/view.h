@@ -23,6 +23,9 @@ public:
     void setSuffix(const std::string& s) {
         suffix = s;
     }
+    void addSuffix(const std::string& s) {
+        suffix += s;
+    }
     const char* operator()(const std::string& label) {
         last_label = label + suffix;
         return last_label.c_str();
