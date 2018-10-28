@@ -29,6 +29,10 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
                   const TypeUtils& utils, const std::string& target_name = "");
 
+bool ImportSubPipeline(const std::string& filename, FaseCore* core,
+                       const TypeUtils& utils,
+                       const std::string& target_name = "");
+
 std::vector<std::vector<Link>> getReverseLinks(
         const std::string& node, const std::map<std::string, Node>& nodes);
 
@@ -47,6 +51,10 @@ inline std::string ReportHeaderStr() {
     return std::string("FASE:");
 }
 
+static constexpr char SUB_PIPE_STR[] = "__sub_pipe_";
+static constexpr char INPUT_F_HEADER_STR[] = "__input_f_";
+static constexpr char OUTPUT_F_HEADER_STR[] = "__output_f_";
+
 inline std::string StepStr(const size_t& step) {
     return ReportHeaderStr() + std::string("__step") + std::to_string(step);
 }
@@ -56,24 +64,28 @@ inline std::string TotalTimeStr() {
 }
 
 inline std::string InputFuncStr(const std::string& pipeline_name) {
-    return ReportHeaderStr() + std::string("__input_f_") + pipeline_name;
+    return ReportHeaderStr() + INPUT_F_HEADER_STR + pipeline_name;
 }
 
 inline std::string OutputFuncStr(const std::string& pipeline_name) {
-    return ReportHeaderStr() + std::string("__output_f_") + pipeline_name;
+    return ReportHeaderStr() + OUTPUT_F_HEADER_STR + pipeline_name;
 }
 
+inline bool IsSubPipelineFuncStr(const std::string& name) {
+    return name.find(ReportHeaderStr() + std::string(SUB_PIPE_STR)) !=
+           std::string::npos;
+}
 inline std::string SubPipelineFuncStr(const std::string& pipeline_name) {
-    return ReportHeaderStr() + std::string("__sub_pipe_") + pipeline_name;
+    return ReportHeaderStr() + std::string(SUB_PIPE_STR) + pipeline_name;
 }
 
 inline bool IsInputFuncStr(const std::string& name) {
-    return name.find(ReportHeaderStr() + std::string("__input_f_")) !=
+    return name.find(ReportHeaderStr() + INPUT_F_HEADER_STR) !=
            std::string::npos;
 }
 
 inline bool IsOutputFuncStr(const std::string& name) {
-    return name.find(ReportHeaderStr() + std::string("__output_f_")) !=
+    return name.find(ReportHeaderStr() + OUTPUT_F_HEADER_STR) !=
            std::string::npos;
 }
 

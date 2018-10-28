@@ -31,7 +31,7 @@ public:
 
 private:
     void main() {
-        if (ImGui::MenuItem(label("Preferences"), NULL)) {
+        if (ImGui::MenuItem(label("Preferences"), nullptr)) {
             state.popup_issue.emplace_back(POPUP_PREFERENCE);
         }
     }
@@ -48,7 +48,7 @@ public:
 private:
     void main() {
         bool not_empty = core.getNodes().size() != 2;
-        if (ImGui::MenuItem(label("Show code"), NULL, false, not_empty)) {
+        if (ImGui::MenuItem(label("Show code"), nullptr, false, not_empty)) {
             // Open pop up window
             state.popup_issue.emplace_back(POPUP_NATIVE_CODE);
         }
@@ -109,9 +109,9 @@ private:
                             BuildAndRunInfo{multi, preference.another_th_run});
                 }
             }
-            ImGui::MenuItem(label("Multi Build"), NULL, &multi);
-            ImGui::MenuItem(label("Reporting"), NULL, &report);
-            ImGui::MenuItem(label("Running on another thread"), NULL,
+            ImGui::MenuItem(label("Multi Build"), nullptr, &multi);
+            ImGui::MenuItem(label("Reporting"), nullptr, &report);
+            ImGui::MenuItem(label("Running on another thread"), nullptr,
                             &preference.another_th_run);
 
             ImGui::EndMenu();
@@ -183,7 +183,7 @@ public:
             preference.auto_layout = false;
             f = false;
         }
-        if (ImGui::MenuItem(label("Optimize layout"), NULL, false,
+        if (ImGui::MenuItem(label("Optimize layout"), nullptr, false,
                             !preference.auto_layout)) {
             f = !preference.auto_layout;
             preference.auto_layout = true;

@@ -7,6 +7,8 @@
 
 #include "core_util.h"
 
+#include "debug_macros.h"
+
 namespace fase {
 namespace {
 
@@ -127,6 +129,16 @@ Pipeline& FaseCore::getCurrentPipeline() {
     }
 }
 
+const Pipeline& FaseCore::getCurrentPipeline() const {
+    if (pipelines.count(current_pipeline)) {
+        return pipelines.at(current_pipeline);
+    } else if (sub_pipelines.count(current_pipeline)) {
+        return sub_pipelines.at(current_pipeline);
+    } else {
+        return pipelines.at(current_pipeline);
+    }
+}
+
 bool FaseCore::checkNodeName(const std::string& name) {
     if (name.empty()) {
         return false;
@@ -209,7 +221,7 @@ FaseCore& FaseCore::operator=(FaseCore& another) {
 
 FaseCore::FaseCore() : version(0) {
     current_pipeline = "Untitled";
-    pipelines[current_pipeline] = {};
+    getCurrentPipeline() = {};
 
     // make input/output node and function builder.
     initInOut();
@@ -555,6 +567,8 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
 #undef Add
     }
 
+    version++;
+
     return true;
 }
 
@@ -619,8 +633,8 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
         return false;
     } else if (!checkVarName(name)) {
         return false;
-    } else if (exists(functions[getEdittingOutputFunc()].arg_names, name) ||
-               exists(functions[getEdittingInputFunc()].arg_names, name)) {
+    } else if (exists(functions.at(getEdittingOutputFunc()).arg_names, name) ||
+               exists(functions.at(getEdittingInputFunc()).arg_names, name)) {
         return false;
     }
 
@@ -648,6 +662,7 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
         sub_f.is_input_args.emplace_back(true);
     }
 
+    version++;
     return true;
 }
 
@@ -720,23 +735,23 @@ void FaseCore::switchPipeline(const std::string& project_name) {
         return;
     }
 
-    if (pipelines[current_pipeline].nodes.empty()) {
+    if (getCurrentPipeline().nodes.empty()) {
         initInOut();
     }
 
     // if there are changes of input/output func builder, fix nodes.
     // TODO FIXME it will make link bugs.
-    if (pipelines[current_pipeline].nodes.at(InputNodeStr()).links.size() !=
+    if (getCurrentPipeline().nodes.at(InputNodeStr()).links.size() !=
         functions.at(getEdittingInputFunc()).is_input_args.size()) {
         genNode(getEdittingInputFunc(), InputNodeStr(),
                 std::numeric_limits<int>::min(), &functions,
-                &pipelines[current_pipeline].nodes);
+                &getCurrentPipeline().nodes);
     }
-    if (pipelines[current_pipeline].nodes.at(OutputNodeStr()).links.size() !=
+    if (getCurrentPipeline().nodes.at(OutputNodeStr()).links.size() !=
         functions.at(getEdittingOutputFunc()).is_input_args.size()) {
         genNode(getEdittingOutputFunc(), OutputNodeStr(),
                 std::numeric_limits<int>::max(), &functions,
-                &pipelines[current_pipeline].nodes);
+                &getCurrentPipeline().nodes);
     }
 
     version++;
@@ -761,7 +776,7 @@ const std::string& FaseCore::getCurrentPipelineName() const noexcept {
 }
 
 const std::map<std::string, Node>& FaseCore::getNodes() const {
-    return pipelines.at(current_pipeline).nodes;
+    return getCurrentPipeline().nodes;
 }
 
 const std::map<std::string, Function>& FaseCore::getFunctions() const {

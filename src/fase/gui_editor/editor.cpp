@@ -364,9 +364,14 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             const std::string& name = GetVar<std::string>(issue);
             core->renamePipeline(name);
             responses_[issue.id] = true;
-        } else if (issue.issue == IssuePattern::makeSubPipeline) {
+        } else if (issue.issue == IssuePattern::MakeSubPipeline) {
             const std::string& name = GetVar<std::string>(issue);
             responses_[issue.id] = core->makeSubPipeline(name);
+        } else if (issue.issue == IssuePattern::ImportSubPipeline) {
+            const ImportSubPipelineInfo& info =
+                    GetVar<ImportSubPipelineInfo>(issue);
+            responses_[issue.id] = ImportSubPipeline(info.filename, core.get(),
+                                                     utils, info.target_name);
         } else {
             remains.emplace_back(std::move(issue));
         }

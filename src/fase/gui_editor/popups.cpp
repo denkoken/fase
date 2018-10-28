@@ -73,6 +73,9 @@ private:
 
             ImGui::Separator();
 
+            ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - 80, 1));
+            ImGui::SameLine();
+
             if (ImGui::Button(label("Close"))) {
                 ImGui::CloseCurrentPopup();
             }
@@ -126,7 +129,8 @@ private:
         func_reprs.clear();
         func_reprs.emplace_back("");
         for (auto it = functions.begin(); it != functions.end(); it++) {
-            if (IsSpecialFuncName(it->first)) {
+            if (IsSubPipelineFuncStr(it->first)) {
+            } else if (IsSpecialFuncName(it->first)) {
                 continue;
             }
             func_reprs.push_back(it->first);
@@ -349,6 +353,8 @@ private:
         Load,
         Rename,
         Switch,
+        ImportSub,
+        NewSub,
     } pattern = Pattern::Load;
 
     bool init() {
@@ -423,8 +429,7 @@ private:
 
         bool success;
         if (issueButton(IssuePattern::SwitchPipeline,
-                        std::string(pipeline_name_buf), &success,
-                        "New Pipeline")) {
+                        std::string(pipeline_name_buf), &success, "Make")) {
             ImGui::CloseCurrentPopup();
         }
     }
@@ -456,32 +461,79 @@ private:
         }
     }
 
-    void layout() {
-        // ImGui::BeginMenuBar();
-        ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
-        ImGui::Text(" ");
+    void import_sub() {
+        ImGui::Text("Import Sub Pipeline");
         ImGui::Separator();
-        if (ImGui::Selectable(label("New Pipeline"), pattern == Pattern::New)) {
-            pattern = Pattern::New;
+
+        ImGui::Text("File path :");
+        ImGui::SameLine();
+
+        ImGui::InputText(label("file path"), load_filename_buf,
+                         sizeof(load_filename_buf), input_f);
+
+        ImGui::Text("As :");
+        ImGui::SameLine();
+        ImGui::InputText(label("pipe name"), pipeline_name_buf,
+                         sizeof(pipeline_name_buf), input_f);
+
+        if (!error_msg.empty()) {
+            ImGui::TextColored(ERROR_COLOR, "%s", error_msg.c_str());
         }
-        if (ImGui::Selectable(label("Save Pipeline"),
-                              pattern == Pattern::Save)) {
-            pattern = Pattern::Save;
+
+        bool success;
+        if (issueButton(
+                    IssuePattern::ImportSubPipeline,
+                    ImportSubPipelineInfo{load_filename_buf, pipeline_name_buf},
+                    &success, "Import")) {
+            if (success) {
+                ImGui::CloseCurrentPopup();
+                error_msg = "";
+            } else {
+                error_msg = "Failed to load pipeline";  // Failed
+            }
         }
-        if (ImGui::Selectable(label("Load Pipeline"),
-                              pattern == Pattern::Load)) {
-            pattern = Pattern::Load;
+    }
+
+    void new_sub() {
+        ImGui::Text("New Sub Pipeline");
+        ImGui::Separator();
+
+        ImGui::Text("Sub Pipeline Name :");
+        ImGui::SameLine();
+        ImGui::InputText(label(""), pipeline_name_buf,
+                         sizeof(pipeline_name_buf), input_f);
+
+        bool success;
+        if (issueButton(IssuePattern::MakeSubPipeline,
+                        std::string(pipeline_name_buf), &success, "Make")) {
+            ImGui::CloseCurrentPopup();
         }
-#if 1
-        if (ImGui::Selectable(label("Switch Pipeline"),
-                              pattern == Pattern::Switch)) {
-            pattern = Pattern::Switch;
-        }
-#endif
-        if (ImGui::Selectable(label("Rename Pipeline"),
-                              pattern == Pattern::Rename)) {
-            pattern = Pattern::Rename;
-        }
+    }
+
+    void layout() {
+        ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
+#define WriteMenu(str, name)                                       \
+    if (ImGui::Selectable(label(str), pattern == Pattern::name)) { \
+        pattern = Pattern::name;                                   \
+    }
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        WriteMenu("New Pipeline", New);
+        WriteMenu("Save Pipeline", Save);
+        WriteMenu("Load Pipeline", Load);
+        WriteMenu("Switch Pipeline", Switch);
+        WriteMenu("Rename Pipeline", Rename);
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        WriteMenu("Import SubPipeline", ImportSub);
+        WriteMenu("New SubPipeline", NewSub);
+#undef WriteMenu
+
         ImGui::EndChild();
         ImGui::SameLine();
 
@@ -496,6 +548,10 @@ private:
             switch_project();
         } else if (pattern == Pattern::Rename) {
             rename();
+        } else if (pattern == Pattern::ImportSub) {
+            import_sub();
+        } else if (pattern == Pattern::NewSub) {
+            new_sub();
         }
         ImGui::EndChild();
     }
@@ -527,7 +583,8 @@ private:
                                          "";
 
     void layout() {
-        {  // Node edit Settings
+        ImGui::Text("Node edit Settings");
+        {
             constexpr int v_min = std::numeric_limits<int>::min();
             constexpr int v_max = std::numeric_limits<int>::max();
             constexpr float v_speed = 0.5;
@@ -539,7 +596,8 @@ private:
 
         ImGui::Separator();
 
-        {  // Node view Settings
+        ImGui::Text("Node view Settings");
+        {
             ImGui::Checkbox(label("Auto Layout Canvas"),
                             &preference.auto_layout);
             ImGui::Checkbox(label("Simple Node Boxes"),
@@ -555,7 +613,8 @@ private:
 
         ImGui::Separator();
 
-        {  // Panel Settings
+        ImGui::Text("panel Settings");
+        {
             ImGui::Checkbox(label("Edit Panel View"),
                             &preference.enable_edit_panel);
             ImGui::Checkbox(label("Node List Panel View"),

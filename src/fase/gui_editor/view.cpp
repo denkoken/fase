@@ -7,6 +7,8 @@
 
 #include "../core_util.h"
 
+#include "../debug_macros.h"
+
 namespace fase {
 namespace guieditor {
 
@@ -211,13 +213,13 @@ void DrawInOutTag(bool in, bool simple = false) {
     DrawColTextBox(col, text.c_str());
 }
 
-float GetVolume(const int& idx) {
+float GetVolume(const size_t& idx) {
     if (idx == 0)
         return 0.f;
     else if (idx == 1)
         return 1.f;
     else {
-        int i = std::pow(2, int(std::log2(idx - 1)));
+        size_t i = size_t(std::pow(2, int(std::log2(idx - 1))));
         return ((idx - i) * 2 - 1) / 2.f / float(i);
     }
 }
@@ -477,10 +479,10 @@ private:
 
         ImGui::BeginMenuBar();
 
-        if (ImGui::MenuItem(label("Nodes"), NULL, view == ViewList::Nodes)) {
+        if (ImGui::MenuItem(label("Nodes"), nullptr, view == ViewList::Nodes)) {
             view = ViewList::Nodes;
         }
-        if (ImGui::MenuItem(label("Steps"), NULL, view == ViewList::Steps)) {
+        if (ImGui::MenuItem(label("Steps"), nullptr, view == ViewList::Steps)) {
             view = ViewList::Steps;
         }
 
@@ -520,14 +522,15 @@ private:
             auto& report = reports.at(key);
             float v = getSec(report);
             if (key == TotalTimeStr()) {
-                ImGui::Text("total :  %.3f msec", v * 1e3f);
+                ImGui::Text("total :  %.3f msec", double(v * 1e3f));
                 continue;
             }
             ImGui::ProgressBar(
                     v / vmaxf,
                     ImVec2(ImGui::GetContentRegionAvailWidth() * 0.5f, 0));
             ImGui::SameLine();
-            ImGui::Text("%s : %.3f msec", nameConverter(key).c_str(), v * 1e3f);
+            ImGui::Text("%s : %.3f msec", nameConverter(key).c_str(),
+                        double(v * 1e3f));
 
             // draw child reports.
             if (!report.child_reports.empty()) {
@@ -535,7 +538,7 @@ private:
                 for (auto& pair : report.child_reports) {
                     ImGui::Text("%s : %.3f msec",
                                 nameConverter(std::get<0>(pair)).c_str(),
-                                getSec(std::get<1>(pair)) * 1e3f);
+                                double(getSec(std::get<1>(pair)) * 1e3f));
                 }
                 ImGui::EndGroup();
             }
@@ -1108,6 +1111,7 @@ private:
     GUINodePositionOptimizer position_optimizer;
 
     int privious_core_version = -1;
+    std::string privious_pipe_name = "";
 
     size_t getUnusedID() {
         size_t i = 0;
@@ -1131,10 +1135,12 @@ private:
     }
 
     void updateGuiNodes() {
-        if (core.getVersion() == privious_core_version) {
+        if (core.getVersion() == privious_core_version &&
+            core.getCurrentPipelineName() == privious_pipe_name) {
             return;
         }
         privious_core_version = core.getVersion();
+        privious_pipe_name = core.getCurrentPipelineName();
 
         auto& gui_nodes = c_state.gui_nodes;
 
@@ -1188,7 +1194,7 @@ void NodeCanvasView::main() {
     position_optimizer(preference.auto_layout);
 
     ImGui::Text("Hold middle mouse button to scroll (%f, %f)",
-                c_state.scroll_pos.x, c_state.scroll_pos.y);
+                double(c_state.scroll_pos.x), double(c_state.scroll_pos.y));
     {
         CanvasController cc(label("scrolling_region"));
 
@@ -1376,10 +1382,12 @@ void View::updateState(const std::map<std::string, Variable>& resp) {
 std::vector<Issue> View::draw(const std::string& win_title,
                               const std::string& label_suffix,
                               const std::map<std::string, Variable>& resp) {
+    START_TRY("Update state");
     issues.clear();
     if (privious_core_version != core.getVersion()) {
         updateState(resp);
     }
+    END_TRY();
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(
@@ -1391,7 +1399,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     label.setSuffix(label_suffix);
 
-    // Menu bar
+    START_TRY("Menu bar");
     if (ImGui::BeginMenuBar()) {
         for (std::unique_ptr<Content>& menu : menus) {
             // draw menu.
@@ -1400,26 +1408,33 @@ std::vector<Issue> View::draw(const std::string& win_title,
         }
         ImGui::EndMenuBar();
     }
+    END_TRY();
 
-    // Popups
+    START_TRY("Popups");
     for (std::unique_ptr<Content>& popup : popups) {
         // draw menu.
         popup->draw(resp);
     }
+    END_TRY();
 
-    // Pipeline Switcher
+    START_TRY("Pipeline Switcher");
     ImGui::Separator();
     {
         std::vector<std::string> pipelines = core.getPipelineNames();
+        std::vector<std::string> sub_pipelines = core.getSubPipelineNames();
+        pipelines.insert(std::begin(pipelines), std::begin(sub_pipelines),
+                         std::end(sub_pipelines));
         int curr_idx = int(getIndex(pipelines, core.getCurrentPipelineName()));
         if (Combo(label(""), &curr_idx, pipelines)) {
             issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
                                       pipelines[size_t(curr_idx)]});
         }
+        privious_core_version = core.getVersion() - 1;
     }
+    END_TRY();
     ImGui::Separator();
 
-    // Left Panel
+    START_TRY("Left Panel");
     if (state.preference.enable_node_list_panel) {
         ImGui::BeginChild(label("left panel"),
                           ImVec2(state.preference.node_list_panel_size, 0));
@@ -1428,8 +1443,9 @@ std::vector<Issue> View::draw(const std::string& win_title,
         ImGui::EndChild();
         ImGui::SameLine();
     }
+    END_TRY();
 
-    // Center Panel
+    START_TRY("Center Panel");
     if (state.preference.enable_edit_panel) {
         ImGui::BeginChild(label("center panel"),
                           ImVec2(state.preference.edit_panel_size, 0));
@@ -1439,17 +1455,25 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
         ImGui::SameLine();
     }
+    END_TRY();
 
-    // Right Panel
+    START_TRY("Right Panel");
+
     ImGui::BeginChild(label("right canvas"));
     canvas->draw(resp);
     ImGui::EndChild();
 
+    END_TRY();
+
     ImGui::End();  // End window
+
+    START_TRY("Report Window");
 
     ImGui::BeginChild(label("report_window"));
     report_window->draw(resp);
     ImGui::EndChild();
+
+    END_TRY();
 
     return issues;
 }

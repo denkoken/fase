@@ -155,6 +155,7 @@ private:
     // ## Utility functions. ##
     bool checkNodeName(const std::string& name);
     Pipeline& getCurrentPipeline();
+    const Pipeline& getCurrentPipeline() const;
 
     std::string getEdittingInputFunc();
     std::string getEdittingOutputFunc();

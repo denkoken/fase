@@ -58,7 +58,7 @@ std::function<void()> BindedPipeline::build(
 
 std::function<void()> BindedPipeline::build(
         const std::vector<Variable*>& in_args, ResultReport* report) const {
-    assert(report == nullptr);
+    assert(report != nullptr);
     return Build(in_args, functions, binding_pipeline, &report->child_reports);
 }
 

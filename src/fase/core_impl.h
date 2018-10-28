@@ -135,7 +135,7 @@ bool FaseCore::addFunctionBuilder(
 
 template <typename... Args>
 void FaseCore::setInput(Args&&... args) {
-    Node& input = pipelines[current_pipeline].nodes[InputNodeStr()];
+    Node& input = getCurrentPipeline().nodes[InputNodeStr()];
     setInput_(input, std::make_index_sequence<sizeof...(Args)>(),
               std::forward<Args>(args)...);
 }

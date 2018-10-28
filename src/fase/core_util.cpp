@@ -102,6 +102,53 @@ std::string toString(const std::string& type, const Variable& v,
     return "";
 }
 
+bool LoadPipelineTemp(const std::string& filename, FaseCore* core,
+                      const TypeUtils& utils, const std::string& target_name,
+                      std::function<void(std::string&)> switch_function) {
+    std::string cur_pipeline_name = core->getCurrentPipelineName();
+    std::string new_pipeline_name;
+    if (target_name.empty()) {
+        new_pipeline_name = split(filename, '.')[0];
+    } else {
+        new_pipeline_name = target_name;
+    }
+
+    if (exists(core->getPipelineNames(), new_pipeline_name)) {
+        // already exists the name pipeline.
+        return false;
+    }
+
+    try {
+        std::ifstream input(filename);
+
+        if (!input) {
+            std::cerr << "file opening is failed : " << filename;
+            return false;
+        }
+
+        std::stringstream ss;
+
+        while (!input.eof()) {
+            std::string buf;
+            std::getline(input, buf);
+            ss << buf << std::endl;
+        }
+
+        switch_function(new_pipeline_name);
+        if (!StringToCore(ss.str(), core, utils)) {
+            throw std::exception();
+        }
+
+        input.close();
+
+        return true;
+    } catch (std::exception&) {
+        core->switchPipeline(cur_pipeline_name);
+        core->deletePipeline(new_pipeline_name);
+        return false;
+    }
+}
+
 }  // namespace
 
 std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
@@ -294,48 +341,18 @@ bool SaveFaseCore(const std::string& filename, const FaseCore& core,
 
 bool LoadFaseCore(const std::string& filename, FaseCore* core,
                   const TypeUtils& utils, const std::string& target_name) {
-    std::string cur_pipeline_name = core->getCurrentPipelineName();
-    std::string new_pipeline_name;
-    if (target_name.empty()) {
-        new_pipeline_name = split(filename, '.')[0];
-    } else {
-        new_pipeline_name = target_name;
-    }
+    return LoadPipelineTemp(
+            filename, core, utils, target_name,
+            [&](std::string& pipe) { core->switchPipeline(pipe); });
+}
 
-    if (exists(core->getPipelineNames(), new_pipeline_name)) {
-        // already exists the name pipeline.
-        return false;
-    }
-
-    try {
-        std::ifstream input(filename);
-
-        if (!input) {
-            std::cerr << "file opening is failed : " << filename;
-            return false;
-        }
-
-        std::stringstream ss;
-
-        while (!input.eof()) {
-            std::string buf;
-            std::getline(input, buf);
-            ss << buf << std::endl;
-        }
-
-        core->switchPipeline(new_pipeline_name);
-        if (!StringToCore(ss.str(), core, utils)) {
-            throw std::exception();
-        }
-
-        input.close();
-
-        return true;
-    } catch (std::exception&) {
-        core->switchPipeline(cur_pipeline_name);
-        core->deletePipeline(new_pipeline_name);
-        return false;
-    }
+bool ImportSubPipeline(const std::string& filename, FaseCore* core,
+                       const TypeUtils& utils, const std::string& target_name) {
+    return LoadPipelineTemp(filename, core, utils, target_name,
+                            [&](std::string& pipe) {
+                                core->makeSubPipeline(pipe);
+                                core->switchPipeline(pipe);
+                            });
 }
 
 std::vector<std::vector<Link>> getReverseLinks(

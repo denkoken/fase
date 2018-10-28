@@ -30,7 +30,8 @@ enum class IssuePattern {
     StopRunLoop,
     SwitchPipeline,
     RenamePipeline,
-    makeSubPipeline,
+    MakeSubPipeline,
+    ImportSubPipeline,
 };
 
 /// For AddNode issue
@@ -71,6 +72,11 @@ struct RenameNodeInfo {
 struct BuildAndRunInfo {
     bool multi_th_build;
     bool another_th_run;
+};
+
+struct ImportSubPipelineInfo {
+    std::string filename;
+    std::string target_name;
 };
 
 struct Issue {

@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include "debug_macros.h"
+
 namespace fase {
 
 namespace {
@@ -204,6 +206,7 @@ bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
 }
 
 bool FaseCore::build(bool parallel_exe, bool profile) {
+    START_TRY("build");
     // check if rebuild is necessary.
     if (profile == is_profiling_built && version == built_version) {
         return true;
@@ -214,8 +217,8 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
         std::get<1>(pair)->init(*this, sub_pipelines.at(std::get<0>(pair)));
     }
 
-    auto& nodes = pipelines[current_pipeline].nodes;
-    pipelines[current_pipeline].multi = parallel_exe;
+    auto& nodes = getCurrentPipeline().nodes;
+    getCurrentPipeline().multi = parallel_exe;
 
     // set report box ptr
     auto p_reports = &report_box;
@@ -230,6 +233,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
 
     built_version = version;
     is_profiling_built = profile;
+    END_TRY();
 
     return true;
 }
