@@ -16,7 +16,6 @@ namespace guieditor {
 
 constexpr char REPORT_RESPONSE_ID[] = "REPORT_RESPONSE_ID";
 constexpr char RUNNING_ERROR_RESPONSE_ID[] = "RUNNING_ERROR_RESPONSE_ID";
-constexpr char CORE_UPDATED_KEY[] = "CORE_UPDATED_KEY";
 
 // Label wrapper for suffix
 class LabelWrapper {
@@ -165,6 +164,8 @@ private:
     void setupMenus(std::function<void(Issue)>&&);
     void setupPopups(std::function<void(Issue)>&&);
     void updateState(const std::map<std::string, Variable>& resp);
+
+    int privious_core_version = -1;
 };
 
 }  // namespace guieditor

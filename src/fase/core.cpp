@@ -25,6 +25,15 @@ void Erase(Conrainer& cont, size_t idx) {
     cont.erase(std::begin(cont) + long(idx));
 }
 
+template <typename Key, typename T>
+std::vector<Key> getKeys(const std::map<Key, T>& map) {
+    std::vector<Key> dst;
+    for (const auto& pair : map) {
+        dst.emplace_back(std::get<0>(pair));
+    }
+    return dst;
+}
+
 void delRevLink(const Node& node, const size_t& idx, FaseCore* core) {
     while (true) {
         bool f = true;
@@ -760,11 +769,11 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
 }
 
 std::vector<std::string> FaseCore::getPipelineNames() const {
-    std::vector<std::string> dst;
-    for (const auto& pair : pipelines) {
-        dst.emplace_back(std::get<0>(pair));
-    }
-    return dst;
+    return getKeys(pipelines);
+}
+
+std::vector<std::string> FaseCore::getSubPipelineNames() const {
+    return getKeys(sub_pipelines);
 }
 
 const std::vector<Variable>& FaseCore::getOutputs() const {
@@ -804,12 +813,7 @@ bool FaseCore::makeSubPipeline(const std::string& name) {
             name, std::make_shared<BindedPipeline>(*this, sub_pipelines[name]));
 
     functions.emplace(SubPipelineFuncStr(name),
-                      Function{sub_pipeline_fbs[name],
-                               {},
-                               {},
-                               {},
-                               {},
-                               {}});
+                      Function{sub_pipeline_fbs[name], {}, {}, {}, {}, {}});
     return true;
 }
 

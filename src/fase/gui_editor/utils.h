@@ -30,6 +30,7 @@ enum class IssuePattern {
     StopRunLoop,
     SwitchPipeline,
     RenamePipeline,
+    makeSubPipeline,
 };
 
 /// For AddNode issue

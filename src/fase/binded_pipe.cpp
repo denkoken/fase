@@ -25,16 +25,14 @@ auto Build(const std::vector<Variable*>& in_args,
     BuildPipeline(pipeline->nodes, *functions, false, &funcs, variables.get(),
                   p_reports);
 
-    return [funcs = std::move(funcs), variables, in_args] {
-        for (size_t i = 0; i < (*variables)[InputNodeStr()].size(); i++) {
+    return [funcs = std::move(funcs), variables, in_args,
+            n_input = in_n.links.size(), n_output = out_n.links.size()] {
+        for (size_t i = 0; i < n_input; i++) {
             in_args[i]->copy((*variables)[InputNodeStr()][i]);
         }
         for (auto& func : funcs) {
             func();
         }
-
-        const size_t& n_input = variables->at(InputNodeStr()).size();
-        const size_t& n_output = variables->at(OutputNodeStr()).size();
         for (size_t i = 0; i < n_output; i++) {
             variables->at(OutputNodeStr())[i].copy(*in_args[n_input + i]);
         }

@@ -116,6 +116,7 @@ public:
 
     const std::string& getCurrentPipelineName() const noexcept;
     std::vector<std::string> getPipelineNames() const;
+    std::vector<std::string> getSubPipelineNames() const;
 
     const std::vector<Variable>& getOutputs() const;
     template <typename T>

@@ -776,7 +776,7 @@ private:
     const ImU32 BORDER_COLOR = IM_COL32(100, 100, 100, 255);
     const ImU32 BG_NML_COLOR = IM_COL32(60, 60, 60, 255);
     const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
-    const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
+    // const ImU32 SLOT_NML_COLOR = IM_COL32(240, 240, 150, 150);
     const ImU32 SLOT_ACT_COLOR = IM_COL32(255, 255, 100, 255);
 
     const std::map<const std::type_info*, VarEditorWraped>& var_editors;
@@ -1107,6 +1107,8 @@ private:
     CanvasState c_state;
     GUINodePositionOptimizer position_optimizer;
 
+    int privious_core_version = -1;
+
     size_t getUnusedID() {
         size_t i = 0;
         while (true) {
@@ -1129,12 +1131,11 @@ private:
     }
 
     void updateGuiNodes() {
-        bool updated = false;
-        getResponse(CORE_UPDATED_KEY, &updated);
-
-        if (!updated) {
+        if (core.getVersion() == privious_core_version) {
             return;
         }
+        privious_core_version = core.getVersion();
+
         auto& gui_nodes = c_state.gui_nodes;
 
         const std::map<std::string, Node>& nodes = core.getNodes();
@@ -1142,6 +1143,13 @@ private:
         auto nodes_keys = getKeys(nodes);
         auto gui_keys = getKeys(gui_nodes);
 
+        // Remove unused GUI nodes
+        const auto gui_d_core = RelativeComplement(gui_keys, nodes_keys);
+        for (auto& name : gui_d_core) {
+            gui_nodes.erase(name);
+        }
+
+        // add new GUI nodes.
         for (auto it = nodes.begin(); it != nodes.end(); it++) {
             const std::string& node_name = it->first;
             const size_t n_args = it->second.links.size();
@@ -1153,12 +1161,6 @@ private:
                 // Create new node and allocate for link slots
                 gui_nodes[node_name].alloc(n_args);
             }
-        }
-
-        // Remove unused GUI nodes
-        const auto gui_d_core = RelativeComplement(gui_keys, nodes_keys);
-        for (auto& name : gui_d_core) {
-            gui_nodes.erase(name);
         }
 #if 0
         // Save argument positions
@@ -1375,7 +1377,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
                               const std::string& label_suffix,
                               const std::map<std::string, Variable>& resp) {
     issues.clear();
-    if (resp.count(CORE_UPDATED_KEY)) {
+    if (privious_core_version != core.getVersion()) {
         updateState(resp);
     }
 

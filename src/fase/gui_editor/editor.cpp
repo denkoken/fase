@@ -161,7 +161,6 @@ public:
           shold_stop_loop(false),
           is_running(false) {
         SetUpVarEditors(&var_editors);
-        response[CORE_UPDATED_KEY] = true;
     }
     ~Impl();
 
@@ -179,7 +178,6 @@ private:
     std::map<const std::type_info*, VarEditorWraped> var_editors;
     std::map<std::string, Variable> response;
 
-    bool is_updated = true;
     bool same_th_loop = false;
     std::string run_response_id;
     std::string err_message;
@@ -339,7 +337,6 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
         } else if (issue.issue == IssuePattern::Save) {
             const std::string& filename = GetVar<std::string>(issue);
             responses_[issue.id] = SaveFaseCore(filename, *core, utils);
-            continue;
         } else if (issue.issue == IssuePattern::Load) {
             const std::string& filename = GetVar<std::string>(issue);
             responses_[issue.id] = LoadFaseCore(filename, core.get(), utils);
@@ -367,13 +364,12 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             const std::string& name = GetVar<std::string>(issue);
             core->renamePipeline(name);
             responses_[issue.id] = true;
+        } else if (issue.issue == IssuePattern::makeSubPipeline) {
+            const std::string& name = GetVar<std::string>(issue);
+            responses_[issue.id] = core->makeSubPipeline(name);
         } else {
             remains.emplace_back(std::move(issue));
-            continue;
         }
-
-        is_updated = true;
-        responses_[CORE_UPDATED_KEY] = true;
     }
     *issues = remains;
     return responses_;
@@ -440,10 +436,7 @@ bool GUIEditor::Impl::run(const std::string& win_title,
     }
 
     if (same_th_loop) {
-        if (is_updated) {
-            core->build(multi_running, true);
-            is_updated = false;
-        }
+        core->build(multi_running, true);
         reports = core->run();
 
         response[run_response_id] = true;
