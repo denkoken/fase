@@ -370,11 +370,11 @@ private:
 
 }  // namespace
 
-class ReportWindow : public Content {
+class ReportPopup : public Content {
 public:
     template <class... Args>
-    ReportWindow(Args&&... args) : Content(args...) {}
-    ~ReportWindow() {}
+    ReportPopup(Args&&... args) : Content(args...) {}
+    ~ReportPopup() {}
 
 private:
     enum class ViewList {
@@ -392,6 +392,8 @@ private:
 
     std::string err_message;
     const ImVec4 err_message_color = ImVec4(1.f, .1f, 0.f, 1.f);
+
+    bool responsed;
 
     std::function<bool(const std::pair<std::string, ResultReport>&)>
     getFilter() {
@@ -467,15 +469,26 @@ private:
 
     void main() {
         std::map<std::string, ResultReport>* report_p = nullptr;
-        if (getResponse(REPORT_RESPONSE_ID, &report_p)) {
-            report_box = *report_p;
-            ImGui::SetNextWindowFocus();
-        }
         if (getResponse(RUNNING_ERROR_RESPONSE_ID, &err_message)) {
-            ImGui::SetNextWindowFocus();
+            if (!responsed) {
+                ImGui::OpenPopup(label("Report"));
+            }
+            responsed = true;
+        } else if (getResponse(REPORT_RESPONSE_ID, &report_p)) {
+            report_box = *report_p;
+            if (!responsed) {
+                ImGui::OpenPopup(label("Report"));
+            }
+            responsed = true;
+        } else {
+            responsed = false;
         }
 
-        WindowContriller wc("Report", nullptr, ImGuiWindowFlags_MenuBar);
+        if (!ImGui::BeginPopup(label("Report"),
+                               ImGuiWindowFlags_AlwaysAutoResize |
+                                       ImGuiWindowFlags_MenuBar)) {
+            return;
+        }
 
         ImGui::BeginMenuBar();
 
@@ -485,6 +498,9 @@ private:
         if (ImGui::MenuItem(label("Steps"), nullptr, view == ViewList::Steps)) {
             view = ViewList::Steps;
         }
+        if (ImGui::MenuItem(label("Close"), nullptr, view == ViewList::Steps)) {
+            ImGui::CloseCurrentPopup();
+        }
 
         ImGui::EndMenuBar();
 
@@ -493,6 +509,7 @@ private:
                                err_message.c_str());
         }
         if (report_box.empty()) {
+            ImGui::EndPopup();
             return;
         }
 
@@ -534,15 +551,18 @@ private:
 
             // draw child reports.
             if (!report.child_reports.empty()) {
-                ImGui::BeginGroup();
-                for (auto& pair : report.child_reports) {
-                    ImGui::Text("%s : %.3f msec",
-                                nameConverter(std::get<0>(pair)).c_str(),
-                                double(getSec(std::get<1>(pair)) * 1e3f));
+                ImGui::Dummy(ImVec2(50, 0));
+                if (ImGui::TreeNode(label(key))) {
+                    for (auto& pair : report.child_reports) {
+                        ImGui::Text("%s : %.3f msec",
+                                    nameConverter(std::get<0>(pair)).c_str(),
+                                    double(getSec(std::get<1>(pair)) * 1e3f));
+                    }
+                    ImGui::TreePop();
                 }
-                ImGui::EndGroup();
             }
         }
+        ImGui::EndPopup();
     }
 };
 
@@ -1354,8 +1374,8 @@ View::View(const FaseCore& core_, const TypeUtils& utils_,
                                               utils, add_issue_function);
     args_editor = std::make_unique<NodeArgEditView>(
             var_editors, core, label, state, utils, add_issue_function);
-    report_window = std::make_unique<ReportWindow>(core, label, state, utils,
-                                                   add_issue_function);
+    report_window = std::make_unique<ReportPopup>(core, label, state, utils,
+                                                  add_issue_function);
     setupMenus(add_issue_function);
     setupPopups(add_issue_function);
 }
@@ -1402,16 +1422,16 @@ std::vector<Issue> View::draw(const std::string& win_title,
         std::string popup_name =
                 "Sub Pipeline : " + core.getCurrentPipelineName();
         ImGui::OpenPopup(popup_name.c_str());
+        ImGui::SetNextWindowSize(ImGui::GetWindowSize(),
+                                 ImGuiCond_FirstUseEver);
         sub_pipeline_popup = ImGui::BeginPopupModal(popup_name.c_str(), nullptr,
                                                     ImGuiWindowFlags_MenuBar);
-        if (sub_pipeline_popup) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-        }
     }
 
     label.setSuffix(label_suffix);
 
     START_TRY("Menu bar");
+    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
     if (ImGui::BeginMenuBar()) {
         for (std::unique_ptr<Content>& menu : menus) {
             // draw menu.
@@ -1420,6 +1440,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
         }
         ImGui::EndMenuBar();
     }
+    ImGui::PopItemFlag();
     END_TRY();
 
     START_TRY("Popups");
@@ -1477,20 +1498,19 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     END_TRY();
 
-    if (sub_pipeline_popup) {
-        ImGui::PopItemFlag();
-        ImGui::EndPopup();  // Sub Pipeline
-    }
+    START_TRY("Report Popup");
 
-    ImGui::End();  // End window
-
-    START_TRY("Report Window");
-
-    ImGui::BeginChild(label("report_window"));
+    ImGui::BeginChild(label("report popup"));
     report_window->draw(resp);
     ImGui::EndChild();
 
     END_TRY();
+
+    if (sub_pipeline_popup) {
+        ImGui::EndPopup();  // Sub Pipeline
+    }
+
+    ImGui::End();  // End window
 
     return issues;
 }

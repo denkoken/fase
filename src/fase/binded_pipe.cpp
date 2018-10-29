@@ -1,5 +1,7 @@
 #include "binded_pipe.h"
 
+#include <chrono>
+
 #include "core.h"
 
 namespace fase {
@@ -8,8 +10,7 @@ namespace {
 
 auto Build(const std::vector<Variable*>& in_args,
            const std::map<std::string, Function>* functions,
-           const Pipeline* pipeline,
-           std::map<std::string, ResultReport>* p_reports) {
+           const Pipeline* pipeline, ResultReport* p_report) {
     const Node& in_n = pipeline->nodes.at(InputNodeStr());
     const Node& out_n = pipeline->nodes.at(OutputNodeStr());
 
@@ -22,11 +23,19 @@ auto Build(const std::vector<Variable*>& in_args,
     auto variables =
             std::make_shared<std::map<std::string, std::vector<Variable>>>();
 
-    BuildPipeline(pipeline->nodes, *functions, false, &funcs, variables.get(),
-                  p_reports);
+    if (p_report != nullptr) {
+        BuildPipeline(pipeline->nodes, *functions, false, &funcs,
+                      variables.get(), &p_report->child_reports);
+    } else {
+        BuildPipeline(pipeline->nodes, *functions, false, &funcs,
+                      variables.get(), nullptr);
+    }
 
     return [funcs = std::move(funcs), variables, in_args,
-            n_input = in_n.links.size(), n_output = out_n.links.size()] {
+            n_input = in_n.links.size(), n_output = out_n.links.size(),
+            p_report] {
+        auto start = std::chrono::system_clock::now();
+
         for (size_t i = 0; i < n_input; i++) {
             in_args[i]->copy((*variables)[InputNodeStr()][i]);
         }
@@ -35,6 +44,10 @@ auto Build(const std::vector<Variable*>& in_args,
         }
         for (size_t i = 0; i < n_output; i++) {
             variables->at(OutputNodeStr())[i].copy(*in_args[n_input + i]);
+        }
+
+        if (p_report != nullptr) {
+            p_report->execution_time = std::chrono::system_clock::now() - start;
         }
     };
 }
@@ -58,8 +71,7 @@ std::function<void()> BindedPipeline::build(
 
 std::function<void()> BindedPipeline::build(
         const std::vector<Variable*>& in_args, ResultReport* report) const {
-    assert(report != nullptr);
-    return Build(in_args, functions, binding_pipeline, &report->child_reports);
+    return Build(in_args, functions, binding_pipeline, report);
 }
 
 }  // namespace fase
