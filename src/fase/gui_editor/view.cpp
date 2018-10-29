@@ -1424,8 +1424,13 @@ std::vector<Issue> View::draw(const std::string& win_title,
         ImGui::OpenPopup(popup_name.c_str());
         ImGui::SetNextWindowSize(ImGui::GetWindowSize(),
                                  ImGuiCond_FirstUseEver);
-        sub_pipeline_popup = ImGui::BeginPopupModal(popup_name.c_str(), nullptr,
+        bool opened = true;
+        sub_pipeline_popup = ImGui::BeginPopupModal(popup_name.c_str(), &opened,
                                                     ImGuiWindowFlags_MenuBar);
+        if (!opened) {
+            issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
+                                      core.getMainPipelineNameLastSelected()});
+        }
     }
 
     label.setSuffix(label_suffix);

@@ -221,6 +221,7 @@ FaseCore& FaseCore::operator=(FaseCore& another) {
 
 FaseCore::FaseCore() : version(0) {
     current_pipeline = "Untitled";
+    main_pipeline_last_selected = current_pipeline;
     getCurrentPipeline() = {};
 
     // make input/output node and function builder.
