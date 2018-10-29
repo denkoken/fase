@@ -731,8 +731,13 @@ void FaseCore::unlockInOut() {
 
 void FaseCore::switchPipeline(const std::string& project_name) {
     current_pipeline = project_name;
+
+    version++;
+
     if (sub_pipelines.count(current_pipeline)) {
         return;
+    } else {
+        main_pipeline_last_selected = current_pipeline;
     }
 
     if (getCurrentPipeline().nodes.empty()) {
@@ -753,22 +758,31 @@ void FaseCore::switchPipeline(const std::string& project_name) {
                 std::numeric_limits<int>::max(), &functions,
                 &getCurrentPipeline().nodes);
     }
-
-    version++;
 }
 
-void FaseCore::renamePipeline(const std::string& project_name) noexcept {
+void FaseCore::renamePipeline(const std::string& new_name) noexcept {
     Pipeline buf = std::move(getCurrentPipeline());
-    pipelines.erase(current_pipeline);
-    current_pipeline = project_name;
-    getCurrentPipeline() = std::move(buf);
+    if (pipelines.count(current_pipeline)) {
+        pipelines.erase(current_pipeline);
+        current_pipeline = new_name;
+        pipelines[new_name] = std::move(buf);
+        main_pipeline_last_selected = new_name;
+    } else {
+        sub_pipelines.erase(current_pipeline);
+        current_pipeline = new_name;
+        sub_pipelines[new_name] = std::move(buf);
+    }
 }
 
-void FaseCore::deletePipeline(const std::string& project_name) noexcept {
-    if (current_pipeline == project_name) {
+void FaseCore::deletePipeline(const std::string& deleting) noexcept {
+    if (current_pipeline == deleting) {
         return;
     }
-    pipelines.erase(project_name);
+    if (pipelines.count(deleting)) {
+        pipelines.erase(deleting);
+    } else {
+        sub_pipelines.erase(deleting);
+    }
 }
 
 const std::string& FaseCore::getCurrentPipelineName() const noexcept {
@@ -789,6 +803,10 @@ std::vector<std::string> FaseCore::getPipelineNames() const {
 
 std::vector<std::string> FaseCore::getSubPipelineNames() const {
     return getKeys(sub_pipelines);
+}
+
+const std::string& FaseCore::getMainPipelineNameLastSelected() const noexcept {
+    return main_pipeline_last_selected;
 }
 
 const std::vector<Variable>& FaseCore::getOutputs() const {

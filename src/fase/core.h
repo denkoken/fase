@@ -117,6 +117,7 @@ public:
     const std::string& getCurrentPipelineName() const noexcept;
     std::vector<std::string> getPipelineNames() const;
     std::vector<std::string> getSubPipelineNames() const;
+    const std::string& getMainPipelineNameLastSelected() const noexcept;
 
     const std::vector<Variable>& getOutputs() const;
     template <typename T>
@@ -134,6 +135,7 @@ private:
 
     std::map<std::string, Pipeline> pipelines;
     std::string current_pipeline;
+    std::string main_pipeline_last_selected;
 
     // ## Sub Pipelines ##
     std::map<std::string, Pipeline> sub_pipelines;
