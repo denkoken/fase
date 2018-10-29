@@ -87,10 +87,8 @@ Callable::CallableReturn Callable::operator()(Args&&... args) {
     // lock mutex
     std::lock_guard<std::mutex> guard(core_mutex);
 
-    std::vector<Variable> output_a;  // output array
-    call(&output_a, std::forward<Args>(args)...);
-
-    return {std::move(output_a)};
+    return call(getCore()->getMainPipelineNameLastSelected(),
+                std::forward<Args>(args)...);
 }
 
 inline auto Callable::operator[](const std::string& project) {
@@ -98,30 +96,34 @@ inline auto Callable::operator[](const std::string& project) {
         // lock mutex
         std::lock_guard<std::mutex> guard(core_mutex);
 
-        // buffer now project name.
-        std::string project_buf = getCore()->getCurrentPipelineName();
+        if (!exists(getCore()->getPipelineNames(), project)) {
+            throw(std::runtime_error("Pipeline \"" + project + "\" is not exists!"));
+        }
 
-        // switch to call project, and run pipeline.
-        getCore()->switchPipeline(project);
-        std::vector<Variable> output_a;
-        this->call(&output_a, args...);
-
-        // switch to buffered project.
-        getCore()->switchPipeline(project_buf);
-        return CallableReturn{std::move(output_a)};
+        return call(project, std::forward<decltype(args)>(args)...);
     };
 }
 
 template <typename... Args>
-void Callable::call(std::vector<Variable>* dst, Args&&... args) {
+Callable::CallableReturn Callable::call(const std::string& pipeline,
+                                        Args&&... args) {
     auto pcore = getCore();
+
+    // buffer now project name.
+    std::string project_buf = pcore->getCurrentPipelineName();
+
+    // switch to call project, and run pipeline.
+    pcore->switchPipeline(pipeline);
 
     pcore->setInput(std::forward<Args>(args)...);
 
     pcore->build();
     pcore->run();
 
-    *dst = pcore->getOutputs();
+    // switch to buffered project.
+    pcore->switchPipeline(project_buf);
+
+    return {pcore->getOutputs()};
 }
 
 }  // namespace fase

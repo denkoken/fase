@@ -1413,7 +1413,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
     if (!ImGui::Begin(
                 (win_title + " - " + core.getCurrentPipelineName()).c_str(),
                 nullptr, ImGuiWindowFlags_MenuBar)) {
-        // ImGui::End();
+        ImGui::End();
         return {};
     }
 

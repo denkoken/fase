@@ -152,14 +152,14 @@ void LastPrintProjectRun(fase::Callable& app) {
 
             // Both Type returning is OK!
 
-            // Type 1.
+            // Type A1.
             std::tuple<int, std::string> dst =
                     app(std::string("good morning!"), 3).get<int, std::string>();
 
             std::cout << "output1 : " << std::get<0>(dst) << std::endl
                       << "output2 : " << std::get<1>(dst) << std::endl;
 
-            // Type 2.
+            // Type A2.
             int dst1;
             std::string dst2;
             app(std::string("good bye!"), 7).get(&dst1, &dst2);
@@ -170,7 +170,7 @@ void LastPrintProjectRun(fase::Callable& app) {
             // from c++17, you can use structure bindings, like down.
 #ifdef __cpp_structured_bindings
             {
-                // Type 1'.
+                // Type A1'.
                 auto [dst1, dst2] =
                         app(std::string("hello!"), 17).get<int, std::string>();
 
@@ -178,9 +178,19 @@ void LastPrintProjectRun(fase::Callable& app) {
                           << "output2 : " << dst2 << std::endl;
             }
 #endif
+            // Type B. you can select a called pipeline, with using operator[].
+            // "Untitled" is default pipeline name.
+            // if the called pipeline is not exists, throw runtime_error.
+            app["Untitled"](std::string("this is type B!"), 0xb).get(&dst1, &dst2);
+
+            std::cout << "output1 : " << dst1 << std::endl
+                      << "output2 : " << dst2 << std::endl;
+
+        } catch (std::runtime_error& e) {
+            std::cerr << e.what() << std::endl;
         } catch (fase::ErrorThrownByNode& e) {
-            std::cerr << "Node " << e.node_name
-                      << " throws Error;" << std::endl;
+            std::cerr << "Node \"" << e.node_name
+                      << "\" throws Error;" << std::endl;
             e.rethrow_nested();
         }
     } catch (std::exception& e) {

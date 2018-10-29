@@ -131,7 +131,7 @@ public:
 
 private:
     template <typename... Args>
-    void call(std::vector<Variable>* dst, Args&&... args);
+    CallableReturn call(const std::string& pipeline, Args&&... args);
 };
 /// @}
 
