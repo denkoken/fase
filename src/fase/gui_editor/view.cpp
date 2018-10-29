@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <list>
 #include <mutex>
 #include <sstream>
 
@@ -806,6 +807,8 @@ private:
 
     CanvasState& c_state;
 
+    std::string popupping_node;
+
     std::string getTitleText(const std::string& node_name, const Node& node,
                              const size_t& order_idx) {
         if (node_name == InputNodeStr()) {
@@ -959,6 +962,8 @@ private:
                 ImGui::GetCursorScreenPos() + c_state.scroll_pos;
         auto& gui_nodes = c_state.gui_nodes;
 
+        bool open_code_popup = false;
+
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->ChannelsSplit(2);
         const std::map<std::string, Node>& nodes = core.getNodes();
@@ -1002,6 +1007,16 @@ private:
                 } else {
                     state.selected_nodes = {node_name};
                 }
+                if (ImGui::IsMouseDoubleClicked(0)) {
+                    open_code_popup = true;
+                    popupping_node = node_name;
+                    auto func_repr = core.getNodes().at(node_name).func_repr;
+                    if (IsSubPipelineFuncStr(func_repr)) {
+                        throwIssue("", IssuePattern::SwitchPipeline,
+                                   std::string(GetSubPipelineNameFromFuncStr(
+                                           func_repr)));
+                    }
+                }
             }
             if (ImGui::IsItemHovered()) {
                 state.hovered_node_name = node_name;
@@ -1013,6 +1028,14 @@ private:
             }
 
             ImGui::PopID();
+        }
+        if (open_code_popup) {
+            ImGui::OpenPopup(label("src code"));
+        }
+        if (ImGui::BeginPopup(label("src code"))) {
+            auto func_repr = core.getNodes().at(popupping_node).func_repr;
+            ImGui::Text("%s", core.getFunctions().at(func_repr).code.c_str());
+            ImGui::EndPopup();
         }
         draw_list->ChannelsMerge();
     }
@@ -1188,6 +1211,7 @@ private:
                 gui_nodes[node_name].alloc(n_args);
             }
         }
+
 #if 0
         // Save argument positions
         const static ImVec2 NODE_WINDOW_PADDING = NODE_WINDOW_PADDING
@@ -1366,7 +1390,7 @@ View::View(const FaseCore& core_, const TypeUtils& utils_,
       utils(utils_),
       var_editors(var_editors_),
       preference_manager(),
-      state{preference_manager.get(), {}, {}, {}, {}} {
+      state{preference_manager.get(), {}, {}, {}, {}, {}} {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
     node_list = std::make_unique<NodeListView>(core, label, state, utils,
                                                add_issue_function);
@@ -1397,6 +1421,15 @@ void View::updateState(const std::map<std::string, Variable>& resp) {
     } else {
         state.is_running = false;
     }
+
+    // memorize editting pipeline histry to go back from sub pipeline edittings.
+    if (state.edit_pipeline_histry.back() != core.getCurrentPipelineName()) {
+        if (exists(core.getPipelineNames(), core.getCurrentPipelineName())) {
+            // if we edit main pipeline, forget the histry.
+            state.edit_pipeline_histry.clear();
+        }
+        state.edit_pipeline_histry.push_back(core.getCurrentPipelineName());
+    }
 }
 
 std::vector<Issue> View::draw(const std::string& win_title,
@@ -1411,7 +1444,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(
-                (win_title + " - " + core.getCurrentPipelineName()).c_str(),
+                (win_title + " - " + core.getMainPipelineNameLastSelected())
+                        .c_str(),
                 nullptr, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return {};
@@ -1428,8 +1462,10 @@ std::vector<Issue> View::draw(const std::string& win_title,
         sub_pipeline_popup = ImGui::BeginPopupModal(popup_name.c_str(), &opened,
                                                     ImGuiWindowFlags_MenuBar);
         if (!opened) {
-            issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
-                                      core.getMainPipelineNameLastSelected()});
+            state.edit_pipeline_histry.pop_back();
+            issues.emplace_back(
+                    Issue{"", IssuePattern::SwitchPipeline,
+                          std::string(state.edit_pipeline_histry.back())});
         }
     }
 
@@ -1456,12 +1492,9 @@ std::vector<Issue> View::draw(const std::string& win_title,
     END_TRY();
 
     START_TRY("Pipeline Switcher");
-    ImGui::Separator();
-    {
+    if (!sub_pipeline_popup) {
+        ImGui::Separator();
         std::vector<std::string> pipelines = core.getPipelineNames();
-        std::vector<std::string> sub_pipelines = core.getSubPipelineNames();
-        pipelines.insert(std::begin(pipelines), std::begin(sub_pipelines),
-                         std::end(sub_pipelines));
         int curr_idx = int(getIndex(pipelines, core.getCurrentPipelineName()));
         if (Combo(label(""), &curr_idx, pipelines)) {
             issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,

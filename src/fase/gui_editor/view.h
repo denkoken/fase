@@ -45,6 +45,8 @@ struct GUIState {
 
     std::vector<std::string> popup_issue;
 
+    std::list<std::string> edit_pipeline_histry;
+
     bool is_running = false;
 };
 

@@ -97,7 +97,8 @@ inline auto Callable::operator[](const std::string& project) {
         std::lock_guard<std::mutex> guard(core_mutex);
 
         if (!exists(getCore()->getPipelineNames(), project)) {
-            throw(std::runtime_error("Pipeline \"" + project + "\" is not exists!"));
+            throw(std::runtime_error("Pipeline \"" + project +
+                                     "\" is not exists!"));
         }
 
         return call(project, std::forward<decltype(args)>(args)...);

@@ -71,12 +71,18 @@ inline std::string OutputFuncStr(const std::string& pipeline_name) {
     return ReportHeaderStr() + OUTPUT_F_HEADER_STR + pipeline_name;
 }
 
+inline std::string SubPipelineFuncStr(const std::string& pipeline_name) {
+    return ReportHeaderStr() + std::string(SUB_PIPE_STR) + pipeline_name;
+}
 inline bool IsSubPipelineFuncStr(const std::string& name) {
     return name.find(ReportHeaderStr() + std::string(SUB_PIPE_STR)) !=
            std::string::npos;
 }
-inline std::string SubPipelineFuncStr(const std::string& pipeline_name) {
-    return ReportHeaderStr() + std::string(SUB_PIPE_STR) + pipeline_name;
+inline std::string GetSubPipelineNameFromFuncStr(const std::string& name) {
+    return {std::begin(name) +
+                    long((ReportHeaderStr() + std::string(SUB_PIPE_STR))
+                                 .size()),
+            std::end(name)};
 }
 
 inline bool IsInputFuncStr(const std::string& name) {

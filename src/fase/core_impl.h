@@ -104,7 +104,8 @@ bool FaseCore::addFunctionBuilder(
         const std::function<Ret(Args...)>& func_val,
         const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
         const std::array<std::string, sizeof...(Args)>& arg_names,
-        const std::array<Variable, sizeof...(Args)>& default_args) {
+        const std::array<Variable, sizeof...(Args)>& default_args,
+        const std::string& code) {
     if (exists(functions, func_repr)) {
         return false;
     }
@@ -129,6 +130,7 @@ bool FaseCore::addFunctionBuilder(
             std::vector<Variable>(args.begin(), args.end()),
             std::vector<const std::type_info*>{GetCleanTypeId<Args>()...},
             std::vector<bool>{IsInputArgType<Args>()...},
+            code,
     };
     return true;
 }

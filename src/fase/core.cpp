@@ -377,13 +377,34 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
         // for current pipeline is sub pipeline.
         if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-            Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+            auto f_name = SubPipelineFuncStr(current_pipeline);
+            Function& sub_f = functions[f_name];
 
 #define Copy(memb) sub_f.memb[src_arg_idx] = dst_func.memb[dst_arg_idx]
             Copy(arg_types);
             Copy(default_arg_reprs);
             Copy(default_arg_values);
 #undef Copy
+
+            auto f = [&](Pipeline& pipe) {
+                for (auto& pair : pipe.nodes) {
+                    if (std::get<1>(pair).func_repr == f_name) {
+                        Node& o_node = std::get<1>(pair);
+                        o_node.arg_values[src_arg_idx] =
+                                dst_func.default_arg_values[dst_arg_idx];
+                        o_node.arg_reprs[src_arg_idx] =
+                                dst_func.default_arg_reprs[dst_arg_idx];
+                    }
+                }
+            };
+
+            for (auto& pipeline_p : pipelines) {
+                f(std::get<1>(pipeline_p));
+            }
+
+            for (auto& pipeline_p : sub_pipelines) {
+                f(std::get<1>(pipeline_p));
+            }
         }
     } else if (dst_node_name == OutputNodeStr() &&
                (!is_locked_inout || sub_pipelines.count(current_pipeline)) &&
@@ -403,16 +424,37 @@ bool FaseCore::addLink(const std::string& src_node_name,
 
         // for current pipeline is sub pipeline.
         if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-            Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+            auto f_name = SubPipelineFuncStr(current_pipeline);
+            Function& sub_f = functions[f_name];
 
             // find output start index, and compute the copying index from it.
-            size_t idx = getIndex(sub_f.is_input_args, true) + dst_arg_idx;
+            size_t idx = getIndex(sub_f.is_input_args, false) + dst_arg_idx;
 
 #define Copy(memb) sub_f.memb[idx] = src_func.memb[src_arg_idx]
             Copy(arg_types);
             Copy(default_arg_reprs);
             Copy(default_arg_values);
 #undef Copy
+
+            auto f = [&](Pipeline& pipe) {
+                for (auto& pair : pipe.nodes) {
+                    if (std::get<1>(pair).func_repr == f_name) {
+                        Node& o_node = std::get<1>(pair);
+                        o_node.arg_values[idx] =
+                                src_func.default_arg_values[src_arg_idx];
+                        o_node.arg_reprs[idx] =
+                                src_func.default_arg_reprs[src_arg_idx];
+                    }
+                }
+            };
+
+            for (auto& pipeline_p : pipelines) {
+                f(std::get<1>(pipeline_p));
+            }
+
+            for (auto& pipeline_p : sub_pipelines) {
+                f(std::get<1>(pipeline_p));
+            }
         }
     }
 
@@ -551,10 +593,11 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
 
     // for current pipeline is sub pipeline.
     if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-        Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+        std::string f_name = SubPipelineFuncStr(current_pipeline);
+        Function& sub_f = functions[f_name];
 
         // find input end position.
-        size_t idx = getIndex(sub_f.is_input_args, true);
+        size_t idx = getIndex(sub_f.is_input_args, false);
 
 #define Add(container, idx, value) \
     container.insert(std::begin(container) + long(idx), value)
@@ -563,9 +606,33 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
         Add(sub_f.default_arg_reprs, idx, default_arg_repr);
         Add(sub_f.arg_names, idx, name);
         Add(sub_f.default_arg_values, idx, default_value);
-        Add(sub_f.is_input_args, idx, false);
+        Add(sub_f.is_input_args, idx, true);
+
+        auto f = [&](Pipeline& pipe) {
+            for (auto& pair : pipe.nodes) {
+                Node& o_node = std::get<1>(pair);
+                if (o_node.func_repr == f_name) {
+                    PRINT_VECTOR(o_node.arg_reprs);
+                    Add(o_node.arg_reprs, idx, default_arg_repr);
+                    Add(o_node.links, idx, Link{});
+                    Add(o_node.arg_values, idx, default_value);
+
+                    DEBUG_LOG(o_node.links.size());
+                }
+            }
+        };
 
 #undef Add
+
+        for (auto& pipeline_p : pipelines) {
+            DEBUG_LOG(std::get<0>(pipeline_p));
+            f(std::get<1>(pipeline_p));
+        }
+
+        for (auto& pipeline_p : sub_pipelines) {
+            DEBUG_LOG(std::get<0>(pipeline_p));
+            f(std::get<1>(pipeline_p));
+        }
     }
 
     version++;
@@ -614,13 +681,33 @@ bool FaseCore::delInput(const size_t& idx) {
 
     // for current pipeline is sub pipeline.
     if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-        Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+        auto f_name = SubPipelineFuncStr(current_pipeline);
+        Function& sub_f = functions[f_name];
 
         Erase(sub_f.arg_types, idx);
         Erase(sub_f.default_arg_reprs, idx);
         Erase(sub_f.arg_names, idx);
         Erase(sub_f.default_arg_values, idx);
         Erase(sub_f.is_input_args, idx);
+
+        auto f = [&](Pipeline& pipe) {
+            for (auto& pair : pipe.nodes) {
+                Node& o_node = std::get<1>(pair);
+                if (o_node.func_repr == f_name) {
+                    Erase(o_node.arg_reprs, idx);
+                    Erase(o_node.links, idx);
+                    Erase(o_node.arg_values, idx);
+                }
+            }
+        };
+
+        for (auto& pipeline_p : pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
+
+        for (auto& pipeline_p : sub_pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
     }
 
     version++;
@@ -654,13 +741,34 @@ bool FaseCore::addOutput(const std::string& name, const std::type_info* type,
 
     // for current pipeline is sub pipeline.
     if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-        Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+        auto f_name = SubPipelineFuncStr(current_pipeline);
+        Function& sub_f = functions[f_name];
 
         sub_f.arg_types.emplace_back(type);
         sub_f.default_arg_reprs.emplace_back(default_arg_repr);
         sub_f.arg_names.emplace_back(name);
         sub_f.default_arg_values.emplace_back(default_value);
-        sub_f.is_input_args.emplace_back(true);
+        sub_f.is_input_args.emplace_back(false);
+
+        auto f = [&](Pipeline& pipe) {
+            for (auto& pair : pipe.nodes) {
+                if (std::get<1>(pair).func_repr == f_name) {
+                    Node& o_node = std::get<1>(pair);
+                    o_node.arg_reprs.push_back(default_arg_repr);
+                    o_node.links.push_back({});
+                    o_node.arg_values.push_back(default_value);
+                    DEBUG_LOG(o_node.arg_values.size());
+                }
+            }
+        };
+
+        for (auto& pipeline_p : pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
+
+        for (auto& pipeline_p : sub_pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
     }
 
     version++;
@@ -708,16 +816,36 @@ bool FaseCore::delOutput(const size_t& idx) {
 
     // for current pipeline is sub pipeline.
     if (functions.count(SubPipelineFuncStr(current_pipeline))) {
-        Function& sub_f = functions[SubPipelineFuncStr(current_pipeline)];
+        auto f_name = SubPipelineFuncStr(current_pipeline);
+        Function& sub_f = functions[f_name];
 
         // find output start position.
-        size_t sub_f_idx = getIndex(sub_f.is_input_args, true);
+        size_t sub_f_idx = getIndex(sub_f.is_input_args, false);
 
         Erase(sub_f.arg_types, sub_f_idx + idx);
         Erase(sub_f.default_arg_reprs, sub_f_idx + idx);
         Erase(sub_f.arg_names, sub_f_idx + idx);
         Erase(sub_f.default_arg_values, sub_f_idx + idx);
         Erase(sub_f.is_input_args, sub_f_idx + idx);
+
+        auto f = [&](Pipeline& pipe) {
+            for (auto& pair : pipe.nodes) {
+                if (std::get<1>(pair).func_repr == f_name) {
+                    Node& o_node = std::get<1>(pair);
+                    Erase(o_node.arg_reprs, sub_f_idx + idx);
+                    Erase(o_node.links, sub_f_idx + idx);
+                    Erase(o_node.arg_values, sub_f_idx + idx);
+                }
+            }
+        };
+
+        for (auto& pipeline_p : pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
+
+        for (auto& pipeline_p : sub_pipelines) {
+            f(std::get<1>(pipeline_p));
+        }
     }
 
     return true;
@@ -847,7 +975,7 @@ bool FaseCore::makeSubPipeline(const std::string& name) {
             name, std::make_shared<BindedPipeline>(*this, sub_pipelines[name]));
 
     functions.emplace(SubPipelineFuncStr(name),
-                      Function{sub_pipeline_fbs[name], {}, {}, {}, {}, {}});
+                      Function{sub_pipeline_fbs[name], {}, {}, {}, {}, {}, {}});
     return true;
 }
 

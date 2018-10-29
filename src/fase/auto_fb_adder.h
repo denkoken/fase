@@ -630,6 +630,65 @@ constexpr inline bool CheckIsBrace(String<M> code, size_t start, size_t end) {
     return bool(code.count('{', dv_s, end)) && bool(code.count('}', dv_s, end));
 }
 
+std::string FilterFuncStr(const std::string& str) {
+    std::stringstream ss;
+    auto words = split(str, ' ');
+
+    int indent = 0;
+    int c_count = 0;
+    bool cr = false;
+
+    auto makeIndent = [&] {
+        if (cr) {
+            for (int i = 0; i < indent; i++) {
+                ss << "    ";
+            }
+            cr = false;
+        }
+    };
+
+    for (auto& word : str) {
+        if (word == '{') {
+            ss << word;
+            if (c_count == 0) {
+                ss << std::endl;
+                cr = true;
+            }
+            indent++;
+        } else if (word == '}') {
+            indent--;
+            makeIndent();
+            ss << word;
+            if (c_count == 0) {
+                ss << std::endl;
+                cr = true;
+            }
+        } else if (word == ';') {
+            ss << word;
+            if (c_count == 0) {
+                ss << std::endl;
+                cr = true;
+            }
+        } else if (word == '(') {
+            makeIndent();
+            ss << word;
+            c_count++;
+        } else if (word == ')') {
+            ss << word;
+            c_count--;
+        } else if (word == ' ') {
+            if (!cr) {
+                ss << word;
+            }
+        } else {
+            makeIndent();
+            ss << word;
+        }
+    }
+
+    return ss.str();
+}
+
 }  // namespace for_macro
 
 class FuncNodeStorer {
@@ -637,11 +696,11 @@ public:
     template <typename Ret, typename... Args>
     FuncNodeStorer(std::string func_name, const std::string& code,
                    Ret (*fp)(Args...)) {
-        if (codes.count(func_name)) {
-            return;
-        }
-        codes[func_name] = code;
-        f_buf = [fp, func_name](
+        // if (codes.count(func_name)) {
+        //     return;
+        // }
+        // codes[func_name] = code;
+        f_buf = [fp, func_name, code](
                         auto* core,
                         const std::vector<std::string>& default_arg_reprs,
                         const std::vector<std::string>& arg_names,
@@ -661,7 +720,8 @@ public:
             std::copy_n(default_args.begin(), N, default_args_.begin());
             core->template addFunctionBuilder<Ret, Args...>(
                     func_name, std::function<Ret(Args...)>(fp),
-                    default_arg_reprs_, arg_names_, default_args_);
+                    default_arg_reprs_, arg_names_, default_args_,
+                    for_macro::FilterFuncStr(code));
         };
     }
 
@@ -726,7 +786,7 @@ public:
 
         // TODO init default_args
         func_builder_adders.push_back([f = this->f_buf, arg_names, default_args,
-                                       default_arg_reprs](auto* app) {
+                                       default_arg_reprs, code](auto* app) {
             f(app, default_arg_reprs, arg_names, default_args);
         });
     }

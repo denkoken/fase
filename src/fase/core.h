@@ -35,6 +35,7 @@ struct Function {
     std::vector<Variable> default_arg_values;      // size == |args|
     std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
     std::vector<bool> is_input_args;               // size == |args|
+    std::string code;
 };
 
 struct Pipeline {
@@ -60,7 +61,8 @@ public:
             const std::function<Ret(Args...)>& func_val,
             const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
-            const std::array<Variable, sizeof...(Args)>& default_args = {});
+            const std::array<Variable, sizeof...(Args)>& default_args = {},
+            const std::string& code = "No data.");
 
     // ## Editing nodes ##
     bool addNode(const std::string& node_name, const std::string& func_repr,
