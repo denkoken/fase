@@ -158,6 +158,8 @@ private:
 
     std::vector<Issue> issues;
 
+    int privious_core_version = -1;
+
     // GUI Contents
     std::vector<std::unique_ptr<Content>> menus;   // Menu bar
     std::vector<std::unique_ptr<Content>> popups;  // popup menus
@@ -170,7 +172,7 @@ private:
     void setupPopups(std::function<void(Issue)>&&);
     void updateState(const std::map<std::string, Variable>& resp);
 
-    int privious_core_version = -1;
+    void drawContents(const std::map<std::string, Variable>& resp);
 };
 
 }  // namespace guieditor
