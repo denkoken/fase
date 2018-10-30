@@ -491,6 +491,8 @@ private:
             return;
         }
 
+        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+
         ImGui::BeginMenuBar();
 
         if (ImGui::MenuItem(label("Nodes"), nullptr, view == ViewList::Nodes)) {
@@ -504,6 +506,8 @@ private:
         }
 
         ImGui::EndMenuBar();
+
+        ImGui::PopItemFlag();
 
         if (!err_message.empty()) {
             ImGui::TextColored(err_message_color, "Error Message : %s",
@@ -1520,21 +1524,20 @@ std::vector<Issue> View::draw(const std::string& win_title,
         // if we is editting a sub pipeline.
         std::string popup_name =
                 "Sub Pipeline : " + core.getCurrentPipelineName();
-        ImGui::OpenPopup(popup_name.c_str());
+        ImGui::OpenPopup(label(popup_name.c_str()));
         ImGui::SetNextWindowSize(ImGui::GetWindowSize(),
                                  ImGuiCond_FirstUseEver);
         bool opened = true;
-        if (ImGui::BeginPopupModal(popup_name.c_str(), &opened,
+        if (ImGui::BeginPopupModal(label(popup_name.c_str()), &opened,
                                    ImGuiWindowFlags_MenuBar)) {
-            if (!opened) {
-                state.edit_pipeline_histry.pop_back();
-                issues.emplace_back(
-                        Issue{"", IssuePattern::SwitchPipeline,
-                              std::string(state.edit_pipeline_histry.back())});
-            }
             drawContents(resp);
 
             ImGui::EndPopup();
+        } else {
+            state.edit_pipeline_histry.pop_back();
+            issues.emplace_back(
+                    Issue{"", IssuePattern::SwitchPipeline,
+                          std::string(state.edit_pipeline_histry.back())});
         }
     } else {  // if we is editting a main pipeline.
         START_TRY("Pipeline Switcher");

@@ -158,6 +158,47 @@ void BuildNodesNonParallel(const std::set<std::string>& runnables,
     }
 }
 
+bool checkTreeRec(const std::string& pipe, const FaseCore& core,
+                  const std::list<std::string>& dependeds,
+                  std::list<std::string>& buildable_cache) {
+    if (exists(buildable_cache, pipe)) {
+        return true;
+    }
+
+    const NodeMap& nodes = core.getPipelines().at(pipe)->nodes;
+
+    auto child_dependeds = dependeds;
+    child_dependeds.push_back(pipe);
+
+    for (auto& pair : nodes) {
+        const std::string& f_name = std::get<1>(pair).func_repr;
+        if (IsSubPipelineFuncStr(f_name)) {
+            auto pipe_name = GetSubPipelineNameFromFuncStr(f_name);
+
+            if (exists(dependeds, pipe_name)) {
+                return false;
+            }
+
+            bool ret = checkTreeRec(pipe_name, core, child_dependeds,
+                                    buildable_cache);
+            if (!ret) {  // recursive depending is found.
+                return false;
+            }
+        }
+    }
+
+    buildable_cache.push_back(pipe);
+
+    return true;
+}
+
+/// check that recursive dependings don't exist.
+bool CheckSubPipelineDependencies(const FaseCore& core) {
+    std::list<std::string> buildable_cache;
+    return checkTreeRec(core.getCurrentPipelineName(), core, {},
+                        buildable_cache);
+}
+
 }  // namespace
 
 bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
@@ -210,6 +251,12 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
     // check if rebuild is necessary.
     if (profile == is_profiling_built && version == built_version) {
         return true;
+    }
+
+    if (!CheckSubPipelineDependencies(*this)) {
+        std::cerr << "recursive depending of sub pipelines is found."
+                  << std::endl;
+        return false;
     }
 
     // setup sub pipelines

@@ -118,7 +118,9 @@ Callable::CallableReturn Callable::call(const std::string& pipeline,
 
     pcore->setInput(std::forward<Args>(args)...);
 
-    pcore->build();
+    if (!pcore->build()) {
+        throw(std::runtime_error("Pipeline building failed!"));
+    }
     pcore->run();
 
     // switch to buffered project.

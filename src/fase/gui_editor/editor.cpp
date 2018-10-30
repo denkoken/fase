@@ -12,6 +12,8 @@
 #include "../core_util.h"
 #include "view.h"
 
+#include "../debug_macros.h"
+
 namespace fase {
 
 namespace guieditor {
@@ -407,8 +409,9 @@ bool GUIEditor::Impl::run(const std::string& win_title,
         if (issue.issue == IssuePattern::BuildAndRun) {
             BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
             multi_running = info.multi_th_build;
-            response[issue.id] = core->build(multi_running, true);
-            if (response[issue.id]) {
+            bool build_sucesses = core->build(multi_running, true);
+            response[issue.id] = build_sucesses;
+            if (build_sucesses) {
                 response[REPORT_RESPONSE_ID] = &reports;
                 if (info.another_th_run) {
                     response[RUNNING_ERROR_RESPONSE_ID] = std::string();
@@ -417,12 +420,16 @@ bool GUIEditor::Impl::run(const std::string& win_title,
                 } else {
                     reports = core->run();
                 }
+            } else {
+                response[RUNNING_ERROR_RESPONSE_ID] =
+                        std::string("Build failed.");
             }
         } else if (issue.issue == IssuePattern::BuildAndRunLoop) {
             BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
             multi_running = info.multi_th_build;
-            response[issue.id] = core->build(multi_running, true);
-            if (response[issue.id]) {
+            bool build_sucesses = core->build(multi_running, true);
+            response[issue.id] = build_sucesses;
+            if (build_sucesses) {
                 response[REPORT_RESPONSE_ID] = &reports;
                 if (info.another_th_run) {
                     response[RUNNING_ERROR_RESPONSE_ID] = std::string();
@@ -432,6 +439,9 @@ bool GUIEditor::Impl::run(const std::string& win_title,
                     same_th_loop = true;
                     run_response_id = issue.id;
                 }
+            } else {
+                response[RUNNING_ERROR_RESPONSE_ID] =
+                        std::string("Build failed.");
             }
         } else if (issue.issue == IssuePattern::StopRunLoop) {
             run_response_id = "";

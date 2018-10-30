@@ -926,6 +926,15 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
     return functions;
 }
 
+std::map<std::string, const Pipeline*> FaseCore::getPipelines() const {
+    std::map<std::string, const Pipeline*> dst;
+    for (const auto& p : pipelines)
+        dst.insert(std::make_pair(std::get<0>(p), &std::get<1>(p)));
+    for (const auto& p : sub_pipelines)
+        dst.insert(std::make_pair(std::get<0>(p), &std::get<1>(p)));
+    return dst;
+}
+
 std::vector<std::string> FaseCore::getPipelineNames() const {
     return getKeys(pipelines);
 }
@@ -957,6 +966,7 @@ bool FaseCore::makeSubPipeline(const std::string& name) {
     if (sub_pipelines.count(name)) {
         return false;
     }
+
     std::function<void()> dummy = [] {};
 
     addFunctionBuilder(InputFuncStr(name), dummy, {}, {}, {});

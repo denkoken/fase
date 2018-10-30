@@ -115,6 +115,7 @@ public:
     // ## Getters ##
     const std::map<std::string, Function>& getFunctions() const;
     const std::map<std::string, Node>& getNodes() const;
+    std::map<std::string, const Pipeline*> getPipelines() const;
 
     const std::string& getCurrentPipelineName() const noexcept;
     std::vector<std::string> getPipelineNames() const;

@@ -12,19 +12,15 @@
 
 namespace fase {
 namespace {
+
+template <typename Conrainer>
+bool exists(const Conrainer& vec, const typename Conrainer::value_type& key) {
+    return std::find(vec.begin(), vec.end(), key) != std::end(vec);
+}
+
 template <typename T, typename S>
 inline bool exists(const std::map<T, S>& map, const T& key) {
     return map.find(key) != std::end(map);
-}
-
-template <typename T>
-inline bool exists(const std::set<T>& set, const T& key) {
-    return set.find(key) != std::end(set);
-}
-
-template <typename T>
-bool exists(const std::vector<T>& vec, const T& key) {
-    return std::find(vec.begin(), vec.end(), key) != std::end(vec);
 }
 
 template <std::size_t N>
