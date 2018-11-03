@@ -20,7 +20,7 @@ You need glfw3 separately.
 
 	> mkdir build
 	> cd build
-	> cmake -DBUILD_GLFW=OFF ..
+	> cmake -DFASE_BUILD_GLFW=OFF ..
 	> make
 
 ### Linux
