@@ -46,7 +46,7 @@ void Callable::fixInput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable> args = {Args()...};
+    std::vector<Variable>              args = {Args()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         getCore()->addInput(arg_names[i], types[i], args[i], reprs[i]);
     }
@@ -68,7 +68,7 @@ void Callable::fixOutput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable> args = {Args()...};
+    std::vector<Variable>              args = {Args()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         getCore()->addOutput(arg_names[i], types[i], args[i]);
     }

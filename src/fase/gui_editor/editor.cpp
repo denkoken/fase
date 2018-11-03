@@ -176,6 +176,9 @@ private:
 
     View view;
 
+    std::list<FaseCore> back_history;
+    std::list<FaseCore> forward_history;
+
     std::map<std::string, ResultReport> reports;
     std::map<const std::type_info*, VarEditorWraped> var_editors;
     std::map<std::string, Variable> response;
@@ -310,8 +313,15 @@ void GUIEditor::Impl::startRunning<false>() {
 
 std::map<std::string, Variable> GUIEditor::Impl::processIssues(
         std::vector<Issue>* issues) {
+    if (issues->empty()) {
+        return {};
+    }
+
     std::vector<Issue> remains;
     std::map<std::string, Variable> responses_;
+
+    int privious_version = core->getVersion();
+    FaseCore old_version_core = *core;
 
     for (const Issue& issue : *issues) {
         if (issue.issue == IssuePattern::AddNode) {
@@ -378,7 +388,37 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
             remains.emplace_back(std::move(issue));
         }
     }
+
+    if (privious_version < core->getVersion()) {  // version up!
+        // restore privious version core.
+        back_history.emplace_back(old_version_core);
+        forward_history.clear();
+    }
+
+    for (const Issue& issue : remains) {
+        if (issue.issue == IssuePattern::Undo) {
+            if (back_history.empty()) {
+                responses_[issue.id] = false;
+                continue;
+            }
+            forward_history.emplace_back(std::move(*core));
+            *core = std::move(back_history.back());
+            back_history.pop_back();
+            responses_[issue.id] = true;
+        } else if (issue.issue == IssuePattern::Redo) {
+            if (forward_history.empty()) {
+                responses_[issue.id] = false;
+                continue;
+            }
+            back_history.emplace_back(std::move(*core));
+            *core = std::move(forward_history.back());
+            forward_history.pop_back();
+            responses_[issue.id] = true;
+        }
+    }
+
     *issues = remains;
+
     return responses_;
 }
 

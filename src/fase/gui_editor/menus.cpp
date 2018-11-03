@@ -22,6 +22,36 @@ inline ImVec4 operator+(const ImVec4& lhs, const ImVec4& rhs) {
     return ImVec4(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
 }
 
+class UndoMenu : public Content {
+public:
+    template <class... Args>
+    UndoMenu(Args&&... args) : Content(args...) {}
+
+    ~UndoMenu() {}
+
+private:
+    void main() {
+        if (ImGui::MenuItem(label("Undo"), nullptr)) {
+            throwIssue("", IssuePattern::Undo, false);
+        }
+    }
+};
+
+class RedoMenu : public Content {
+public:
+    template <class... Args>
+    RedoMenu(Args&&... args) : Content(args...) {}
+
+    ~RedoMenu() {}
+
+private:
+    void main() {
+        if (ImGui::MenuItem(label("Redo"), nullptr)) {
+            throwIssue("", IssuePattern::Redo, false);
+        }
+    }
+};
+
 class PreferenceMenu : public Content {
 public:
     template <class... Args>
@@ -217,8 +247,9 @@ int Content::id_counter = 0;
 
 void View::setupMenus(std::function<void(Issue)>&& issue_f) {
     // Setup Menu bar
-    SetupContents<PreferenceMenu, PipelineMenu, NativeCodeMenu, NodeAddingMenu,
-                  RunPipelineMenu, AddInOutputMenu, LayoutOptimizeMenu, Footer>(
+    SetupContents<UndoMenu, RedoMenu, PreferenceMenu, PipelineMenu,
+                  NativeCodeMenu, NodeAddingMenu, RunPipelineMenu,
+                  AddInOutputMenu, LayoutOptimizeMenu, Footer>(
             core, label, state, utils, issue_f, &menus);
 }
 

@@ -1246,12 +1246,19 @@ void NodeCanvasView::main() {
     {
         CanvasController cc(label("scrolling_region"));
 
-        // Draw grid canvas
+        START_TRY("Canvas");
         DrawCanvas(c_state.scroll_pos, 64.f);
+        END_TRY();
+
+        START_TRY("Drawing Links");
         // Draw links
         drawChild(links_view);
+        END_TRY();
+
+        START_TRY("Drawing Nodes");
         // Draw nodes
         drawChild(node_boxes_view);
+        END_TRY();
 
         // Canvas scroll
         if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
@@ -1505,7 +1512,9 @@ std::vector<Issue> View::draw(const std::string& win_title,
     START_TRY("Update state");
     issues.clear();
     if (privious_core_version != core.getVersion()) {
+        DEBUG_LOG("core was updated.");
         updateState(resp);
+        privious_core_version = core.getVersion();
     }
     END_TRY();
 
@@ -1548,8 +1557,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
         if (Combo(label(""), &curr_idx, pipelines)) {
             issues.emplace_back(Issue{"", IssuePattern::SwitchPipeline,
                                       pipelines[size_t(curr_idx)]});
+            privious_core_version = core.getVersion() - 1;
         }
-        privious_core_version = core.getVersion() - 1;
 
         END_TRY();
 

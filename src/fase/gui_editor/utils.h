@@ -32,6 +32,8 @@ enum class IssuePattern {
     RenamePipeline,
     MakeSubPipeline,
     ImportSubPipeline,
+    Undo,
+    Redo,
 };
 
 /// For AddNode issue
