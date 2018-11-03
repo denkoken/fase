@@ -17,6 +17,19 @@ namespace fase {
 /**
  * @brief
  *      You can call the pipelines in the core with this part class.
+ *      Use like down.
+ *      ```
+ *          Fase<Callable, [others...]> app;
+ *          // Edit...
+ *          // type A.
+ *          std::tuple<int, float> rets = app( [args] ).get<int, float>();
+ *          // type B.
+ *          int a;
+ *          float b;
+ *          app( [args] ).get(&a, &b);
+ *          // you can select calling pipeline like this;
+ *          app["[pipeline name]"]( [args] ).get(&a, &b);
+ *      ```
  */
 class Callable : public PartsBase {
     class CallableReturn {
@@ -49,10 +62,11 @@ class Callable : public PartsBase {
         template <typename... Types>
         void dummy(Types...) const {}
 
-        template <typename PointerTuple, size_t... Seq>
-        void get0(PointerTuple dsts, std::index_sequence<Seq...>) const;
-        template <class Tuple, size_t... Seq>
-        Tuple get1(TypeSequence<Tuple>, std::index_sequence<Seq...>) const;
+        template <typename... Type, size_t... Seq>
+        void get0(std::tuple<Type*...> dsts, std::index_sequence<Seq...>) const;
+        template <typename... Type, size_t... Seq>
+        std::tuple<Type...> get1(TypeSequence<Type...>,
+                                 std::index_sequence<Seq...>) const;
     };
 
 public:

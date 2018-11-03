@@ -74,7 +74,7 @@ public:
     }
 
     std::function<void()> build(const std::vector<Variable*>& in_args,
-                                ResultReport* report) const {
+                                ResultReport*                 report) const {
         if (in_args.size() != sizeof...(Args)) {
             throw(InvalidArgN(sizeof...(Args), in_args.size()));
         }

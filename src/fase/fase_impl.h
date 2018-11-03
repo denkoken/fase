@@ -24,7 +24,7 @@ struct NArgs<void(Args...)> {
 };
 
 template <std::size_t N>
-inline void extractArgExprs(std::string types,
+inline void extractArgExprs(std::string                 types,
                             std::array<std::string, N>& reprs) {
     // Remove '(' and ')'
     auto l_par_idx = types.find('(');
@@ -35,8 +35,8 @@ inline void extractArgExprs(std::string types,
 
     // Split by ','
     std::stringstream ss(types);
-    std::string item;
-    size_t idx = 0;
+    std::string       item;
+    size_t            idx = 0;
     while (std::getline(ss, item, ',')) {
         // Remove extra spaces
         size_t l_sp_idx = 0;
@@ -68,7 +68,7 @@ inline Fase<Parts...>::Fase()
 template <class... Parts>
 template <typename T>
 inline bool Fase<Parts...>::registerTextIO(
-        const std::string& name,
+        const std::string&                     name,
         std::function<std::string(const T&)>&& serializer,
         std::function<T(const std::string&)>&& deserializer,
         std::function<std::string(const T&)>&& def_maker) {

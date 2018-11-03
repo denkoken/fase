@@ -165,7 +165,7 @@ bool checkTreeRec(const std::string& pipe, const FaseCore& core,
         return true;
     }
 
-    const NodeMap& nodes = core.getPipelines().at(pipe)->nodes;
+    const NodeMap& nodes = core.getPipelines().at(pipe).nodes;
 
     auto child_dependeds = dependeds;
     child_dependeds.push_back(pipe);

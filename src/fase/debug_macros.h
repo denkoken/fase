@@ -17,10 +17,10 @@
         std::terminate();                                             \
     }                                                                 \
     }
-#define DEBUG_LOG(var)                                               \
-    std::clog << __FILE__ << ":" << __LINE__ << #var << " = " << var \
+#define DEBUG_LOG(var)                                                        \
+    std::clog << __FILE__ << ":" << __LINE__ << " : " << #var << " = " << var \
               << std::endl;
-#define PRINT_VECTOR(vec)                    \
+#define DEBUG_LOG_VECTOR(vec)                \
     std::clog << #vec << std::endl;          \
     for (auto& v : vec) {                    \
         std::clog << "  " << v << std::endl; \
@@ -29,6 +29,7 @@
 #define START_TRY(str) {
 #define END_TRY() }
 #define DEBUG_LOG(var)
+#define DEBUG_LOG_VECTOR(vec)
 #endif
 
 #endif  // DEBUG_MACROS_H_20181028

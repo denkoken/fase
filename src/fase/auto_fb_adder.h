@@ -200,8 +200,8 @@ public:
 template <size_t N, size_t M>
 constexpr size_t getArgsEnd(String<N> f_name, String<M> code) {
     size_t f_name_pos = code.find(f_name);
-    bool f_end = false;
-    int r_blacket_c = 0;
+    bool   f_end = false;
+    int    r_blacket_c = 0;
     for (size_t i = 0 + f_name_pos; i < M; i++) {
         char c = code[i];
         if (c == '(') {
@@ -290,7 +290,7 @@ constexpr Array<size_t, N> getArgEnds(size_t start, size_t end,
 template <size_t N, size_t M>
 constexpr Array<bool, N> IsDefaultValues(Array<size_t, N> arg_starts,
                                          Array<size_t, N> arg_ends,
-                                         String<M> code) {
+                                         String<M>        code) {
     Array<bool, N> dst{};
     for (size_t i = 0; i < N; i++) {
         dst[i] = code.count('=', arg_starts[i], arg_ends[i]);
@@ -301,7 +301,7 @@ constexpr Array<bool, N> IsDefaultValues(Array<size_t, N> arg_starts,
 template <size_t N, size_t M>
 constexpr Array<size_t, N> getDefaultVArgC(Array<size_t, N> arg_starts,
                                            Array<size_t, N> arg_ends,
-                                           String<M> code) {
+                                           String<M>        code) {
     Array<size_t, N> dst{};
 
     for (size_t i = 0; i < N; i++) {
@@ -313,7 +313,7 @@ constexpr Array<size_t, N> getDefaultVArgC(Array<size_t, N> arg_starts,
 
         dst[i] = 1;
         size_t a_bracket_c = 0;
-        bool f = false;
+        bool   f = false;
         for (size_t p = dv_s; p < arg_ends[i]; p++) {
             if (code[p] == '<') {
                 a_bracket_c++;
@@ -359,8 +359,8 @@ constexpr size_t SearchComma(String<M> code_str, size_t dv_s, size_t end,
 };
 
 inline std::vector<std::string> split(const std::string& str, const char& sp) {
-    size_t start = 0;
-    size_t end;
+    size_t                   start = 0;
+    size_t                   end;
     std::vector<std::string> dst;
     while (true) {
         end = str.find_first_of(sp, start);
@@ -548,7 +548,7 @@ inline std::vector<std::string> GetArgStrs(std::string args_str) {
            args_str.rfind(')') == args_str.size() - 1) {
         args_str = std::string(std::begin(args_str), std::end(args_str) - 1);
     }
-    std::vector<std::string> dst;
+    std::vector<std::string>       dst;
     std::vector<std::stringstream> buf;
 
     buf.push_back(std::stringstream{});
@@ -609,7 +609,7 @@ inline bool GenVariableFromString(const std::string& code, Variable* v,
 }
 
 inline std::string getArgsStr(const std::string& f_name, std::string code) {
-    size_t f_name_pos = code.find(f_name);
+    size_t      f_name_pos = code.find(f_name);
     std::string dst;
     if (f_name_pos != npos) {
         dst = std::string(std::begin(code) + long(f_name_pos) + 1,
@@ -632,10 +632,10 @@ constexpr inline bool CheckIsBrace(String<M> code, size_t start, size_t end) {
 
 std::string FilterFuncStr(const std::string& str) {
     std::stringstream ss;
-    auto words = split(str, ' ');
+    auto              words = split(str, ' ');
 
-    int indent = 0;
-    int c_count = 0;
+    int  indent = 0;
+    int  c_count = 0;
     bool cr = false;
 
     auto makeIndent = [&] {
@@ -701,14 +701,14 @@ public:
         // }
         // codes[func_name] = code;
         f_buf = [fp, func_name, code](
-                        auto* core,
+                        auto*                           core,
                         const std::vector<std::string>& default_arg_reprs,
                         const std::vector<std::string>& arg_names,
-                        const std::vector<Variable>& default_args) {
-            constexpr size_t N = sizeof...(Args);
+                        const std::vector<Variable>&    default_args) {
+            constexpr size_t           N = sizeof...(Args);
             std::array<std::string, N> default_arg_reprs_;
             std::array<std::string, N> arg_names_;
-            std::array<Variable, N> default_args_;
+            std::array<Variable, N>    default_args_;
 
             assert(default_arg_reprs.size() == N);
             assert(arg_names.size() == N);
@@ -792,14 +792,14 @@ public:
     }
 
     static inline std::vector<std::function<void(FaseCore*)>>
-            func_builder_adders;
+                                                     func_builder_adders;
     static inline std::map<std::string, std::string> codes;
 
 private:
     void convert(const std::vector<std::string>& arg_strs,
-                 std::vector<std::string>* arg_type_reprs,
-                 std::vector<std::string>* default_arg_reprs,
-                 std::vector<std::string>* arg_names) {
+                 std::vector<std::string>*       arg_type_reprs,
+                 std::vector<std::string>*       default_arg_reprs,
+                 std::vector<std::string>*       arg_names) {
         for (const auto& arg_str : arg_strs) {
             // Find argument names
             std::vector<std::string> splited =
@@ -826,7 +826,7 @@ private:
 
             if (arg_str.find("=") != std::string::npos) {
                 size_t pos = arg_str.find("=") + 1;
-                auto default_value_str =
+                auto   default_value_str =
                         arg_str.substr(pos, arg_str.size() - 1);
                 default_value_str = CleanStr(default_value_str);
 

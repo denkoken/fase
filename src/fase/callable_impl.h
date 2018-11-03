@@ -5,6 +5,19 @@
 #include "callable.h"
 
 namespace fase {
+
+template <typename... Type, size_t... Seq>
+void Callable::CallableReturn::get0(std::tuple<Type*...> dsts,
+                                    std::index_sequence<Seq...>) const {
+    dummy(*std::get<Seq>(dsts) = *data[Seq].template getReader<Type>()...);
+}
+
+template <typename... Type, size_t... Seq>
+std::tuple<Type...> Callable::CallableReturn::get1(
+        TypeSequence<Type...>, std::index_sequence<Seq...>) const {
+    return {*data[Seq].template getReader<Type>()...};
+}
+
 template <typename... Dsts>
 void Callable::CallableReturn::get(Dsts*... dsts) const {
     get0(std::tuple<Dsts*...>{dsts...},
@@ -13,28 +26,8 @@ void Callable::CallableReturn::get(Dsts*... dsts) const {
 
 template <typename... Rets>
 std::tuple<Rets...> Callable::CallableReturn::get() const {
-    return get1(TypeSequence<std::tuple<Rets...>>(),
+    return get1(TypeSequence<Rets...>(),
                 std::make_index_sequence<sizeof...(Rets)>());
-}
-
-template <typename PointerTuple, size_t... Seq>
-void Callable::CallableReturn::get0(PointerTuple dsts,
-                                    std::index_sequence<Seq...>) const {
-    dummy(*std::get<Seq>(dsts) =
-                  *(data[Seq]
-                            .template getReader<typename std::remove_reference<
-                                    decltype(*std::get<Seq>(
-                                            std::declval<PointerTuple>()))>::
-                                                        type>())...);
-}
-
-template <class Tuple, size_t... Seq>
-Tuple Callable::CallableReturn::get1(TypeSequence<Tuple>,
-                                     std::index_sequence<Seq...>) const {
-    return {*data[Seq]
-                     .template getReader<typename std::remove_reference<
-                             decltype(std::get<Seq>(
-                                     std::declval<Tuple>()))>::type>()...};
 }
 
 template <typename... Args>
@@ -119,6 +112,7 @@ Callable::CallableReturn Callable::call(const std::string& pipeline,
     pcore->setInput(std::forward<Args>(args)...);
 
     if (!pcore->build()) {
+        pcore->switchPipeline(project_buf);
         throw(std::runtime_error("Pipeline building failed!"));
     }
     pcore->run();

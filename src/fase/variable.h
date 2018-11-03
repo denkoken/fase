@@ -111,8 +111,8 @@ public:
     }
 
 private:
-    std::shared_ptr<void> data;
-    const std::type_info* type = &typeid(void);
+    std::shared_ptr<void>                           data;
+    const std::type_info*                           type = &typeid(void);
     std::function<void(Variable&, const Variable&)> cloner;
     std::function<void(Variable&, const Variable&)> copyer;
 };

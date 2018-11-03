@@ -21,11 +21,11 @@ public:
 
     std::function<void()> build(const std::vector<Variable*>& in_args) const;
     std::function<void()> build(const std::vector<Variable*>& in_args,
-                                ResultReport* report) const;
+                                ResultReport*                 report) const;
 
 private:
     const std::map<std::string, Function>* functions;
-    const Pipeline* binding_pipeline;
+    const Pipeline*                        binding_pipeline;
 };
 
 }  // namespace fase

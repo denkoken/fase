@@ -12,10 +12,10 @@ struct TypeUtils {
     using Checker = std::function<bool(const Variable&)>;
     using DefMaker = Serializer;
 
-    std::map<std::string, Serializer> serializers;
-    std::map<std::string, Deserializer> deserializers;
-    std::map<std::string, Checker> checkers;
-    std::map<std::string, DefMaker> def_makers;
+    std::map<std::string, Serializer>            serializers;
+    std::map<std::string, Deserializer>          deserializers;
+    std::map<std::string, Checker>               checkers;
+    std::map<std::string, DefMaker>              def_makers;
     std::map<const std::type_info*, std::string> names;
 };
 

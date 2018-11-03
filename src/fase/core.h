@@ -16,31 +16,31 @@
 namespace fase {
 struct Link {
     std::string node_name;
-    size_t arg_idx;
+    size_t      arg_idx;
 };
 
 struct Node {
-    std::string func_repr;    // Corresponding to function representation
-    std::vector<Link> links;  // size == |args|
+    std::string       func_repr;  // Corresponding to function representation
+    std::vector<Link> links;      // size == |args|
     std::vector<std::tuple<size_t, Link>> rev_links;
-    std::vector<std::string> arg_reprs;  // size == |args|
-    std::vector<Variable> arg_values;    // size == |args|
-    int priority;
+    std::vector<std::string>              arg_reprs;   // size == |args|
+    std::vector<Variable>                 arg_values;  // size == |args|
+    int                                   priority;
 };
 
 struct Function {
     std::shared_ptr<FunctionBuilderBase> builder;
-    std::vector<std::string> default_arg_reprs;    // size == |args|
-    std::vector<std::string> arg_names;            // size == |args|
-    std::vector<Variable> default_arg_values;      // size == |args|
-    std::vector<const std::type_info*> arg_types;  // size == |args| (cleaned)
-    std::vector<bool> is_input_args;               // size == |args|
-    std::string code;
+    std::vector<std::string>             default_arg_reprs;   // size == |args|
+    std::vector<std::string>             arg_names;           // size == |args|
+    std::vector<Variable>                default_arg_values;  // size == |args|
+    std::vector<const std::type_info*>   arg_types;  // size == |args| (cleaned)
+    std::vector<bool>                    is_input_args;  // size == |args|
+    std::string                          code;
 };
 
 struct Pipeline {
     std::map<std::string, Node> nodes;  // [name, Node]
-    bool multi = false;
+    bool                        multi = false;
 };
 
 class FaseCore {
@@ -57,12 +57,12 @@ public:
     // ## Setup ##
     template <typename Ret, typename... Args>
     bool addFunctionBuilder(
-            const std::string& func_repr,
-            const std::function<Ret(Args...)>& func_val,
+            const std::string&                              func_repr,
+            const std::function<Ret(Args...)>&              func_val,
             const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
             const std::array<std::string, sizeof...(Args)>& arg_names = {},
-            const std::array<Variable, sizeof...(Args)>& default_args = {},
-            const std::string& code = "No data.");
+            const std::array<Variable, sizeof...(Args)>&    default_args = {},
+            const std::string&                              code = "No data.");
 
     // ## Editing nodes ##
     bool addNode(const std::string& node_name, const std::string& func_repr,
@@ -86,14 +86,14 @@ public:
 
     // ## Editing Input/Output node ##
     bool addInput(const std::string& name, const std::type_info* type = nullptr,
-                  const Variable& default_value = {},
+                  const Variable&    default_value = {},
                   const std::string& default_arg_repr = "");
     bool delInput(const size_t& idx);
 
-    bool addOutput(const std::string& name,
+    bool addOutput(const std::string&    name,
                    const std::type_info* type = nullptr,
-                   const Variable& default_value = {},
-                   const std::string& default_arg_repr = "");
+                   const Variable&       default_value = {},
+                   const std::string&    default_arg_repr = "");
     bool delOutput(const size_t& idx);
 
     void lockInOut();
@@ -114,13 +114,13 @@ public:
 
     // ## Getters ##
     const std::map<std::string, Function>& getFunctions() const;
-    const std::map<std::string, Node>& getNodes() const;
-    std::map<std::string, const Pipeline*> getPipelines() const;
+    const std::map<std::string, Node>&     getNodes() const;
+    std::map<std::string, const Pipeline&> getPipelines() const;
 
-    const std::string& getCurrentPipelineName() const noexcept;
+    const std::string&       getCurrentPipelineName() const noexcept;
     std::vector<std::string> getPipelineNames() const;
     std::vector<std::string> getSubPipelineNames() const;
-    const std::string& getMainPipelineNameLastSelected() const noexcept;
+    const std::string&       getMainPipelineNameLastSelected() const noexcept;
 
     const std::vector<Variable>& getOutputs() const;
     template <typename T>
@@ -137,8 +137,8 @@ private:
     std::map<std::string, Function> functions;  // [repr, Function]
 
     std::map<std::string, Pipeline> pipelines;
-    std::string current_pipeline;
-    std::string main_pipeline_last_selected;
+    std::string                     current_pipeline;
+    std::string                     main_pipeline_last_selected;
 
     // ## Sub Pipelines ##
     std::map<std::string, Pipeline> sub_pipelines;
@@ -150,21 +150,21 @@ private:
     bool is_locked_inout = false;  /// about not sub pipelines inout
 
     // Built pipeline
-    std::vector<std::function<void()>> built_pipeline;
+    std::vector<std::function<void()>>           built_pipeline;
     std::map<std::string, std::vector<Variable>> output_variables;
-    int built_version;
-    bool is_profiling_built;
+    int                                          built_version;
+    bool                                         is_profiling_built;
 
     std::map<std::string, ResultReport> report_box;
 
     // ## Utility functions. ##
-    bool checkNodeName(const std::string& name);
-    Pipeline& getCurrentPipeline();
+    bool            checkNodeName(const std::string& name);
+    Pipeline&       getCurrentPipeline();
     const Pipeline& getCurrentPipeline() const;
 
     std::string getEdittingInputFunc();
     std::string getEdittingOutputFunc();
-    void initInOut();
+    void        initInOut();
 };
 
 }  // namespace fase

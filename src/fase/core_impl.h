@@ -96,12 +96,12 @@ void setInput_(Node& node, std::index_sequence<Seq...>, Args&&... args) {
 
 template <typename Ret, typename... Args>
 bool FaseCore::addFunctionBuilder(
-        const std::string& func_repr,
-        const std::function<Ret(Args...)>& func_val,
+        const std::string&                              func_repr,
+        const std::function<Ret(Args...)>&              func_val,
         const std::array<std::string, sizeof...(Args)>& default_arg_reprs,
         const std::array<std::string, sizeof...(Args)>& arg_names,
-        const std::array<Variable, sizeof...(Args)>& default_args,
-        const std::string& code) {
+        const std::array<Variable, sizeof...(Args)>&    default_args,
+        const std::string&                              code) {
     if (exists(functions, func_repr)) {
         return false;
     }

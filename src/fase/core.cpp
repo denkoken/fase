@@ -196,11 +196,14 @@ FaseCore::FaseCore(FaseCore& another)
     : functions(another.functions),
       pipelines(another.pipelines),
       current_pipeline(another.current_pipeline),
+      main_pipeline_last_selected(another.main_pipeline_last_selected),
       sub_pipelines(another.sub_pipelines),
+      sub_pipeline_fbs(another.sub_pipeline_fbs),
       version(another.version),
+      is_locked_inout(another.is_locked_inout),
       built_pipeline(),
       output_variables(),
-      built_version(version - 1),
+      built_version(another.version + 1),
       is_profiling_built(another.is_profiling_built),
       report_box() {}
 
@@ -208,12 +211,16 @@ FaseCore& FaseCore::operator=(FaseCore& another) {
     functions = another.functions;
     pipelines = another.pipelines;
     sub_pipelines = another.sub_pipelines;
+    sub_pipeline_fbs = another.sub_pipeline_fbs;
     current_pipeline = another.current_pipeline;
+    main_pipeline_last_selected = another.main_pipeline_last_selected;
     version = another.version;
     built_pipeline = decltype(built_pipeline)();
 
+    is_locked_inout = another.is_locked_inout;
+
     output_variables = decltype(output_variables)();
-    built_version = version - 1;
+    built_version = another.version + 1;
     is_profiling_built = another.is_profiling_built;
     report_box = decltype(report_box)();
     return *this;
@@ -479,6 +486,8 @@ bool FaseCore::addLink(const std::string& src_node_name,
         return false;
     }
 
+    version++;
+
     return true;
 }
 
@@ -612,7 +621,6 @@ bool FaseCore::addInput(const std::string& name, const std::type_info* type,
             for (auto& pair : pipe.nodes) {
                 Node& o_node = std::get<1>(pair);
                 if (o_node.func_repr == f_name) {
-                    PRINT_VECTOR(o_node.arg_reprs);
                     Add(o_node.arg_reprs, idx, default_arg_repr);
                     Add(o_node.links, idx, Link{});
                     Add(o_node.arg_values, idx, default_value);
@@ -926,12 +934,12 @@ const std::map<std::string, Function>& FaseCore::getFunctions() const {
     return functions;
 }
 
-std::map<std::string, const Pipeline*> FaseCore::getPipelines() const {
-    std::map<std::string, const Pipeline*> dst;
+std::map<std::string, const Pipeline&> FaseCore::getPipelines() const {
+    std::map<std::string, const Pipeline&> dst;
     for (const auto& p : pipelines)
-        dst.insert(std::make_pair(std::get<0>(p), &std::get<1>(p)));
+        dst.insert(std::make_pair(std::get<0>(p), std::cref(std::get<1>(p))));
     for (const auto& p : sub_pipelines)
-        dst.insert(std::make_pair(std::get<0>(p), &std::get<1>(p)));
+        dst.insert(std::make_pair(std::get<0>(p), std::cref(std::get<1>(p))));
     return dst;
 }
 
