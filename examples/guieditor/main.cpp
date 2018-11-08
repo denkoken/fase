@@ -146,7 +146,6 @@ void VecAdd(const std::vector<double>& a,
 })
 
 void LastPrintProjectRun(fase::Callable& app) {
-
     try {        // for catching nested error
         try {    // for catching ErrorThrownByNode
 
@@ -214,6 +213,22 @@ int main() {
     FaseAddFunctionBuilder(app, Assert, (const int&, const int&), ("a", "b"));
 #endif
 
+    auto bg_col = std::make_shared<std::vector<float>>(3);
+
+    // add optional buttons.  [fase::GUIEditor]
+    app.addOptinalButton("Print",
+                         [] { std::cout << "hello world!" << std::endl; },
+                         "say \"hello world!\" in command line");
+    app.addOptinalButton("Reset BG",
+                         [bg_col] {
+                             (*bg_col)[0] = float(std::rand()) / RAND_MAX;
+                             (*bg_col)[1] = float(std::rand()) / RAND_MAX;
+                             (*bg_col)[2] = float(std::rand()) / RAND_MAX;
+                         },
+                         "Change a background color at random.\n"
+                         "The mood will change too.");
+
+    // add serializer/deserializer
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },
             [](const std::string& str) { return std::stoi(str); },
@@ -225,6 +240,7 @@ int main() {
         return 0;
     }
 
+    // fix in/out of editing pipelines. [fase::Callable]
     app.fixInput<std::string, int>({{"str", "num"}});
     app.fixOutput<int, std::string>({{"dst_num", "dst_str"}});
 
@@ -232,7 +248,7 @@ int main() {
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    RunRenderingLoop(window, app);
+    RunRenderingLoop(window, app, bg_col);
 
     LastPrintProjectRun(app);
 

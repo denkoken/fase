@@ -152,6 +152,27 @@ inline const T& GetVar(const Issue& issue) {
     return *issue.var.getReader<T>();
 }
 
+std::vector<std::string> split(const std::string& str, const char& sp) {
+    size_t start = 0;
+    size_t end;
+    std::vector<std::string> dst;
+    while (true) {
+        end = str.find_first_of(sp, start);
+        dst.emplace_back(std::string(str, start, end - start));
+        start = end + 1;
+        if (end >= str.size()) {
+            break;
+        }
+    }
+    return dst;
+}
+
+struct OptionalButton {
+    std::string name;
+    std::function<void()> call_back;
+    std::vector<std::string> descriptions;
+};
+
 }  // anonymous namespace
 
 class GUIEditor::Impl {
@@ -166,9 +187,13 @@ public:
     }
     ~Impl();
 
-    bool run(const std::string& win_title, const std::string& label_suffix);
+    bool run(std::mutex& core_mutex, const std::string& win_title,
+             const std::string& label_suffix);
 
     bool addVarEditor(const std::type_info* p, VarEditorWraped&& f);
+
+    void addOptinalButton(std::string&& name, std::function<void()>&& callback,
+                          std::string&& description);
 
 private:
     std::shared_ptr<FaseCore> core;
@@ -183,13 +208,15 @@ private:
     std::map<const std::type_info*, VarEditorWraped> var_editors;
     std::map<std::string, Variable> response;
 
+    std::list<OptionalButton> optional_buttons;
+
     bool same_th_loop = false;
     std::string run_response_id;
     std::string err_message;
 
     // variables for another thread running.
     FaseCore core_buf;
-    std::mutex core_mutex;
+    std::mutex* pcore_mutex;
     std::mutex buf_issues_mutex;
     std::mutex report_mutex;
     std::atomic_bool multi_running;
@@ -210,6 +237,16 @@ GUIEditor::Impl::~Impl() {
         shold_stop_loop = true;
         pipeline_thread.join();
     }
+}
+
+void GUIEditor::Impl::addOptinalButton(std::string&& name,
+                                       std::function<void()>&& callback,
+                                       std::string&& description) {
+    std::vector<std::string> description_lines = split(description, '\n');
+    optional_buttons.emplace_back(
+            OptionalButton{std::forward<std::string>(name),
+                           std::forward<std::function<void()>>(callback),
+                           std::move(description_lines)});
 }
 
 template <>
@@ -250,9 +287,9 @@ void GUIEditor::Impl::startRunning<true>() {
             buf_issues_mutex.unlock();
 
             // update core
-            core_mutex.lock();
+            pcore_mutex->lock();
             *core = core_buf;
-            core_mutex.unlock();
+            pcore_mutex->unlock();
             core_buf.build(multi_running, true);
 
             // Reduce the speed to about 60 fps
@@ -303,9 +340,9 @@ void GUIEditor::Impl::startRunning<false>() {
         buf_issues_mutex.unlock();
 
         // update core
-        core_mutex.lock();
+        pcore_mutex->lock();
         *core = core_buf;
-        core_mutex.unlock();
+        pcore_mutex->unlock();
 
         is_running = false;
     });
@@ -422,10 +459,11 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
     return responses_;
 }
 
-bool GUIEditor::Impl::run(const std::string& win_title,
+bool GUIEditor::Impl::run(std::mutex& core_mutex, const std::string& win_title,
                           const std::string& label_suffix) {
+    pcore_mutex = &core_mutex;
     // lock core_mutex
-    core_mutex.lock();
+    pcore_mutex->lock();
 
     // Draw GUI and get issues.
     report_mutex.lock();
@@ -497,7 +535,7 @@ bool GUIEditor::Impl::run(const std::string& win_title,
         response[run_response_id] = true;
         response[REPORT_RESPONSE_ID] = &reports;
     }
-    core_mutex.unlock();
+    pcore_mutex->unlock();
 
     // if pipeline run, set response.
     if (is_running) {
@@ -515,6 +553,28 @@ bool GUIEditor::Impl::run(const std::string& win_title,
         }
     }
 
+    // Optional Button Window.
+    if (!optional_buttons.empty()) {
+        ImGui::Begin(
+                ("Optional Trigger Buttons" + ("##" + label_suffix)).c_str());
+
+        for (OptionalButton& ob : optional_buttons) {
+            if (ImGui::Button(ob.name.c_str())) {
+                ob.call_back();
+            }
+            ImGui::SameLine();
+            ImGui::Text(" : ");
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+            for (std::string& line : ob.descriptions) {
+                ImGui::Text("%s", line.c_str());
+            }
+            ImGui::EndGroup();
+        }
+
+        ImGui::End();
+    }
+
     return true;
 }
 
@@ -526,20 +586,28 @@ bool GUIEditor::Impl::addVarEditor(const std::type_info* p,
 
 // ------------------------------- pImpl pattern -------------------------------
 GUIEditor::GUIEditor(const TypeUtils& utils_) : PartsBase(utils_) {}
+GUIEditor::~GUIEditor() {}
+
+bool GUIEditor::init() {
+    impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
+    return true;
+}
+
 bool GUIEditor::addVarEditor(const std::type_info* p, VarEditorWraped&& f) {
-    if (!impl) {
-        impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
-    }
     return impl->addVarEditor(p, std::forward<VarEditorWraped>(f));
 }
-GUIEditor::~GUIEditor() {}
+
+void GUIEditor::addOptinalButton(std::string&& name,
+                                 std::function<void()>&& callback,
+                                 std::string&& description) {
+    impl->addOptinalButton(std::forward<std::string>(name),
+                           std::forward<std::function<void()>>(callback),
+                           std::forward<std::string>(description));
+}
+
 bool GUIEditor::runEditing(const std::string& win_title,
                            const std::string& label_suffix) {
-    if (!impl) {
-        impl = std::make_unique<GUIEditor::Impl>(getCore(), utils);
-    }
-    std::lock_guard<std::mutex> guard(core_mutex);
-    return impl->run(win_title, label_suffix);
+    return impl->run(core_mutex, win_title, label_suffix);
 }
 
 }  // namespace guieditor

@@ -83,7 +83,8 @@ static void InitImGui(GLFWwindow* window, const std::string& font_path) {
     });
 }
 
-static void RunRenderingLoop(GLFWwindow* window, fase::GUIEditor& editor) {
+static void RunRenderingLoop(GLFWwindow* window, fase::GUIEditor& editor,
+                             std::shared_ptr<std::vector<float>> bg_col = {}) {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -109,7 +110,13 @@ static void RunRenderingLoop(GLFWwindow* window, fase::GUIEditor& editor) {
         glfwMakeContextCurrent(window);
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+
+        if (bg_col) {
+            glClearColor((*bg_col)[0], (*bg_col)[1], (*bg_col)[2], 1.f);
+        } else {
+            glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        }
+
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwMakeContextCurrent(window);

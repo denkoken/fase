@@ -1512,7 +1512,6 @@ std::vector<Issue> View::draw(const std::string& win_title,
     START_TRY("Update state");
     issues.clear();
     if (privious_core_version != core.getVersion()) {
-        DEBUG_LOG("core was updated.");
         updateState(resp);
         privious_core_version = core.getVersion();
     }

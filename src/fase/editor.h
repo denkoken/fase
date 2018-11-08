@@ -85,6 +85,9 @@ public:
     template <typename T>
     bool addVarEditor(VarEditor<T>&& var_editor);
 
+    void addOptinalButton(std::string&& name, std::function<void()>&& callback,
+                          std::string&& description = "");
+
     /**
      * @brief
      *      buffer the imgui draw objects.
@@ -99,6 +102,9 @@ public:
      */
     bool runEditing(const std::string& win_title = "Fase Editor",
                     const std::string& label_suffix = "##fase");
+
+protected:
+    bool init();
 
 private:
     /**

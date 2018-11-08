@@ -203,7 +203,7 @@ FaseCore::FaseCore(FaseCore& another)
       is_locked_inout(another.is_locked_inout),
       built_pipeline(),
       output_variables(),
-      built_version(another.version + 1),
+      built_version(0),
       is_profiling_built(another.is_profiling_built),
       report_box() {}
 
@@ -220,7 +220,7 @@ FaseCore& FaseCore::operator=(FaseCore& another) {
     is_locked_inout = another.is_locked_inout;
 
     output_variables = decltype(output_variables)();
-    built_version = another.version + 1;
+    built_version = 0;
     is_profiling_built = another.is_profiling_built;
     report_box = decltype(report_box)();
     return *this;

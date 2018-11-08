@@ -19,6 +19,12 @@ protected:
     /// this must be overridden by only Fase class.
     virtual std::shared_ptr<FaseCore> getCore() = 0;
 
+    /// this is called in Fase::Fase(). you can setup with getCore() in this.
+    /// Overwrite this as protected.
+    virtual bool init() {
+        return true;
+    }
+
     const TypeUtils& utils;
 
     std::mutex core_mutex;
