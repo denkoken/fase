@@ -1519,7 +1519,7 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     label.setSuffix(label_suffix);
 
-    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(
                 (win_title + " - " + core.getMainPipelineNameLastSelected())
                         .c_str(),

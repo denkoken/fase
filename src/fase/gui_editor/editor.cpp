@@ -287,9 +287,10 @@ void GUIEditor::Impl::startRunning<true>() {
             buf_issues_mutex.unlock();
 
             // update core
-            pcore_mutex->lock();
-            *core = core_buf;
-            pcore_mutex->unlock();
+            {
+                std::lock_guard<std::mutex> core_guard(*pcore_mutex);
+                *core = core_buf;
+            }
             core_buf.build(multi_running, true);
 
             // Reduce the speed to about 60 fps
@@ -340,9 +341,10 @@ void GUIEditor::Impl::startRunning<false>() {
         buf_issues_mutex.unlock();
 
         // update core
-        pcore_mutex->lock();
-        *core = core_buf;
-        pcore_mutex->unlock();
+        {
+            std::lock_guard<std::mutex> core_guard(*pcore_mutex);
+            *core = core_buf;
+        }
 
         is_running = false;
     });
@@ -462,80 +464,81 @@ std::map<std::string, Variable> GUIEditor::Impl::processIssues(
 bool GUIEditor::Impl::run(std::mutex& core_mutex, const std::string& win_title,
                           const std::string& label_suffix) {
     pcore_mutex = &core_mutex;
-    // lock core_mutex
-    pcore_mutex->lock();
+    {  // touching the core.
+        std::lock_guard<std::mutex> core_guard(*pcore_mutex);
 
-    // Draw GUI and get issues.
-    report_mutex.lock();
-    std::vector<Issue> issues = view.draw(win_title, label_suffix, response);
-    report_mutex.unlock();
+        // Draw GUI and get issues.
+        report_mutex.lock();
+        std::vector<Issue> issues =
+                view.draw(win_title, label_suffix, response);
+        report_mutex.unlock();
 
-    // copy issues for running thread.
-    if (is_running) {
-        buf_issues_mutex.lock();
+        // copy issues for running thread.
+        if (is_running) {
+            buf_issues_mutex.lock();
+            for (const Issue& issue : issues) {
+                buf_issues.push_back(issue);
+            }
+            buf_issues_mutex.unlock();
+        }
+
+        // Do issue and make responses.
+        response = processIssues(&issues);
+
+        // Do Running Issues.
         for (const Issue& issue : issues) {
-            buf_issues.push_back(issue);
-        }
-        buf_issues_mutex.unlock();
-    }
-
-    // Do issue and make responses.
-    response = processIssues(&issues);
-
-    // Do Running Issues.
-    for (const Issue& issue : issues) {
-        if (issue.issue == IssuePattern::BuildAndRun) {
-            BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
-            multi_running = info.multi_th_build;
-            bool build_sucesses = core->build(multi_running, true);
-            response[issue.id] = build_sucesses;
-            if (build_sucesses) {
-                response[REPORT_RESPONSE_ID] = &reports;
-                if (info.another_th_run) {
-                    response[RUNNING_ERROR_RESPONSE_ID] = std::string();
-                    startRunning<false>();
-                    run_response_id = issue.id;
+            if (issue.issue == IssuePattern::BuildAndRun) {
+                BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
+                multi_running = info.multi_th_build;
+                bool build_sucesses = core->build(multi_running, true);
+                response[issue.id] = build_sucesses;
+                if (build_sucesses) {
+                    response[REPORT_RESPONSE_ID] = &reports;
+                    if (info.another_th_run) {
+                        response[RUNNING_ERROR_RESPONSE_ID] = std::string();
+                        startRunning<false>();
+                        run_response_id = issue.id;
+                    } else {
+                        reports = core->run();
+                    }
                 } else {
-                    reports = core->run();
+                    response[RUNNING_ERROR_RESPONSE_ID] =
+                            std::string("Build failed.");
                 }
-            } else {
-                response[RUNNING_ERROR_RESPONSE_ID] =
-                        std::string("Build failed.");
-            }
-        } else if (issue.issue == IssuePattern::BuildAndRunLoop) {
-            BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
-            multi_running = info.multi_th_build;
-            bool build_sucesses = core->build(multi_running, true);
-            response[issue.id] = build_sucesses;
-            if (build_sucesses) {
-                response[REPORT_RESPONSE_ID] = &reports;
-                if (info.another_th_run) {
-                    response[RUNNING_ERROR_RESPONSE_ID] = std::string();
-                    startRunning<true>();
-                    run_response_id = issue.id;
+            } else if (issue.issue == IssuePattern::BuildAndRunLoop) {
+                BuildAndRunInfo info = GetVar<BuildAndRunInfo>(issue);
+                multi_running = info.multi_th_build;
+                bool build_sucesses = core->build(multi_running, true);
+                response[issue.id] = build_sucesses;
+                if (build_sucesses) {
+                    response[REPORT_RESPONSE_ID] = &reports;
+                    if (info.another_th_run) {
+                        response[RUNNING_ERROR_RESPONSE_ID] = std::string();
+                        startRunning<true>();
+                        run_response_id = issue.id;
+                    } else {
+                        same_th_loop = true;
+                        run_response_id = issue.id;
+                    }
                 } else {
-                    same_th_loop = true;
-                    run_response_id = issue.id;
+                    response[RUNNING_ERROR_RESPONSE_ID] =
+                            std::string("Build failed.");
                 }
-            } else {
-                response[RUNNING_ERROR_RESPONSE_ID] =
-                        std::string("Build failed.");
+            } else if (issue.issue == IssuePattern::StopRunLoop) {
+                run_response_id = "";
+                shold_stop_loop = true;
+                same_th_loop = false;
             }
-        } else if (issue.issue == IssuePattern::StopRunLoop) {
-            run_response_id = "";
-            shold_stop_loop = true;
-            same_th_loop = false;
         }
-    }
 
-    if (same_th_loop) {
-        core->build(multi_running, true);
-        reports = core->run();
+        if (same_th_loop) {
+            core->build(multi_running, true);
+            reports = core->run();
 
-        response[run_response_id] = true;
-        response[REPORT_RESPONSE_ID] = &reports;
-    }
-    pcore_mutex->unlock();
+            response[run_response_id] = true;
+            response[REPORT_RESPONSE_ID] = &reports;
+        }
+    }  // finish touching the core.
 
     // if pipeline run, set response.
     if (is_running) {
