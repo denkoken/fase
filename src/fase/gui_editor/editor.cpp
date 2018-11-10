@@ -270,7 +270,7 @@ void GUIEditor::Impl::startRunning<true>() {
                 break;
             }
             report_mutex.lock();
-            reports = ret;
+            reports = std::move(ret);
             report_mutex.unlock();
 
             // update Node arguments
@@ -309,8 +309,8 @@ void GUIEditor::Impl::startRunning<false>() {
     is_running = true;
     core_buf = *core;
     err_message = "";
+    core_buf.build(multi_running, true);
     pipeline_thread = std::thread([this]() {
-        core_buf.build(multi_running, true);
         std::map<std::string, ResultReport> ret;
         try {      // for catch nested error
             try {  // for catch ErrorThrownByNode.
@@ -325,7 +325,7 @@ void GUIEditor::Impl::startRunning<false>() {
         }
 
         report_mutex.lock();
-        reports = ret;
+        reports = std::move(ret);
         report_mutex.unlock();
 
         // update Node arguments
@@ -552,6 +552,9 @@ bool GUIEditor::Impl::run(std::mutex& core_mutex, const std::string& win_title,
         if (!err_message.empty()) {
             response[RUNNING_ERROR_RESPONSE_ID] = err_message;
             reports.clear();
+            response[REPORT_RESPONSE_ID] = &reports;
+        } else {
+            response[run_response_id] = true;
             response[REPORT_RESPONSE_ID] = &reports;
         }
     }

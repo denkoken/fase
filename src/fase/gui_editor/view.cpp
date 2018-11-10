@@ -283,16 +283,28 @@ public:
     }
 };
 
-class WindowContriller {
+class BeginEndController {
 public:
-    template <typename... Args>
-    WindowContriller(Args&&... args) {
-        ImGui::Begin(std::forward<Args>(args)...);
+    BeginEndController(std::function<bool()>&& beginer_,
+                       std::function<void()>&& ender_)
+        : beginer(std::forward<std::function<bool()>>(beginer_)),
+          ender(std::forward<std::function<void()>>(ender_)) {}
+
+    bool Begin() {
+        is_called_begin = true;
+        return beginer();
     }
 
-    ~WindowContriller() {
-        ImGui::End();
+    ~BeginEndController() {
+        if (is_called_begin) {
+            ender();
+        }
     }
+
+private:
+    std::function<bool()> beginer;
+    std::function<void()> ender;
+    bool is_called_begin = false;
 };
 
 struct CanvasState {
@@ -369,6 +381,14 @@ private:
     }
 };
 
+void SetGuiStyle() {
+    ImGui::StyleColorsLight();
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.GrabRounding = style.FrameRounding = 5.0;
+    style.FrameBorderSize = 0.3f;
+}
+
 }  // namespace
 
 class ReportPopup : public Content {
@@ -393,6 +413,10 @@ private:
 
     std::string err_message;
     const ImVec4 err_message_color = ImVec4(1.f, .1f, 0.f, 1.f);
+
+    const std::string gui_name = "Report";
+    const ImGuiWindowFlags gui_option =
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar;
 
     bool responsed;
 
@@ -468,26 +492,62 @@ private:
         return name;
     }
 
-    void main() {
+    bool isPopuping() {
+        return core.getCurrentPipelineName() !=
+               core.getMainPipelineNameLastSelected();
+    }
+
+    void focused() {
+        if (isPopuping()) {
+            ImGui::OpenPopup(label("Report"));
+        } else {
+            ImGui::SetNextWindowFocus();
+        }
+    }
+
+    BeginEndController setupController() {
         std::map<std::string, ResultReport>* report_p = nullptr;
         if (getResponse(RUNNING_ERROR_RESPONSE_ID, &err_message)) {
             if (!responsed) {
-                ImGui::OpenPopup(label("Report"));
+                focused();
             }
             responsed = true;
         } else if (getResponse(REPORT_RESPONSE_ID, &report_p)) {
             report_box = *report_p;
             if (!responsed) {
-                ImGui::OpenPopup(label("Report"));
+                focused();
             }
             responsed = true;
         } else {
             responsed = false;
         }
 
-        if (!ImGui::BeginPopup(label("Report"),
-                               ImGuiWindowFlags_AlwaysAutoResize |
-                                       ImGuiWindowFlags_MenuBar)) {
+        // setup window or popup controller.
+        std::function<bool()> beginer;
+        std::function<void()> ender;
+
+        if (isPopuping()) {
+            auto opened = std::make_shared<bool>(false);
+            beginer = [&, opened] {
+                return *opened = ImGui::BeginPopup(label(gui_name), gui_option);
+            };
+            ender = [opened] {
+                if (*opened) ImGui::EndPopup();
+            };
+        } else {
+            beginer = [&] {
+                return ImGui::Begin(label(gui_name), nullptr, gui_option);
+            };
+            ender = [] { ImGui::End(); };
+        }
+
+        return {std::move(beginer), std::move(ender)};
+    }
+
+    void main() {
+        auto ctrler = setupController();
+
+        if (!ctrler.Begin()) {
             return;
         }
 
@@ -514,7 +574,6 @@ private:
                                err_message.c_str());
         }
         if (report_box.empty()) {
-            ImGui::EndPopup();
             return;
         }
 
@@ -567,7 +626,6 @@ private:
                 }
             }
         }
-        ImGui::EndPopup();
     }
 };
 
@@ -1433,7 +1491,8 @@ void View::updateState(const std::map<std::string, Variable>& resp) {
         state.is_running = false;
     }
 
-    // memorize editting pipeline histry to go back from sub pipeline edittings.
+    // memorize editting pipeline histry to go back from sub pipeline
+    // edittings.
     if (state.edit_pipeline_histry.back() != core.getCurrentPipelineName()) {
         if (exists(core.getPipelineNames(), core.getCurrentPipelineName())) {
             // if we edit main pipeline, forget the histry.
@@ -1509,6 +1568,8 @@ void View::drawContents(const std::map<std::string, Variable>& resp) {
 std::vector<Issue> View::draw(const std::string& win_title,
                               const std::string& label_suffix,
                               const std::map<std::string, Variable>& resp) {
+    SetGuiStyle();
+
     START_TRY("Update state");
     issues.clear();
     if (privious_core_version != core.getVersion()) {

@@ -48,6 +48,13 @@ std::function<void()> wrapPipe(const std::string& node_name,
     return [node_name, f = std::forward<std::function<void()>>(f)]() {
         try {
             f();
+        } catch (ErrorThrownByNode& e) {
+            try {
+                e.rethrow_nested();
+            } catch (...) {
+                throw ErrorThrownByNode(node_name + " :: " + e.node_name,
+                                        e.err_message);
+            }
         } catch (std::exception& e) {
             throw ErrorThrownByNode(node_name, e.what());
         } catch (std::string& e) {

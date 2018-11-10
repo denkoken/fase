@@ -74,7 +74,7 @@ public:
 
     /**
      * @brief
-     *      fix input of pipeline.
+     *      fix input of main pipelines.
      *
      * @tparam Args
      *      types of fixed arguments.
@@ -89,7 +89,7 @@ public:
 
     /**
      * @brief
-     *      fix output of pipeline.
+     *      fix output of main pipelines.
      *
      * @tparam Args
      *      types of fixed arguments.
@@ -101,7 +101,7 @@ public:
 
     /**
      * @brief
-     *      call current project pipeline.
+     *      call current main pipeline selected at last.
      *
      * @tparam Args
      *      input argument types.
@@ -116,31 +116,31 @@ public:
 
     /**
      * @brief
-     *      calling project choice with this.
+     *      select a called pipeline.
      *      use like down.
      *      ```
      *      FaseCore<Callable, [...]> app;
      *      ...
-     *      app["the project I want to call"](...);
+     *      app["the-name-of-pipeline-you-want-to-call"](...);
      *      ```
      *
-     * @param project
-     *      project name string, you want to call.
+     * @param pipeline
+     *      pipeline name string, you want to call.
      *
      * @return
      *      lambda instance. the returned can be called like above operator().
      *
-     * Registering returned object is dengerous, if you will delete projects.
+     * Registering returned object is dengerous, if you will delete pipelines.
      */
-    auto operator[](const std::string& project);
+    auto operator[](const std::string& pipeline);
 
     /**
      * @brief
-     *      set current project.
+     *      set current pipeline.
      */
-    void setProject(const std::string& project_name) {
+    void setPipeline(const std::string& pipeline_name) {
         std::lock_guard<std::mutex> guard(core_mutex);
-        getCore()->switchPipeline(project_name);
+        getCore()->switchPipeline(pipeline_name);
     }
 
 private:

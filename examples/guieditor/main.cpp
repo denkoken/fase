@@ -185,12 +185,12 @@ void LastPrintProjectRun(fase::Callable& app) {
             std::cout << "output1 : " << dst1 << std::endl
                       << "output2 : " << dst2 << std::endl;
 
-        } catch (std::runtime_error& e) {
-            std::cerr << e.what() << std::endl;
         } catch (fase::ErrorThrownByNode& e) {
             std::cerr << "Node \"" << e.node_name
                       << "\" throws Error;" << std::endl;
             e.rethrow_nested();
+        } catch (std::runtime_error& e) {
+            std::cerr << e.what() << std::endl;
         }
     } catch (std::exception& e) {
         std::cerr << "    " << e.what() << std::endl;
