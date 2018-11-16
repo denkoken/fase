@@ -57,7 +57,7 @@ template <class... Parts>
 inline Fase<Parts...>::Fase()
     : Parts(type_utils)..., core(std::make_shared<FaseCore>()) {
     SetupTypeUtils(&type_utils);
-    std::vector<bool> dummy = {Parts::init()...};
+    std::vector<bool> dummy = {this->Parts::init()...};
 #if defined(FASE_USE_ADD_FUNCTION_BUILDER_MACRO) && \
         defined(__cpp_if_constexpr) && defined(__cpp_inline_variables)
     for (auto& builder_adder : for_macro::FuncNodeStorer::func_builder_adders) {
