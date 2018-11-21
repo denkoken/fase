@@ -161,7 +161,8 @@ void LastPrintProjectRun(fase::Callable& app) {
             // Type A2.
             int dst1;
             std::string dst2;
-            app(std::string("good bye!"), 7).get(&dst1, &dst2);
+            std::string input_str = "good bye!";
+            app(input_str, 7).get(&dst1, &dst2);
 
             std::cout << "output1 : " << dst1 << std::endl
                       << "output2 : " << dst2 << std::endl;

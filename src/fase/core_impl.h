@@ -89,7 +89,10 @@ void unpackDummy(Args&&...) {}
 
 template <size_t... Seq, typename... Args>
 void setInput_(Node& node, std::index_sequence<Seq...>, Args&&... args) {
-    unpackDummy(*node.arg_values[Seq].getWriter<Args>() = args...);
+    unpackDummy(
+            *node.arg_values[Seq]
+                     .getWriter<typename std::remove_reference<Args>::type>() =
+                    std::forward<Args>(args)...);
 }
 
 }  // namespace
