@@ -243,7 +243,7 @@ int main() {
 
     // fix in/out of editing pipelines. [fase::Callable]
     app.fixInput<std::string, int>({{"str", "num"}});
-    app.fixOutput<int, std::string>({{"dst_num", "dst_str"}});
+    app.fixOutput<int, std::string>({{"dst num", "dst_str"}});
 
     // Initialize ImGui
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");

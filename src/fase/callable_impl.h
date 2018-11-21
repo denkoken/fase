@@ -4,6 +4,8 @@
 
 #include "callable.h"
 
+#include <algorithm>
+
 namespace fase {
 
 template <typename... Type, size_t... Seq>
@@ -48,7 +50,14 @@ void Callable::fixInput(
     std::vector<const std::type_info*> types = {&typeid(Args)...};
     std::vector<Variable>              args = {Args()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
-        getCore()->addInput(arg_names[i], types[i], args[i], reprs[i]);
+        std::string v_name = arg_names[i];
+        std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
+
+        // if invalid variable name, input_v_"i" is used.
+        if (!getCore()->addInput(v_name, types[i], args[i], reprs[i])) {
+            getCore()->addInput("input_v_" + std::to_string(i), types[i],
+                                args[i], reprs[i]);
+        }
     }
     getCore()->lockInOut();
 }
@@ -71,6 +80,14 @@ void Callable::fixOutput(
     std::vector<Variable>              args = {Args()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         getCore()->addOutput(arg_names[i], types[i], args[i]);
+        std::string v_name = arg_names[i];
+        std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
+
+        // if invalid variable name, input_v_"i" is used.
+        if (!getCore()->addOutput(v_name, types[i], args[i])) {
+            getCore()->addInput("input_v_" + std::to_string(i), types[i],
+                                args[i]);
+        }
     }
     getCore()->lockInOut();
 }
