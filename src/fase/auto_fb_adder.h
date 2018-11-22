@@ -9,11 +9,10 @@
 
 namespace fase {
 namespace for_macro {
+
 template <typename Type>
-struct Clean {
-    using type = typename std::remove_reference<
-            typename std::remove_const<Type>::type>::type;
-};
+using Cleaned = typename std::remove_reference<
+        typename std::remove_const<Type>::type>::type;
 
 template <typename T, typename... Args>
 constexpr size_t ArgC(T (*)(Args...)) {
@@ -37,11 +36,14 @@ template <typename... Types>
 struct TypeSequence {
     constexpr static size_t size = sizeof...(Types);
     template <size_t N>
-    using at = typename Clean<decltype(
-            std::get<N>(std::declval<std::tuple<Types...>>()))>::type;
+    using at = Cleaned<decltype(
+            std::get<N>(std::declval<std::tuple<Types...>>()))>;
     using tuple = std::tuple<Types...>;
     constexpr TypeSequence() {}
 };
+
+template <class TS, size_t Index>
+using Get = typename TS::template at<Index>;
 
 template <typename... Types>
 constexpr auto make_type_sequence(Types...) {
@@ -575,12 +577,10 @@ inline std::vector<std::string> GetArgStrs(std::string args_str) {
     return dst;
 }
 
-template <typename Type, class ExistingDefault, class IsBrace, class InfoType,
+template <typename Type, class InfoType, class ExistingDefault, class IsBrace,
           size_t... Seq>
 inline bool GenVariableFromString(const std::string& code, Variable* v,
-                                  TypeSequence<Type>, TypeSequence<InfoType>,
-                                  std::index_sequence<Seq...>, ExistingDefault,
-                                  IsBrace) {
+                                  std::index_sequence<Seq...>) {
     if constexpr (ExistingDefault::value) {
         if constexpr (InfoType::size == 0) {
             // Empty Init
@@ -594,14 +594,13 @@ inline bool GenVariableFromString(const std::string& code, Variable* v,
             }
         }
 
-        auto args = std::make_tuple(
-                FromString<typename InfoType::template at<Seq>>(strs[Seq])...);
+        auto args =
+                std::make_tuple(FromString<Get<InfoType, Seq>>(strs[Seq])...);
         if constexpr (IsBrace::value) {
-            BraceMake<Type, typename InfoType::template at<Seq>...>(
-                    v, std::get<Seq>(args)...);
+            BraceMake<Type, Get<InfoType, Seq>...>(v, std::get<Seq>(args)...);
         } else {
-            CBracketMake<Type, typename InfoType::template at<Seq>...>(
-                    v, std::get<Seq>(args)...);
+            CBracketMake<Type, Get<InfoType, Seq>...>(v,
+                                                      std::get<Seq>(args)...);
         }
         return true;
     }
@@ -696,10 +695,6 @@ public:
     template <typename Ret, typename... Args>
     FuncNodeStorer(std::string func_name, const std::string& code,
                    Ret (*fp)(Args...)) {
-        // if (codes.count(func_name)) {
-        //     return;
-        // }
-        // codes[func_name] = code;
         f_buf = [fp, func_name, code](
                         auto*                           core,
                         const std::vector<std::string>& default_arg_reprs,
@@ -741,7 +736,7 @@ public:
         convert(arg_code, &arg_type_reprs, &default_arg_reprs, &arg_names);
 
         constexpr Array<size_t, N> default_v_arg_c = {
-                {ArgInfoTuples::template at<Seq>::size...}};
+                {Get<ArgInfoTuples, Seq>::size...}};
 
 #ifndef NDEBUG
         std::clog << "== fb auto adder debug print begins ==" << std::endl;
@@ -762,8 +757,7 @@ public:
             std::clog << i << " ";
         }
         std::clog << std::endl;
-        std::array<bool, N> is_braces = {
-                {IsBraces::template at<Seq>::value...}};
+        std::array<bool, N> is_braces = {{Get<IsBraces, Seq>::value...}};
         for (size_t i = 0; i < N; i++) {
             std::clog << is_braces[i] << " ";
         }
@@ -776,13 +770,11 @@ public:
         std::array<std::string, N> default_v_arg_strs = {{for_macro::getArgsStr(
                 arg_type_reprs[Seq], default_arg_reprs[Seq])...}};
 
-        std::vector<bool> success = {{for_macro::GenVariableFromString(
+        std::vector<bool> success = {{for_macro::GenVariableFromString<
+                Get<ArgTypesTuple, Seq>, Get<ArgInfoTuples, Seq>,
+                Get<ExistingDefaults, Seq>, Get<IsBraces, Seq>>(
                 default_v_arg_strs[Seq], &default_args[Seq],
-                TypeSequence<typename ArgTypesTuple::template at<Seq>>{},
-                TypeSequence<typename ArgInfoTuples::template at<Seq>>{},
-                std::make_index_sequence<default_v_arg_c[Seq]>(),
-                typename ExistingDefaults::template at<Seq>(),
-                typename IsBraces::template at<Seq>())...}};
+                std::make_index_sequence<default_v_arg_c[Seq]>())...}};
 
         // TODO init default_args
         func_builder_adders.push_back([f = this->f_buf, arg_names, default_args,
@@ -845,11 +837,6 @@ private:
 
 #define Fase_StrFound(code_str, start, end, var) \
     code_str.isFound(String<sizeof(var)>{var}, start, end)
-#define Fase_SpecifyTypeStr(code_str, start, end, var)                     \
-    else if constexpr (code_str.isFound(String<sizeof(#var)>{#var}, start, \
-                                        end)) {                            \
-        return TypeSequence<var>();                                        \
-    }
 
 #define Fase_CE constexpr static inline
 
@@ -862,8 +849,7 @@ private:
             template <typename Ret, typename... Args>                          \
             AutoFunctionBuilderAdder_##func_name##c(Ret (*fp)(Args...)) {      \
                 FuncNodeStorer a(#func_name, #code, fp);                       \
-                a.build<N, decltype(infos),                                    \
-                        TypeSequence<typename Clean<Args>::type...>,           \
+                a.build<N, decltype(infos), TypeSequence<Cleaned<Args>...>,    \
                         decltype(existing_default_vs), decltype(is_brace),     \
                         Seq...>(#code, arg_start_poss, arg_end_poss);          \
             }                                                                  \
