@@ -131,8 +131,12 @@ inline float Length(const ImVec2& v) {
     return std::sqrt(v.x * v.x + v.y * v.y);
 }
 
-bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
-    return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
+bool IsKeyPressed(const GUIState& state, ImGuiKey_ key) {
+    return exists(state.pressed_keys, ImGui::GetIO().KeyMap[key]);
+};
+
+bool IsKeyDown(const GUIState& state, ImGuiKey_ key) {
+    return exists(state.down_keys, ImGui::GetIO().KeyMap[key]);
 };
 
 const Function& getFunction(const FaseCore& core,
@@ -312,6 +316,8 @@ struct CanvasState {
     std::map<std::string, GuiNode> gui_nodes;
 
     std::string hovered_slot_name = "";
+    std::string griped_node_name = "";
+
     size_t hovered_slot_idx = 0;
     bool is_hovered_slot_input = false;
     bool is_link_creating = false;
@@ -320,25 +326,26 @@ struct CanvasState {
 class GUINodePositionOptimizer {
 public:
     GUINodePositionOptimizer(const FaseCore& core_,
-                             std::map<std::string, GuiNode>& gui_nodes_)
-        : core(core_), gui_nodes(gui_nodes_) {}
+                             std::map<std::string, GuiNode>& gui_nodes_,
+                             const CanvasState& state_)
+        : core(core_), c_state(state_), gui_nodes(gui_nodes_) {}
 
     void operator()(bool opt) {
         if (opt) {
             setDestinations();
         }
         for (auto& pair : gui_nodes) {
-            if (!fase::exists(destinations, std::get<0>(pair))) {
+            const std::string& name = std::get<0>(pair);
+            GuiNode& node = std::get<1>(pair);
+            if (!fase::exists(destinations, name) ||
+                c_state.griped_node_name == name) {
                 continue;
             }
-            std::get<1>(pair).pos = destinations[std::get<0>(pair)] * .3f +
-                                    std::get<1>(pair).pos * .7f;
+            node.pos = destinations[name] * .3f + node.pos * .7f;
 
-            if (std::abs(destinations[std::get<0>(pair)].x -
-                         std::get<1>(pair).pos.x) < 1.f &&
-                std::abs(destinations[std::get<0>(pair)].y -
-                         std::get<1>(pair).pos.y) < 1.f) {
-                destinations.erase(std::get<0>(pair));
+            if (std::abs(destinations[name].x - node.pos.x) < 1.f &&
+                std::abs(destinations[name].y - node.pos.y) < 1.f) {
+                destinations.erase(name);
             }
         }
     }
@@ -350,6 +357,7 @@ private:
     static constexpr float INTERVAL_Y = 10;
 
     const FaseCore& core;
+    const CanvasState& c_state;
 
     std::map<std::string, ImVec2> destinations;
     std::map<std::string, GuiNode>& gui_nodes;
@@ -665,7 +673,7 @@ void NodeListView::main() {
         }
         if (ImGui::Selectable(label(view_ss.str()),
                               exists(state.selected_nodes, node_name))) {
-            if (IsKeyPressed(ImGuiKey_Space)) {
+            if (IsKeyDown(state, ImGuiKey_Space)) {
                 state.selected_nodes.push_back(node_name);
             } else {
                 state.selected_nodes = {node_name};
@@ -896,6 +904,12 @@ private:
 
         ImGui::Text("%s", getTitleText(node_name, node, order_idx).c_str());
 
+        if (!s_flag && ImGui::IsItemHovered() && state.mouse_double_clicked) {
+            state.mouse_double_clicked = false;
+            state.selected_nodes = {node_name};
+            state.popup_issue.emplace_back(POPUP_RENAME_NODE);
+        }
+
         ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
 
         const size_t n_args = node.links.size();
@@ -1029,6 +1043,8 @@ private:
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->ChannelsSplit(2);
         const std::map<std::string, Node>& nodes = core.getNodes();
+
+        c_state.griped_node_name = "";
         for (size_t order_idx = 0; order_idx < state.node_order.size();
              order_idx++) {
             const std::string& node_name = state.node_order[order_idx];
@@ -1062,14 +1078,14 @@ private:
 
             // Selection
             if (!any_active_old && ImGui::IsAnyItemActive()) {
-                if (IsKeyPressed(ImGuiKey_Space)) {
+                if (IsKeyDown(state, ImGuiKey_Space)) {
                     if (!exists(state.selected_nodes, node_name)) {
                         state.selected_nodes.push_back(node_name);
                     }
                 } else {
                     state.selected_nodes = {node_name};
                 }
-                if (ImGui::IsMouseDoubleClicked(0)) {
+                if (state.mouse_double_clicked) {
                     open_code_popup = true;
                     popupping_node = node_name;
                     auto func_repr = core.getNodes().at(node_name).func_repr;
@@ -1087,6 +1103,7 @@ private:
             if (!c_state.is_link_creating && ImGui::IsItemActive() &&
                 ImGui::IsMouseDragging(0, 0.f)) {
                 gui_node.pos = gui_node.pos + ImGui::GetIO().MouseDelta;
+                c_state.griped_node_name = node_name;
             }
 
             ImGui::PopID();
@@ -1101,7 +1118,7 @@ private:
         }
         draw_list->ChannelsMerge();
     }
-};
+};  // namespace guieditor
 
 class ContextMenu : public Content {
 public:
@@ -1203,7 +1220,7 @@ public:
           links_view(c_state, args...),
           node_boxes_view(var_editors, c_state, args...),
           context_menu(c_state, args...),
-          position_optimizer(core, c_state.gui_nodes) {}
+          position_optimizer(core, c_state.gui_nodes, c_state) {}
     ~NodeCanvasView() {}
 
 private:
@@ -1459,7 +1476,7 @@ View::View(const FaseCore& core_, const TypeUtils& utils_,
       utils(utils_),
       var_editors(var_editors_),
       preference_manager(),
-      state{preference_manager.get(), {}, {}, {}, {}, {}} {
+      state{preference_manager.get(), {}, {}, {}, {}, {}, {}, {}, {}, {}} {
     auto add_issue_function = [this](auto&& a) { issues.emplace_back(a); };
     node_list = std::make_unique<NodeListView>(core, label, state, utils,
                                                add_issue_function);
@@ -1476,29 +1493,54 @@ View::View(const FaseCore& core_, const TypeUtils& utils_,
 View::~View() = default;
 
 void View::updateState(const std::map<std::string, Variable>& resp) {
-    // Update Node Order.
-    std::vector<std::string> node_keys = getKeys(core.getNodes());
-    auto names = RelativeComplement(node_keys, state.node_order);
-    for (auto& name : names) {
-        state.node_order.emplace_back(std::move(name));
-    }
+    // Update Mouse Buttons
+    state.mouse_double_clicked = ImGui::IsMouseDoubleClicked(0);
+    state.mouse_clicked = ImGui::IsMouseClicked(0);
 
-    state.node_order = Intersection(state.node_order, node_keys);
-    state.selected_nodes = Intersection(state.selected_nodes, node_keys);
-    if (resp.count(REPORT_RESPONSE_ID)) {
-        state.is_running = true;
-    } else {
-        state.is_running = false;
-    }
+    // Keyboard inputs
+    ImGuiIO& io = ImGui::GetIO();
 
-    // memorize editting pipeline histry to go back from sub pipeline
-    // edittings.
-    if (state.edit_pipeline_histry.back() != core.getCurrentPipelineName()) {
-        if (exists(core.getPipelineNames(), core.getCurrentPipelineName())) {
-            // if we edit main pipeline, forget the histry.
-            state.edit_pipeline_histry.clear();
+    state.pressed_keys.clear();
+    for (int i = 0; i < IM_ARRAYSIZE(io.KeysDown); i++) {
+        if (io.KeysDownDuration[i] >= 0.0f && !exists(state.down_keys, i)) {
+            state.pressed_keys.push_back(i);
         }
-        state.edit_pipeline_histry.push_back(core.getCurrentPipelineName());
+    }
+
+    state.down_keys.clear();
+    for (int i = 0; i < IM_ARRAYSIZE(io.KeysDown); i++) {
+        if (io.KeysDownDuration[i] >= 0.0f) {
+            state.down_keys.push_back(i);
+        }
+    }
+
+    if (privious_core_version != core.getVersion()) {
+        // Update Node Order.
+        std::vector<std::string> node_keys = getKeys(core.getNodes());
+        auto names = RelativeComplement(node_keys, state.node_order);
+        for (auto& name : names) {
+            state.node_order.emplace_back(std::move(name));
+        }
+
+        state.node_order = Intersection(state.node_order, node_keys);
+        state.selected_nodes = Intersection(state.selected_nodes, node_keys);
+        if (resp.count(REPORT_RESPONSE_ID)) {
+            state.is_running = true;
+        } else {
+            state.is_running = false;
+        }
+
+        // memorize editting pipeline histry to go back from sub pipeline
+        // edittings.
+        if (state.edit_pipeline_histry.back() !=
+            core.getCurrentPipelineName()) {
+            if (exists(core.getPipelineNames(),
+                       core.getCurrentPipelineName())) {
+                // if we edit main pipeline, forget the histry.
+                state.edit_pipeline_histry.clear();
+            }
+            state.edit_pipeline_histry.push_back(core.getCurrentPipelineName());
+        }
     }
 }
 
@@ -1572,8 +1614,8 @@ std::vector<Issue> View::draw(const std::string& win_title,
 
     START_TRY("Update state");
     issues.clear();
+    updateState(resp);
     if (privious_core_version != core.getVersion()) {
-        updateState(resp);
         privious_core_version = core.getVersion();
     }
     END_TRY();

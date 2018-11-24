@@ -47,6 +47,12 @@ struct GUIState {
 
     std::list<std::string> edit_pipeline_histry;
 
+    bool mouse_clicked;
+    bool mouse_double_clicked;
+
+    std::list<int> down_keys;
+    std::list<int> pressed_keys;
+
     bool is_running = false;
 };
 

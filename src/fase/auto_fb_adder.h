@@ -949,11 +949,11 @@ private:
                                                    "l")) {                     \
                     return TypeSequence<long>();                               \
                 } else if constexpr (Fase_StrFound(code_str, Start, End,       \
-                                                   ".")) {                     \
-                    return TypeSequence<double>();                             \
-                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
                                                    "f")) {                     \
                     return TypeSequence<float>();                              \
+                } else if constexpr (Fase_StrFound(code_str, Start, End,       \
+                                                   ".")) {                     \
+                    return TypeSequence<double>();                             \
                 } else if constexpr (Fase_StrFound(code_str, Start, End,       \
                                                    "nullptr")) {               \
                     return TypeSequence<std::nullptr_t>();                     \
