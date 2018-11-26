@@ -397,6 +397,28 @@ void SetGuiStyle() {
     style.FrameBorderSize = 0.3f;
 }
 
+class ToolTipController {
+public:
+    ToolTipController(const std::string& str) {
+        if (ImGui::IsItemHovered(0)) {
+            f = true;
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(str.c_str());
+        }
+    }
+
+    ~ToolTipController() {
+        if (f) {
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
+
+private:
+    bool f = false;
+};
+
 }  // namespace
 
 class ReportPopup : public Content {
@@ -1350,6 +1372,32 @@ void NodeCanvasView::main() {
     drawChild(context_menu);
 }
 
+class EasyNodeAdder : public Content {
+public:
+    template <class... Args>
+    EasyNodeAdder(Args&&... args) : Content(args...) {}
+    ~EasyNodeAdder() {}
+
+private:
+    void main() {
+        auto& functions = core.getFunctions();
+        for (auto& pair : functions) {
+            const std::string& name = std::get<0>(pair);
+            const Function& func = std::get<1>(pair);
+
+            if (IsSpecialFuncName(name)) {
+                continue;
+            }
+
+            if (ImGui::Selectable(label(name))) {
+                throwIssue("", IssuePattern::AddNode,
+                           AddNodeInfo{GetEasyName(name, core), name});
+            }
+            ToolTipController(func.code);
+        }
+    }
+};
+
 // For Center panel
 class NodeArgEditView : public Content {
 public:
@@ -1486,6 +1534,8 @@ View::View(const FaseCore& core_, const TypeUtils& utils_,
             var_editors, core, label, state, utils, add_issue_function);
     report_window = std::make_unique<ReportPopup>(core, label, state, utils,
                                                   add_issue_function);
+    easy_node_adder = std::make_unique<EasyNodeAdder>(core, label, state, utils,
+                                                      add_issue_function);
     setupMenus(add_issue_function);
     setupPopups(add_issue_function);
 }
@@ -1567,30 +1617,39 @@ void View::drawContents(const std::map<std::string, Variable>& resp) {
 
     ImGui::Separator();
 
-    START_TRY("Left Panel");
-    if (state.preference.enable_node_list_panel) {
-        ImGui::BeginChild(label("left panel"),
-                          ImVec2(state.preference.node_list_panel_size, 0));
-        // Draw a list of nodes on the left side
-        node_list->draw(resp);
+    if (IsKeyDown(state, ImGuiKey_A)) {
+        START_TRY("Easy Node Adder");
+        ImGui::BeginChild(label("left panel"), ImVec2(300, 0));
+        easy_node_adder->draw(resp);
         ImGui::EndChild();
         ImGui::SameLine();
+        END_TRY();
+    } else {
+        START_TRY("Node list");
+        if (state.preference.enable_node_list_panel) {
+            ImGui::BeginChild(label("left panel"),
+                              ImVec2(state.preference.node_list_panel_size, 0));
+            // Draw a list of nodes on the left side
+            node_list->draw(resp);
+            ImGui::EndChild();
+            ImGui::SameLine();
+        }
+        END_TRY();
+
+        START_TRY("Argument Editor");
+        if (state.preference.enable_edit_panel) {
+            ImGui::BeginChild(label("center panel"),
+                              ImVec2(state.preference.edit_panel_size, 0));
+            // Draw a list of nodes on the center side
+            args_editor->draw(resp);
+            ImGui::EndChild();
+
+            ImGui::SameLine();
+        }
+        END_TRY();
     }
-    END_TRY();
 
-    START_TRY("Center Panel");
-    if (state.preference.enable_edit_panel) {
-        ImGui::BeginChild(label("center panel"),
-                          ImVec2(state.preference.edit_panel_size, 0));
-        // Draw a list of nodes on the left side
-        args_editor->draw(resp);
-        ImGui::EndChild();
-
-        ImGui::SameLine();
-    }
-    END_TRY();
-
-    START_TRY("Right Panel");
+    START_TRY("Node Canvas");
 
     ImGui::BeginChild(label("right canvas"));
     canvas->draw(resp);

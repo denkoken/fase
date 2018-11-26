@@ -7,25 +7,6 @@ namespace guieditor {
 
 namespace {
 
-void replace(const std::string& fr, const std::string& to, std::string* str) {
-    const size_t len = fr.length();
-    for (size_t p = str->find(fr); p != std::string::npos; p = str->find(fr)) {
-        *str = str->replace(p, len, to);
-    }
-}
-
-std::string ToSnakeCase(const std::string& in) {
-    std::string str = in;
-    if (str[0] <= 'Z' && str[0] >= 'A') {
-        str[0] -= 'A' - 'a';
-    }
-
-    for (char c = 'A'; c <= 'Z'; c++) {
-        replace({c}, "_" + std::string({char((c - 'A') + 'a')}), &str);
-    }
-    return str;
-}
-
 bool IsKeyPressed(ImGuiKey_ key, bool repeat = true) {
     return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], repeat);
 };
@@ -148,14 +129,9 @@ private:
 
     void layout() {
         if (Combo(label("Function"), &curr_idx, func_reprs)) {
-            std::string node_name = ToSnakeCase(func_reprs[size_t(curr_idx)]);
-
-            int i = 0;
-            while (core.getNodes().count(node_name)) {
-                node_name = ToSnakeCase(func_reprs[size_t(curr_idx)]) +
-                            std::to_string(++i);
-            }
-            strncpy(name_buf, node_name.c_str(), sizeof(name_buf));
+            strncpy(name_buf,
+                    GetEasyName(func_reprs[size_t(curr_idx)], core).c_str(),
+                    sizeof(name_buf));
         }
 
         bool throw_f = false;

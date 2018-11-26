@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "../core.h"
 #include "../variable.h"
 
 namespace fase {
@@ -111,6 +112,37 @@ inline bool Combo(const char* label, int* curr_idx,
                 }
             },
             static_cast<void*>(&vals), int(vals.size()));
+}
+
+inline void replace(const std::string& fr, const std::string& to,
+                    std::string* str) {
+    const size_t len = fr.length();
+    for (size_t p = str->find(fr); p != std::string::npos; p = str->find(fr)) {
+        *str = str->replace(p, len, to);
+    }
+}
+
+inline std::string ToSnakeCase(const std::string& in) {
+    std::string str = in;
+    if (str[0] <= 'Z' && str[0] >= 'A') {
+        str[0] -= 'A' - 'a';
+    }
+
+    for (char c = 'A'; c <= 'Z'; c++) {
+        replace({c}, "_" + std::string({char((c - 'A') + 'a')}), &str);
+    }
+    return str;
+}
+
+inline std::string GetEasyName(const std::string& func_name,
+                               const FaseCore& core) {
+    std::string node_name = ToSnakeCase(func_name);
+
+    int i = 0;
+    while (core.getNodes().count(node_name)) {
+        node_name = ToSnakeCase(func_name) + std::to_string(++i);
+    }
+    return node_name;
 }
 
 }  // namespace guieditor

@@ -172,6 +172,7 @@ private:
     std::unique_ptr<Content> node_list;            // left panel
     std::unique_ptr<Content> canvas;               // right panel
     std::unique_ptr<Content> args_editor;          // center panel
+    std::unique_ptr<Content> easy_node_adder;
     std::unique_ptr<Content> report_window;
 
     void setupMenus(std::function<void(Issue)>&&);
