@@ -1,21 +1,8 @@
 language: cpp
 
-os:
-    - linux
-    - osx
-
-compiler:
-    - clang++
-    - g++
-
-addons:
-  apt:
-    packages:
-    - cmake
-    - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
-
 matrix:
   include:
+    # Linux
     # works on Precise and Trusty
     - os: linux
       addons:
@@ -24,6 +11,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-6
+            - cmake
+            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
 
@@ -35,6 +24,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
+            - cmake
+            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
     # works on Trusty
@@ -44,16 +35,22 @@ matrix:
           sources:
             - llvm-toolchain-trusty-6.0
           packages:
-            - clang-5.0
+            - clang-6.0
+            - cmake
+            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
       env:
         - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0"
 
+    # Mac OS X
+    - os: osx
+      compiler: clang++
 
 before_install:
     - eval "${MATRIX_EVAL}"
 
 script:
     - cmake . && make && make test
+    - cmake -DFASE_USE_CPP17=ON . && make && make test
 
 notifications:
   email:
