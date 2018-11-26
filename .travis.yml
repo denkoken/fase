@@ -1,10 +1,20 @@
 language: cpp
 
+os:
+    - linux
+    - osx
+
 compiler:
     - clang++
     - g++
 
 install: true
+
+addons:
+  apt:
+    packages:
+    - cmake
+    - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
 
 script:
     - cmake . && make && make test
