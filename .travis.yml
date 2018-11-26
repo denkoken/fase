@@ -5,10 +5,8 @@ os:
     - osx
 
 compiler:
-    - clang++
-    - g++
-
-install: true
+    - clang++-6
+    - g++-7
 
 addons:
   apt:
