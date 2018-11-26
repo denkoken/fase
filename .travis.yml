@@ -18,3 +18,7 @@ addons:
 
 script:
     - cmake . && make && make test
+
+notifications:
+  email:
+    - skattomaskatto@gmail.com
