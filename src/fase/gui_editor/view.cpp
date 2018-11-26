@@ -133,11 +133,11 @@ inline float Length(const ImVec2& v) {
 
 bool IsKeyPressed(const GUIState& state, ImGuiKey_ key) {
     return exists(state.pressed_keys, ImGui::GetIO().KeyMap[key]);
-};
+}
 
 bool IsKeyDown(const GUIState& state, ImGuiKey_ key) {
     return exists(state.down_keys, ImGui::GetIO().KeyMap[key]);
-};
+}
 
 const Function& getFunction(const FaseCore& core,
                             const std::string& node_name) {
