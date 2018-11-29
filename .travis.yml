@@ -4,38 +4,38 @@ matrix:
   include:
     # Linux
     # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - cmake
-            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-            - cmake
-            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
-      env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
-    # works on Trusty
-    - os: linux
-      addons:
-        apt:
-          packages:
-            - cmake
-            - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
-      compiler: clang++
+    # - os: linux
+    #   addons:
+    #     apt:
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #       packages:
+    #         - g++-6
+    #         - cmake
+    #         - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
+    #   env:
+    #     - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+    #
+    # # works on Precise and Trusty
+    # - os: linux
+    #   addons:
+    #     apt:
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #       packages:
+    #         - g++-7
+    #         - cmake
+    #         - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
+    #   env:
+    #     - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+    # # works on Trusty
+    # - os: linux
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - cmake
+    #         - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
+    #   compiler: clang++
 
     # Mac OS X
     - os: osx
@@ -45,8 +45,11 @@ before_install:
     - eval "${MATRIX_EVAL}"
 
 script:
-    - mkdir build && cd build && cmake .. && make VERBOSE=1 && ./bin/test
-    - mkdir ../build17 && cd ../build17 && cmake -DFASE_USE_CPP17=ON .. && make VERBOSE=1 && ./bin/test
+    - mkdir build && cd build
+    - cmake .. && make VERBOSE=1 && ./bin/test
+    - cd ..
+    - mkdir build17 && cd build17
+    - cmake -DFASE_USE_CPP17=ON .. && make VERBOSE=1 && ./bin/test
 
 notifications:
   email:
