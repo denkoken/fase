@@ -34,11 +34,11 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-7.0
+            - llvm-toolchain-trusty-7
           packages:
-            - cmake clang-7.0
+            - cmake clang-7
             - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
-      compiler: clang++-7.0
+      compiler: clang++-7
 
     # Mac OS X
     - os: osx
