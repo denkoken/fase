@@ -218,19 +218,6 @@ private:
                     selected_in_arg = size_t(-1);
                 }
             }
-#if 0
-            // TODO
-            ImGui::SameLine();
-            if (ImGui::Button(label("Reset Input"))) {
-                const size_t arg_n =
-                        core->getNodes().at(InputNodeStr()).links.size();
-                for (size_t i = arg_n - 1; i < arg_n; i--) {
-                    core->delInput(arg_n);
-                }
-                updater();
-                ImGui::CloseCurrentPopup();
-            }
-#endif
             ImGui::Spacing();
         }
         ImGui::InputText(label("New Input Name"), in_name_buf,
@@ -268,19 +255,6 @@ private:
                     selected_out_arg = size_t(-1);
                 }
             }
-#if 0
-            // TODO
-            ImGui::SameLine();
-            if (ImGui::Button(label("Reset Output"))) {
-                const size_t arg_n =
-                        core->getNodes().at(OutputNodeStr()).links.size();
-                for (size_t i = arg_n - 1; i < arg_n; i--) {
-                    core->delOutput(arg_n);
-                }
-                updater();
-                ImGui::CloseCurrentPopup();
-            }
-#endif
             ImGui::Spacing();
         }
 
@@ -300,6 +274,36 @@ private:
         if (!error_msg.empty()) {
             ImGui::TextColored(ImVec4(255.f, 0.f, 0.f, 255.f), "%s",
                                error_msg.c_str());
+        }
+    }
+};
+
+class SubPipelinePopup : public PopupContent {
+public:
+    template <class... Args>
+    SubPipelinePopup(Args&&... args)
+        : PopupContent(POPUP_ADDING_SUB_PIPELINE, false, args...) {}
+
+    ~SubPipelinePopup() {}
+
+private:
+    char pipeline_name_buf[128] = "NewPipeline";
+    int input_f = ImGuiInputTextFlags_AutoSelectAll |
+                  ImGuiInputTextFlags_AlwaysInsertMode;
+
+    void layout() {
+        ImGui::Text("Sub Pipeline Name :");
+        ImGui::SameLine();
+        ImGui::InputText(label(""), pipeline_name_buf,
+                         sizeof(pipeline_name_buf), input_f);
+
+        bool success;
+        if (issueButton(IssuePattern::MakeSubPipeline,
+                        std::string(pipeline_name_buf), &success, "Make")) {
+            ImGui::CloseCurrentPopup();
+            throwIssue("", IssuePattern::AddNode,
+                       AddNodeInfo{pipeline_name_buf,
+                                   SubPipelineFuncStr(pipeline_name_buf)});
         }
     }
 };
@@ -330,7 +334,6 @@ private:
         Rename,
         Switch,
         ImportSub,
-        NewSub,
     } pattern = Pattern::Load;
 
     bool init() {
@@ -470,22 +473,6 @@ private:
         }
     }
 
-    void new_sub() {
-        ImGui::Text("New Sub Pipeline");
-        ImGui::Separator();
-
-        ImGui::Text("Sub Pipeline Name :");
-        ImGui::SameLine();
-        ImGui::InputText(label(""), pipeline_name_buf,
-                         sizeof(pipeline_name_buf), input_f);
-
-        bool success;
-        if (issueButton(IssuePattern::MakeSubPipeline,
-                        std::string(pipeline_name_buf), &success, "Make")) {
-            ImGui::CloseCurrentPopup();
-        }
-    }
-
     void layout() {
         ImGui::BeginChild(label("project left panel"), ImVec2(150, 400));
 #define WriteMenu(str, name)                                       \
@@ -507,7 +494,6 @@ private:
         ImGui::Spacing();
 
         WriteMenu("Import SubPipeline", ImportSub);
-        WriteMenu("New SubPipeline", NewSub);
 #undef WriteMenu
 
         ImGui::EndChild();  // project left panel
@@ -526,8 +512,6 @@ private:
             rename();
         } else if (pattern == Pattern::ImportSub) {
             import_sub();
-        } else if (pattern == Pattern::NewSub) {
-            new_sub();
         }
         ImGui::EndChild();  // project right pannel
     }
@@ -670,8 +654,9 @@ void SetupContents<Footer>(const FaseCore&, LabelWrapper&, GUIState&,
 
 void View::setupPopups(std::function<void(Issue)>&& issue_f) {
     SetupContents<PreferencePopup, NativeCodePopup, AddingNodePopup,
-                  InputOutputPopup, PipelinePopup, RenameNodePopup, Footer>(
-            core, label, state, utils, issue_f, &popups);
+                  InputOutputPopup, PipelinePopup, SubPipelinePopup,
+                  RenameNodePopup, Footer>(core, label, state, utils, issue_f,
+                                           &popups);
 }
 
 }  // namespace guieditor

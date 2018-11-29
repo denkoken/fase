@@ -1116,6 +1116,10 @@ private:
                                    std::string(GetSubPipelineNameFromFuncStr(
                                            func_repr)));
                     }
+                    if (InputNodeStr() == node_name ||
+                        OutputNodeStr() == node_name) {
+                        state.popup_issue.emplace_back(POPUP_INPUT_OUTPUT);
+                    }
                 }
             }
             if (ImGui::IsItemHovered()) {
@@ -1183,6 +1187,9 @@ private:
         if (ImGui::BeginPopup(label("Popup: Common context menu"))) {
             if (ImGui::MenuItem(label("Add node"))) {
                 state.popup_issue.emplace_back(POPUP_ADDING_NODE);
+            }
+            if (ImGui::MenuItem(label("Create sub pipeline"))) {
+                state.popup_issue.emplace_back(POPUP_ADDING_SUB_PIPELINE);
             }
             ImGui::EndPopup();
         }
@@ -1312,20 +1319,6 @@ private:
                 gui_nodes[node_name].alloc(n_args);
             }
         }
-
-#if 0
-        // Save argument positions
-        const static ImVec2 NODE_WINDOW_PADDING = NODE_WINDOW_PADDING
-        for (auto& pair : gui_nodes) {
-            GuiNode& gui_node = std::get<1>(pair);
-            for (size_t arg_idx = 0; arg_idx < gui_node.arg_poses.size(); arg_idx++) {
-                const ImVec2 pos = ImGui::GetCursorScreenPos();
-                gui_node.arg_poses[arg_idx] =
-                        ImVec2(pos.x - NODE_WINDOW_PADDING.x,
-                               pos.y + ImGui::GetTextLineHeight() * 0.5f);
-            }
-        }
-#endif
     }
 
     void main();
