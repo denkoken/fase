@@ -629,7 +629,7 @@ constexpr inline bool CheckIsBrace(String<M> code, size_t start, size_t end) {
     return bool(code.count('{', dv_s, end)) && bool(code.count('}', dv_s, end));
 }
 
-std::string FilterFuncStr(const std::string& str) {
+inline std::string FilterFuncStr(const std::string& str) {
     std::stringstream ss;
     auto              words = split(str, ' ');
 
