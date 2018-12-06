@@ -32,12 +32,24 @@ struct Y {
     std::string c;
 };
 
+class Z {
+private:
+    Z() {}
+
+public:
+    static Z createZ() {
+        return Z();
+    }
+};
+
 // clang-format off
 FaseAutoAddingFunctionBuilder( Test0,
 void Test0(int& test_dst,
+           Z& z,
            std::function<float(const int&, float&, float&)> f =
                    std::function<float(const int&, float&, float&)>(),
-           const int& b = 42, const float c = 14.6f,
+           const int& b = 42,
+           const float c = 14.6f,
            const double d = 13.1,
            std::function<float(const int&, float&, float&)> f2 = {},
            int**** cdsc = nullptr,

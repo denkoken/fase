@@ -32,6 +32,16 @@ std::tuple<Rets...> Callable::CallableReturn::get() const {
                 std::make_index_sequence<sizeof...(Rets)>());
 }
 
+template <typename Type>
+Variable WantDefaultValue(bool) {
+    return {};
+}
+
+template <typename Type>
+auto WantDefaultValue(int) -> decltype(Type(), Variable()) {
+    return Type();
+}
+
 template <typename... Args>
 void Callable::fixInput(
         const std::array<std::string, sizeof...(Args)>& arg_names,
@@ -48,7 +58,7 @@ void Callable::fixInput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable>              args = {Args()...};
+    std::vector<Variable>              args = {WantDefaultValue<Args>()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         std::string v_name = arg_names[i];
         std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
@@ -77,7 +87,7 @@ void Callable::fixOutput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable>              args = {Args()...};
+    std::vector<Variable>              args = {WantDefaultValue<Args>()...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         std::string v_name = arg_names[i];
         std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
