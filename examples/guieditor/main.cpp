@@ -59,7 +59,7 @@ void Test0(int& test_dst,
            ) {
 
     (void) test_dst; (void) f; (void) b; (void) c; (void) d; (void) f2;
-    (void) cdsc;
+    (void) cdsc; (void) z;
 
     if (x.a != 6 || x.b != 123456789) {
         throw std::runtime_error(

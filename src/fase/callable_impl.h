@@ -58,7 +58,7 @@ void Callable::fixInput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable>              args = {WantDefaultValue<Args>()...};
+    std::vector<Variable>              args = {WantDefaultValue<Args>(0)...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         std::string v_name = arg_names[i];
         std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
@@ -87,7 +87,7 @@ void Callable::fixOutput(
     }
 
     std::vector<const std::type_info*> types = {&typeid(Args)...};
-    std::vector<Variable>              args = {WantDefaultValue<Args>()...};
+    std::vector<Variable>              args = {WantDefaultValue<Args>(0)...};
     for (size_t i = 0; i < arg_names.size(); i++) {
         std::string v_name = arg_names[i];
         std::replace(std::begin(v_name), std::end(v_name), ' ', '_');
