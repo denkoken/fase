@@ -652,8 +652,7 @@ bool FaseCore::delInput(const size_t& idx) {
     if (idx >= functions[getEdittingInputFunc()].arg_names.size()) {
         return false;
     }
-
-    if (is_locked_inout) {
+    if (is_locked_inout && !sub_pipelines.count(current_pipeline)) {
         return false;
     }
 
