@@ -97,12 +97,16 @@ public:
     }
 
     void copy(Variable& v) const {
-        copyer(v, *this);
+        if (type != &typeid(void)) {
+            copyer(v, *this);
+        }
     }
 
     Variable clone() const {
         Variable v;
-        cloner(v, *this);
+        if (type != &typeid(void)) {
+            cloner(v, *this);
+        }
         return v;
     }
 
