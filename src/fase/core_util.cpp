@@ -7,12 +7,17 @@
 #include <vector>
 
 #include "core.h"
+#include "debug_macros.h"
 
 namespace fase {
 namespace {
+
+constexpr char SUB_PIPELINE_HEADER[] = "SUB_PIPELINE";
+constexpr char MAIN_PIPELINE_HEADER[] = "MAIN_PIPELINE";
 constexpr char INOUT_HEADER[] = "INOUT";
 constexpr char NODE_HEADER[] = "NODE";
 constexpr char LINK_HEADER[] = "LINK";
+constexpr char LINK_FOOTER[] = "END_LINK";
 
 std::string replace(std::string str, const std::string& fr,
                     const std::string& to) {
@@ -102,6 +107,14 @@ std::string toString(const std::string& type, const Variable& v,
     return "";
 }
 
+template <class LineIterator>
+std::string Next(LineIterator& linep) {
+    while (*linep == "") {
+        linep++;
+    }
+    return *linep;
+}
+
 bool LoadPipelineTemp(const std::string& filename, FaseCore* core,
                       const TypeUtils& utils, const std::string& target_name,
                       std::function<void(std::string&)> switch_function) {
@@ -149,23 +162,23 @@ bool LoadPipelineTemp(const std::string& filename, FaseCore* core,
     }
 }
 
-}  // namespace
-
-std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
-    std::stringstream sstream;
-
+bool PipelineToString(std::stringstream& sstream, const std::string& pipe_name,
+                      const FaseCore& core, const TypeUtils& utils) {
     // Inputs and Outputs
     sstream << std::string(INOUT_HEADER) << std::endl;
 
-    const Function& in_f = core.getFunctions().at(
-            core.getNodes().at(InputNodeStr()).func_repr);
+    const Pipeline& pipeline = core.getPipelines().at(pipe_name);
+    const std::map<std::string, Node>& nodes = pipeline.nodes;
+
+    const Function& in_f =
+            core.getFunctions().at(nodes.at(InputNodeStr()).func_repr);
     for (const std::string& name : in_f.arg_names) {
         sstream << " " << name;
     }
     sstream << std::endl;
 
-    const Function& out_f = core.getFunctions().at(
-            core.getNodes().at(OutputNodeStr()).func_repr);
+    const Function& out_f =
+            core.getFunctions().at(nodes.at(OutputNodeStr()).func_repr);
     for (const std::string& name : out_f.arg_names) {
         sstream << " " << name;
     }
@@ -174,7 +187,7 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     // Nodes
     sstream << std::string(NODE_HEADER) << std::endl;
 
-    for (const auto& pair : core.getNodes()) {
+    for (const auto& pair : nodes) {
         if (std::get<0>(pair) == InputNodeStr() ||
             std::get<0>(pair) == OutputNodeStr()) {
             continue;
@@ -198,7 +211,7 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
     // Links
     sstream << std::string(LINK_HEADER) << std::endl;
 
-    for (const auto& pair : core.getNodes()) {
+    for (const auto& pair : nodes) {
         const Node& node = std::get<1>(pair);
         for (size_t i = 0; i < node.links.size(); i++) {
             if (node.links[i].node_name.empty()) {
@@ -210,18 +223,17 @@ std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
         }
     }
 
+    sstream << std::string(LINK_FOOTER) << std::endl;
+
     // TODO
 
-    return sstream.str();
+    return true;
 }
 
-bool StringToCore(const std::string& str, FaseCore* core,
-                  const TypeUtils& utils) {
-    std::vector<std::string> lines = split(str, '\n');
-
-    auto linep = std::begin(lines);
-
-    if (*linep != std::string(INOUT_HEADER)) {
+template <class LineIterator>
+bool StringToPipeline(LineIterator& linep, FaseCore* core,
+                      const TypeUtils& utils) {
+    if (Next(linep) != std::string(INOUT_HEADER)) {
         std::cerr << "invalid file layout" << std::endl;
         return false;
     }
@@ -229,7 +241,7 @@ bool StringToCore(const std::string& str, FaseCore* core,
     linep++;
 
     {
-        auto words = split(*linep, ' ');
+        auto words = split(Next(linep), ' ');
         auto in_func = core->getFunctions().at(
                 core->getNodes().at(InputNodeStr()).func_repr);
         if (words.size() - 1 != in_func.is_input_args.size()) {
@@ -247,7 +259,7 @@ bool StringToCore(const std::string& str, FaseCore* core,
         linep++;
     }
     {
-        auto words = split(*linep, ' ');
+        auto words = split(Next(linep), ' ');
         auto out_func = core->getFunctions().at(
                 core->getNodes().at(OutputNodeStr()).func_repr);
         if (words.size() - 1 != out_func.is_input_args.size()) {
@@ -265,20 +277,16 @@ bool StringToCore(const std::string& str, FaseCore* core,
         linep++;
     }
 
+    assert(Next(linep) == NODE_HEADER);
     linep++;
 
     // Nodes
     while (true) {
-        if (*linep == "") {
-            linep++;
-            continue;
-        }
-
-        if (*linep == std::string(LINK_HEADER)) {
+        if (Next(linep) == std::string(LINK_HEADER)) {
             linep++;
             break;
         }
-        const auto words = split(*linep, ' ');
+        const auto words = split(Next(linep), ' ');
         if (!core->addNode(words.at(1), words.at(0))) {
             std::cerr << "addNode failed" << std::endl;
             return false;
@@ -300,16 +308,11 @@ bool StringToCore(const std::string& str, FaseCore* core,
 
     // Links
     while (true) {
-        if (linep == std::end(lines)) {
+        if (Next(linep) == std::string(LINK_FOOTER)) {
             break;
         }
 
-        if (*linep == "") {
-            linep++;
-            continue;
-        }
-
-        auto words = split(*linep, ' ');
+        auto words = split(Next(linep), ' ');
         if (!core->addLink(words.at(2), std::stoul(words.at(3)), words.at(0),
                            std::stoul(words.at(1)))) {
             std::cerr << "addLink failed" << std::endl;
@@ -317,9 +320,65 @@ bool StringToCore(const std::string& str, FaseCore* core,
         }
         linep++;
     }
+    return true;
+}
 
-    // TODO
+}  // namespace
 
+std::string CoreToString(const FaseCore& core, const TypeUtils& utils) {
+    std::stringstream sstream;
+
+    for (auto sub_pipe_name : core.getSubPipelineNames()) {
+        sstream << SUB_PIPELINE_HEADER << std::endl;
+        sstream << sub_pipe_name << std::endl;
+        PipelineToString(sstream, sub_pipe_name, core, utils);
+        sstream << std::endl;
+    }
+
+    sstream << MAIN_PIPELINE_HEADER << std::endl;
+    PipelineToString(sstream, core.getCurrentPipelineName(), core, utils);
+
+    return sstream.str();
+}
+
+bool StringToCore(const std::string& str, FaseCore* core,
+                  const TypeUtils& utils) {
+    std::vector<std::string> lines = split(str, '\n');
+
+    auto linep = std::begin(lines);
+
+    std::string crr_pipe = core->getCurrentPipelineName();
+
+    while (true) {
+        if (Next(linep) == SUB_PIPELINE_HEADER) {
+            linep++;
+            std::string sub_pipe_name = Next(linep);
+            core->makeSubPipeline(sub_pipe_name);
+            core->switchPipeline(sub_pipe_name);
+            linep++;
+            if (!StringToPipeline(linep, core, utils)) {
+                return false;
+            }
+        } else if (Next(linep) == MAIN_PIPELINE_HEADER) {
+            linep++;
+            core->switchPipeline(crr_pipe);
+            if (!StringToPipeline(linep, core, utils)) {
+                return false;
+            }
+        }
+        if (++linep == std::end(lines)) {
+            break;
+        }
+        bool f = false;
+        while (*linep == "") {
+            if (++linep == std::end(lines)) {
+                f = true;
+            }
+        }
+        if (f) {
+            break;
+        }
+    }
     return true;
 }
 
