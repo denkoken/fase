@@ -72,11 +72,17 @@ std::string genVarDeclaration(const std::string& type_repr,
     return ss.str();
 }
 
-std::string genFunctionCall(const std::string& func_repr,
-                            const std::vector<std::string>& var_names) {
+std::string FuncName(const std::string& func_repr) {
+    if (IsSubPipelineFuncStr(func_repr)) {
+        return GetSubPipelineNameFromFuncStr(func_repr);
+    }
+    return func_repr;
+}
+
+void genFunctionCall(std::stringstream& ss, const std::string& func_repr,
+                     const std::vector<std::string>& var_names) {
     // Add declaration code (Remove reference for declaration)
-    std::stringstream ss;
-    ss << func_repr << "(";
+    ss << FuncName(func_repr) << "(";
     for (size_t i = 0; i < var_names.size(); i++) {
         ss << var_names[i];
         if (i != var_names.size() - 1) {
@@ -84,7 +90,6 @@ std::string genFunctionCall(const std::string& func_repr,
         }
     }
     ss << ");" << std::endl;
-    return ss.str();
 }
 
 std::string getValStr(const Variable& v, const TypeUtils& utils) {
@@ -96,17 +101,20 @@ std::string getValStr(const Variable& v, const TypeUtils& utils) {
     return "";
 }
 
-void makePipelineFuncDef(const std::string& func_name, const FaseCore& core,
-                         const TypeUtils& utils,
-                         std::stringstream& code_stream) {
-    code_stream << "void " << func_name << "(";
-    const Node& in_n = core.getNodes().at(InputNodeStr());
-    const Function& in_f = core.getFunctions().at(in_n.func_repr);
+void genFuncDeclaration(std::stringstream& code_stream,
+                        const std::string& func_name,
+                        const std::map<std::string, Node>& nodes,
+                        const std::map<std::string, Function>& functions,
+                        const TypeUtils& utils) {
+    const Node& in_n = nodes.at(InputNodeStr());
+    const Node& out_n = nodes.at(OutputNodeStr());
 
-    const Node& out_n = core.getNodes().at(OutputNodeStr());
-    const Function& out_f = core.getFunctions().at(out_n.func_repr);
+    const Function& in_f = functions.at(in_n.func_repr);
+    const Function& out_f = functions.at(out_n.func_repr);
+
+    code_stream << "void " << func_name << "(";
     // Input Arguments
-    if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+    if (!nodes.at(InputNodeStr()).links.empty()) {
         const std::vector<const std::type_info*>& arg_types = in_f.arg_types;
 
         const std::vector<std::string>& names = in_f.arg_names;
@@ -126,7 +134,7 @@ void makePipelineFuncDef(const std::string& func_name, const FaseCore& core,
     if (!out_f.arg_names.empty()) {
         size_t n_args = out_f.arg_names.size();
 
-        if (!core.getNodes().at(InputNodeStr()).links.empty()) {
+        if (!nodes.at(InputNodeStr()).links.empty()) {
             code_stream << ", ";
         }
 
@@ -142,6 +150,136 @@ void makePipelineFuncDef(const std::string& func_name, const FaseCore& core,
     code_stream << ") ";
 }
 
+std::vector<std::string> genLocalVariableDef(
+        std::stringstream& native_code,
+        const std::map<std::string, Node>& nodes,
+        const std::map<std::string, Function>& functions,
+        const std::string& node_name, const TypeUtils& utils,
+        const std::string& indent) {
+    const Node& node = nodes.at(node_name);
+
+    // Argument representations
+    const std::vector<std::string>& arg_type_reprs = [&] {
+        std::vector<std::string> dst;
+        for (auto& type : functions.at(node.func_repr).arg_types) {
+            dst.emplace_back(utils.names.at(type));
+        }
+        return dst;
+    }();
+
+    std::vector<std::string> arg_reprs;
+    for (const auto& v : node.arg_values) {
+        arg_reprs.emplace_back(getValStr(v, utils));
+    }
+
+    const size_t n_args = node.links.size();
+    std::vector<std::string> var_names;
+    for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+        auto& link = node.links[arg_idx];
+        if (link.node_name.empty()) {
+            // Case 1: Create default argument
+            var_names.push_back(genVarName(node_name, arg_idx));
+            // Add declaration code
+            native_code << indent;
+            native_code << genVarDeclaration(arg_type_reprs[arg_idx],
+                                             arg_reprs[arg_idx],
+                                             var_names.back())
+                        << std::endl;
+        } else {
+            // Case 2: Use output variable
+            if (link.node_name == InputNodeStr()) {
+                const Node& in_n = nodes.at(InputNodeStr());
+                const Function& in_f = functions.at(in_n.func_repr);
+                var_names.push_back(in_f.arg_names.at(link.arg_idx));
+            } else {
+                var_names.push_back(genVarName(link.node_name, link.arg_idx));
+            }
+        }
+    }
+    return var_names;
+}
+
+void genOutputAssignment(std::stringstream& native_code,
+                         const std::map<std::string, Node>& nodes,
+                         const std::map<std::string, Function>& functions,
+                         const std::string& indent) {
+    const Node& out_n = nodes.at(OutputNodeStr());
+    const Function& out_f = functions.at(out_n.func_repr);
+
+    if (!out_f.arg_names.empty()) {
+        size_t n_args = out_f.arg_names.size();
+        for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
+            auto& link = out_n.links[arg_idx];
+            if (link.node_name.empty()) {
+                continue;
+            }
+            std::string val_name;
+            if (link.node_name == InputNodeStr()) {
+                const Node& in_n = nodes.at(InputNodeStr());
+                const Function& in_f = functions.at(in_n.func_repr);
+                val_name = in_f.arg_names[link.arg_idx];
+            } else {
+                val_name = genVarName(link.node_name, link.arg_idx);
+            }
+            native_code << indent;
+            native_code << out_f.arg_names[arg_idx] << " = " << val_name << ";"
+                        << std::endl;
+        }
+    }
+}
+
+bool genFunctionCode(std::stringstream& native_code,
+                     const std::map<std::string, Node>& nodes,
+                     const std::map<std::string, Function>& functions,
+                     const TypeUtils& utils, const std::string& entry_name,
+                     const std::string& indent) {
+    // Stack for finding runnable node
+    auto node_order = GetCallOrder(nodes);
+
+    std::string func_name = entry_name;
+    if (func_name.empty()) {
+        func_name = "Pipeline";
+    }
+
+    genFuncDeclaration(native_code, func_name, nodes, functions, utils);
+    native_code << "{" << std::endl;
+
+    while (true) {
+        // Find runnable node
+        const std::string node_name = PopFront(node_order);
+        if (node_name.empty()) {
+            break;
+        }
+
+        if (node_name.find(ReportHeaderStr()) != std::string::npos) {
+            continue;
+        }
+        const std::string& func_repr = nodes.at(node_name).func_repr;
+
+        // Add comment
+        native_code << indent;
+        native_code << "// " << func_repr << " [" << node_name << "]"
+                    << std::endl;
+
+        std::clog << __LINE__ << std::endl;
+        std::vector<std::string> var_names = genLocalVariableDef(
+                native_code, nodes, functions, node_name, utils, indent);
+        std::clog << __LINE__ << std::endl;
+
+        // Add function call
+        native_code << indent;
+        genFunctionCall(native_code, func_repr, var_names);
+        std::clog << __LINE__ << std::endl;
+    }
+    assert(node_order.empty());
+
+    genOutputAssignment(native_code, nodes, functions, indent);
+
+    native_code << "}";
+
+    return true;
+}
+
 }  // namespace
 
 std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
@@ -150,112 +288,29 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
     try {
         std::stringstream native_code;
 
-        // Stack for finding runnable node
-        auto node_order = GetCallOrder(core.getNodes());
-
-        std::string func_name = entry_name;
-        if (func_name.empty()) {
-            func_name = "Pipeline";
+        // write forward declarations of sub pipelines functions.
+        for (auto& sub_pipe_name : core.getSubPipelineNames()) {
+            auto& nodes = core.getPipelines().at(sub_pipe_name).nodes;
+            genFuncDeclaration(native_code, sub_pipe_name, nodes,
+                               core.getFunctions(), utils);
+            native_code << ";" << std::endl;
         }
+        native_code << std::endl << std::endl;
 
-        makePipelineFuncDef(func_name, core, utils, native_code);
-        native_code << "{" << std::endl;
-
-        while (true) {
-            // Find runnable node
-            const std::string node_name = PopFront(node_order);
-            if (node_name.empty()) {
-                break;
-            }
-
-            if (node_name.find(ReportHeaderStr()) != std::string::npos) {
-                continue;
-            }
-
-            const Node& node = core.getNodes().at(node_name);
-            const size_t n_args = node.links.size();
-
-            // Add comment
-            native_code << indent;
-            native_code << "// " << node.func_repr << " [" << node_name << "]"
-                        << std::endl;
-
-            // Argument representations
-            const std::vector<std::string>& arg_type_reprs = [&] {
-                std::vector<std::string> dst;
-                for (auto& type :
-                     core.getFunctions().at(node.func_repr).arg_types) {
-                    dst.emplace_back(utils.names.at(type));
-                }
-                return dst;
-            }();
-
-            std::vector<std::string> arg_reprs;
-            for (const auto& v : node.arg_values) {
-                arg_reprs.emplace_back(getValStr(v, utils));
-            }
-
-            // Collect argument names
-            std::vector<std::string> var_names;
-            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-                auto& link = node.links[arg_idx];
-                if (link.node_name.empty()) {
-                    // Case 1: Create default argument
-                    var_names.push_back(genVarName(node_name, arg_idx));
-                    // Add declaration code
-                    native_code << indent;
-                    native_code << genVarDeclaration(arg_type_reprs[arg_idx],
-                                                     arg_reprs[arg_idx],
-                                                     var_names.back())
-                                << std::endl;
-                } else {
-                    // Case 2: Use output variable
-                    if (link.node_name == InputNodeStr()) {
-                        const Node& in_n = core.getNodes().at(InputNodeStr());
-                        const Function& in_f =
-                                core.getFunctions().at(in_n.func_repr);
-                        var_names.push_back(in_f.arg_names.at(link.arg_idx));
-                    } else {
-                        var_names.push_back(
-                                genVarName(link.node_name, link.arg_idx));
-                    }
-                }
-            }
-
-            // Add function call
-            native_code << indent;
-            native_code << genFunctionCall(node.func_repr, var_names);
+        // write sub pipeline function Definitions.
+        for (auto& sub_pipe_name : core.getSubPipelineNames()) {
+            auto& nodes = core.getPipelines().at(sub_pipe_name).nodes;
+            genFunctionCode(native_code, nodes, core.getFunctions(), utils,
+                            sub_pipe_name, indent);
         }
-        assert(node_order.empty());
+        native_code << std::endl << std::endl << std::endl;
 
-        // Set output
-        const Node& out_n = core.getNodes().at(OutputNodeStr());
-        const Function& out_f = core.getFunctions().at(out_n.func_repr);
-        if (!out_f.arg_names.empty()) {
-            size_t n_args = out_f.arg_names.size();
-            for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-                auto& link = out_n.links[arg_idx];
-                if (link.node_name.empty()) {
-                    continue;
-                }
-                std::string val_name;
-                if (link.node_name == InputNodeStr()) {
-                    const Node& in_n = core.getNodes().at(InputNodeStr());
-                    const Function& in_f =
-                            core.getFunctions().at(in_n.func_repr);
-                    val_name = in_f.arg_names[link.arg_idx];
-                } else {
-                    val_name = genVarName(link.node_name, link.arg_idx);
-                }
-                native_code << indent;
-                native_code << out_f.arg_names[arg_idx] << " = " << val_name
-                            << ";" << std::endl;
-            }
-        }
-
-        native_code << "}";
+        // write current pipeline function Definitions.
+        genFunctionCode(native_code, core.getNodes(), core.getFunctions(),
+                        utils, entry_name, indent);
 
         return native_code.str();
+
     } catch (std::exception& e) {
         std::cerr << "genNativeCore() Error : " << e.what() << std::endl;
         return "Failed to generate code.";
