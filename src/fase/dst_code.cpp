@@ -157,11 +157,12 @@ std::vector<std::string> genLocalVariableDef(
         const std::string& node_name, const TypeUtils& utils,
         const std::string& indent) {
     const Node& node = nodes.at(node_name);
+    const Function& function = functions.at(node.func_repr);
 
     // Argument representations
     const std::vector<std::string>& arg_type_reprs = [&] {
         std::vector<std::string> dst;
-        for (auto& type : functions.at(node.func_repr).arg_types) {
+        for (auto& type : function.arg_types) {
             dst.emplace_back(utils.names.at(type));
         }
         return dst;
@@ -176,7 +177,9 @@ std::vector<std::string> genLocalVariableDef(
     std::vector<std::string> var_names;
     for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
         auto& link = node.links[arg_idx];
-        if (link.node_name.empty()) {
+        if (link.node_name.empty() && function.is_input_args[arg_idx]) {
+            var_names.push_back(arg_reprs[arg_idx]);
+        } else if (link.node_name.empty()) {
             // Case 1: Create default argument
             var_names.push_back(genVarName(node_name, arg_idx));
             // Add declaration code
@@ -261,15 +264,12 @@ bool genFunctionCode(std::stringstream& native_code,
         native_code << "// " << func_repr << " [" << node_name << "]"
                     << std::endl;
 
-        std::clog << __LINE__ << std::endl;
         std::vector<std::string> var_names = genLocalVariableDef(
                 native_code, nodes, functions, node_name, utils, indent);
-        std::clog << __LINE__ << std::endl;
 
         // Add function call
         native_code << indent;
         genFunctionCall(native_code, func_repr, var_names);
-        std::clog << __LINE__ << std::endl;
     }
     assert(node_order.empty());
 
