@@ -43,6 +43,15 @@ struct Pipeline {
     bool                        multi = false;
 };
 
+template <class... ReturnTypes>
+class ExportedPipe {
+    template <class... Args>
+    void operator()(Args&&... args, ReturnTypes*... returns);
+
+    template <class... Args>
+    std::tuple<ReturnTypes...> operator()(Args&&... args);
+};
+
 class FaseCore {
 public:
     FaseCore();
@@ -108,6 +117,12 @@ public:
     // ## Building, Running ##
     bool build(bool parallel_exe = false, bool profile = false);
     const std::map<std::string, ResultReport>& run();
+
+    /**
+     * @brief export a current pipeline as a callable class.
+     */
+    template <typename... ReturnTypes>
+    ExportedPipe<ReturnTypes...> exportPipeline();
 
     template <typename... Args>
     void setInput(Args&&... args);
