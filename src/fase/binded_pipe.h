@@ -22,6 +22,8 @@ public:
     std::function<void()> build(const std::vector<Variable*>& in_args) const;
     std::function<void()> build(const std::vector<Variable*>& in_args,
                                 ResultReport*                 report) const;
+    std::function<void()> buildNoTypeCheckAtRun(
+            const std::vector<Variable*>& in_args) const;
 
 private:
     const std::map<std::string, Function>* functions;

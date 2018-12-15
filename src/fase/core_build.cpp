@@ -69,12 +69,15 @@ std::function<void()> wrapPipe(const std::string& node_name,
 
 std::function<void()> BuildNode(const std::string& node_name,
                                 const std::vector<Variable*>& args,
-                                const Function& func,
+                                const Function& func, const bool opt,
                                 StrKMap<ResultReport>* report_box_) {
     if (node_name == InputNodeStr() || node_name == OutputNodeStr()) {
         return [] {};
     }
-    if (report_box_ != nullptr) {
+    std::function<std::function<void()>()> build;
+    if (opt) {
+        return func.builder->buildNoTypeCheckAtRun(args);
+    } else if (report_box_ != nullptr) {
         return wrapPipe(node_name,
                         func.builder->build(args, &(*report_box_)[node_name]));
     } else {
@@ -85,6 +88,7 @@ std::function<void()> BuildNode(const std::string& node_name,
 void BuildNodesParallel(const std::set<std::string>& runnables,
                         const size_t& step,  // for report.
                         const NodeMap& nodes, const FuncMap& functions,
+                        const bool opt,
                         StrKMap<std::vector<Variable>>* output_variables,
                         StrKMap<ResultReport>* report_box_,
                         std::vector<std::function<void()>>* built_pipeline) {
@@ -100,7 +104,7 @@ void BuildNodesParallel(const std::set<std::string>& runnables,
     for (auto& runnable : runnables) {
         funcs.emplace_back(BuildNode(runnable, variable_ps[runnable],
                                      functions.at(nodes.at(runnable).func_repr),
-                                     report_box_));
+                                     opt, report_box_));
     }
     if (report_box_ != nullptr) {
         built_pipeline->emplace_back([funcs, report_box_, step] {
@@ -150,6 +154,7 @@ void BuildNodesParallel(const std::set<std::string>& runnables,
 
 void BuildNodesNonParallel(const std::set<std::string>& runnables,
                            const NodeMap& nodes, const FuncMap& functions,
+                           const bool opt,
                            StrKMap<std::vector<Variable>>* output_variables,
                            StrKMap<ResultReport>* report_box_,
                            std::vector<std::function<void()>>* built_pipeline) {
@@ -161,7 +166,7 @@ void BuildNodesNonParallel(const std::set<std::string>& runnables,
         // Build
         built_pipeline->emplace_back(BuildNode(
                 runnable, bound_variables,
-                functions.at(nodes.at(runnable).func_repr), report_box_));
+                functions.at(nodes.at(runnable).func_repr), opt, report_box_));
     }
 }
 
@@ -209,7 +214,7 @@ bool CheckSubPipelineDependencies(const FaseCore& core) {
 }  // namespace
 
 bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
-                   bool parallel_exe,
+                   const bool parallel_exe, const bool opt,
                    std::vector<std::function<void()>>* built_pipeline,
                    StrKMap<std::vector<Variable>>* output_variables,
                    StrKMap<ResultReport>* report_box) {
@@ -228,11 +233,11 @@ bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
     size_t step = 0;
     for (auto& runnables : node_order) {
         if (parallel_exe) {
-            BuildNodesParallel(runnables, step++, nodes, functions,
+            BuildNodesParallel(runnables, step++, nodes, functions, opt,
                                output_variables, report_box, built_pipeline);
         } else {
-            BuildNodesNonParallel(runnables, nodes, functions, output_variables,
-                                  report_box, built_pipeline);
+            BuildNodesNonParallel(runnables, nodes, functions, opt,
+                                  output_variables, report_box, built_pipeline);
         }
     }
 
@@ -280,7 +285,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
         p_reports = nullptr;
     }
 
-    if (!BuildPipeline(nodes, functions, parallel_exe, &built_pipeline,
+    if (!BuildPipeline(nodes, functions, parallel_exe, false, &built_pipeline,
                        &output_variables, p_reports)) {
         return false;
     }

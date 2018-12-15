@@ -43,7 +43,8 @@ std::vector<std::set<std::string>> GetCallOrder(
 
 bool BuildPipeline(
         const std::map<std::string, Node>&     nodes,
-        const std::map<std::string, Function>& functions, bool parallel_exe,
+        const std::map<std::string, Function>& functions,
+        const bool parallel_exe, const bool optimizing_exe,
         std::vector<std::function<void()>>*           built_pipeline,
         std::map<std::string, std::vector<Variable>>* output_variables,
         std::map<std::string, ResultReport>*          report_box);
