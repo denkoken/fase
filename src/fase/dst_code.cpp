@@ -302,6 +302,7 @@ std::string GenNativeCode(const FaseCore& core, const TypeUtils& utils,
             auto& nodes = core.getPipelines().at(sub_pipe_name).nodes;
             genFunctionCode(native_code, nodes, core.getFunctions(), utils,
                             sub_pipe_name, indent);
+            native_code << std::endl << std::endl << std::endl;
         }
         native_code << std::endl << std::endl << std::endl;
 

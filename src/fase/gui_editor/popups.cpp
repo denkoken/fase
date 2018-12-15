@@ -288,8 +288,7 @@ public:
 
 private:
     char pipeline_name_buf[128] = "NewPipeline";
-    int input_f = ImGuiInputTextFlags_AutoSelectAll |
-                  ImGuiInputTextFlags_AlwaysInsertMode;
+    int input_f = ImGuiInputTextFlags_AutoSelectAll;
 
     void layout() {
         ImGui::Text("Sub Pipeline Name :");
@@ -324,8 +323,7 @@ private:
     char rename_buf[128] = "";
     int combo_idx = 0;
     std::string error_msg;
-    int input_f = ImGuiInputTextFlags_AutoSelectAll |
-                  ImGuiInputTextFlags_AlwaysInsertMode;
+    int input_f = ImGuiInputTextFlags_AutoSelectAll;
 
     enum struct Pattern {
         New,
