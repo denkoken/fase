@@ -53,10 +53,6 @@ public:
     std::function<void(Inputs&&..., Outputs*...)> getp();
 
 private:
-    ExportIntermediate& operator=(const ExportIntermediate&);
-    ExportIntermediate& operator=(ExportIntermediate&);
-    ExportIntermediate& operator=(ExportIntermediate&&);
-
     template <typename... Outputs>
     bool check();
 
