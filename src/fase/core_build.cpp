@@ -26,7 +26,7 @@ std::vector<Variable*> BindVariables(
         const auto& link = node.links[arg_idx];
         if (link.node_name.empty()) {
             // Case 1: Create default argument
-            const Variable& v = node.arg_values[arg_idx];
+            const Variable& v = node.arg_values[arg_idx].clone();
             variables->push_back(v);
         } else {
             // Case 2: Use output variable
@@ -205,11 +205,6 @@ bool checkTreeRec(const std::string& pipe, const FaseCore& core,
 }
 
 /// check that recursive dependings don't exist.
-bool CheckSubPipelineDependencies(const FaseCore& core) {
-    std::list<std::string> buildable_cache;
-    return checkTreeRec(core.getCurrentPipelineName(), core, {},
-                        buildable_cache);
-}
 
 }  // namespace
 
@@ -258,6 +253,11 @@ bool BuildPipeline(const NodeMap& nodes, const FuncMap& functions,
     return true;
 }
 
+bool FaseCore::checkSubPipelineDependencies() const {
+    std::list<std::string> buildable_cache;
+    return checkTreeRec(getCurrentPipelineName(), *this, {}, buildable_cache);
+}
+
 bool FaseCore::build(bool parallel_exe, bool profile) {
     START_TRY("build");
     // check if rebuild is necessary.
@@ -265,7 +265,7 @@ bool FaseCore::build(bool parallel_exe, bool profile) {
         return true;
     }
 
-    if (!CheckSubPipelineDependencies(*this)) {
+    if (!checkSubPipelineDependencies()) {
         std::cerr << "recursive depending of sub pipelines is found."
                   << std::endl;
         return false;

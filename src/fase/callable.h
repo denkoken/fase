@@ -143,6 +143,9 @@ public:
         getCore()->switchPipeline(pipeline_name);
     }
 
+    template <typename... Inputs>
+    ExportIntermediate<Inputs...> exportPipeline(bool multi_exe);
+
 private:
     template <typename... Args>
     CallableReturn call(const std::string& pipeline, Args&&... args);

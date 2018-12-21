@@ -240,6 +240,28 @@ int main() {
                          },
                          "Change a background color at random.\n"
                          "The mood will change too.");
+    app.addOptinalButton(
+            "Export Pipeline and Run",
+            [&] {
+                std::function<std::tuple<int, std::string>(std::string, int)>
+                        exported = app.exportPipeline<std::string, int>(false)
+                                           .get<int, std::string>();
+                try {
+                    try {
+                        auto dst = exported("a exported run", 3);
+                        std::cout << std::get<0>(dst) << ", "
+                                  << std::get<1>(dst) << std::endl;
+                    } catch (fase::ErrorThrownByNode& e) {
+                        std::cerr << "Node \"" << e.node_name
+                                  << "\" throws Error;" << std::endl;
+                        e.rethrow_nested();
+                    }
+                } catch (std::exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
+            },
+            "Change a background color at random.\n"
+            "The mood will change too.");
 
     // add serializer/deserializer
     app.registerTextIO<int>(

@@ -43,13 +43,32 @@ struct Pipeline {
     bool                        multi = false;
 };
 
-template <class... ReturnTypes>
-class ExportedPipe {
-    template <class... Args>
-    void operator()(Args&&... args, ReturnTypes*... returns);
+template <typename... Inputs>
+class ExportIntermediate {
+public:
+    template <typename... Outputs>
+    std::function<std::tuple<Outputs...>(Inputs&&...)> get();
 
-    template <class... Args>
-    std::tuple<ReturnTypes...> operator()(Args&&... args);
+    template <typename... Outputs>
+    std::function<void(Inputs&&..., Outputs*...)> getp();
+
+private:
+    ExportIntermediate& operator=(const ExportIntermediate&);
+    ExportIntermediate& operator=(ExportIntermediate&);
+    ExportIntermediate& operator=(ExportIntermediate&&);
+
+    template <typename... Outputs>
+    bool check();
+
+    std::vector<std::function<void()>>           export_exes;
+    std::map<std::string, std::vector<Variable>> local_variables;
+
+public:
+    ExportIntermediate() {}
+    ExportIntermediate(
+            std::vector<std::function<void()>>&&           export_exes_,
+            std::map<std::string, std::vector<Variable>>&& local_variables_)
+        : export_exes(export_exes_), local_variables(local_variables_) {}
 };
 
 class FaseCore {
@@ -121,8 +140,9 @@ public:
     /**
      * @brief export a current pipeline as a callable class.
      */
-    template <typename... ReturnTypes>
-    ExportedPipe<ReturnTypes...> exportPipeline();
+    template <typename... InputTypes>
+    ExportIntermediate<InputTypes...> exportPipeline(
+            bool parallel_exe = false) const;
 
     template <typename... Args>
     void setInput(Args&&... args);
@@ -173,12 +193,13 @@ private:
     std::map<std::string, ResultReport> report_box;
 
     // ## Utility functions. ##
-    bool            checkNodeName(const std::string& name);
+    bool            checkNodeName(const std::string& name) const;
     Pipeline&       getCurrentPipeline();
     const Pipeline& getCurrentPipeline() const;
+    bool            checkSubPipelineDependencies() const;
 
-    std::string getEdittingInputFunc();
-    std::string getEdittingOutputFunc();
+    std::string getEdittingInputFunc() const;
+    std::string getEdittingOutputFunc() const;
     void        initInOut();
 };
 

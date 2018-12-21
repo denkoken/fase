@@ -149,6 +149,12 @@ Callable::CallableReturn Callable::call(const std::string& pipeline,
     return {pcore->getOutputs()};
 }
 
+template <typename... Inputs>
+ExportIntermediate<Inputs...> Callable::exportPipeline(bool multi_exe) {
+    std::lock_guard<std::mutex> guard(core_mutex);
+    return getCore()->exportPipeline<Inputs...>(multi_exe);
+}
+
 }  // namespace fase
 
 #endif  // CALLABLE_IMPL_H_20181015

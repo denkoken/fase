@@ -139,7 +139,7 @@ const Pipeline& FaseCore::getCurrentPipeline() const {
     }
 }
 
-bool FaseCore::checkNodeName(const std::string& name) {
+bool FaseCore::checkNodeName(const std::string& name) const {
     if (name.empty()) {
         return false;
     }
@@ -158,13 +158,13 @@ bool FaseCore::checkNodeName(const std::string& name) {
 
 const char FaseCore::MainPipeInOutName[] = "main__";
 
-std::string FaseCore::getEdittingInputFunc() {
+std::string FaseCore::getEdittingInputFunc() const {
     if (pipelines.count(current_pipeline)) {
         return InputFuncStr(MainPipeInOutName);
     }
     return InputFuncStr(current_pipeline);
 }
-std::string FaseCore::getEdittingOutputFunc() {
+std::string FaseCore::getEdittingOutputFunc() const {
     if (pipelines.count(current_pipeline)) {
         return OutputFuncStr(MainPipeInOutName);
     }

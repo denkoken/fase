@@ -157,6 +157,129 @@ T FaseCore::getOutput(const std::string& node_name, const size_t& arg_idx,
     return *v.getReader<T>();  // Copy
 }
 
+template <typename... Inputs>
+ExportIntermediate<Inputs...> FaseCore::exportPipeline(
+        bool parallel_exe) const {
+    if (!checkSubPipelineDependencies()) {
+        std::cerr << "[FaseCore::exportPipeline()] recursive depending of sub "
+                     "pipelines is found."
+                  << std::endl;
+        return {};
+    }
+
+    // setup sub pipelines
+    for (auto& pair : sub_pipeline_fbs) {
+        std::get<1>(pair)->init(*this, sub_pipelines.at(std::get<0>(pair)));
+    }
+
+    auto& nodes = getCurrentPipeline().nodes;
+
+    std::vector<std::function<void()>>           export_exes;
+    std::map<std::string, std::vector<Variable>> local_variables;
+
+    if (!BuildPipeline(nodes, functions, parallel_exe, true, &export_exes,
+                       &local_variables, nullptr)) {
+        std::cerr << "[FaseCore::exportPipeline()] export build failed."
+                  << std::endl;
+        return {};
+    }
+
+    return ExportIntermediate<Inputs...>(std::move(export_exes),
+                                         std::move(local_variables));
+}
+
+template <typename... Args, size_t... Idx>
+inline void Let(std::index_sequence<Idx...>, std::vector<Variable>& vs,
+                Args&&... args) {
+    auto dummy = [](Args&...) {};
+    dummy(*vs[Idx].getWriter<Args>() = std::forward<Args>(args)...);
+}
+
+template <typename... Args, size_t... Idx>
+inline void Let(std::index_sequence<Idx...>, Args&... args,
+                std::vector<Variable>& vs) {
+    auto dummy = [](Args&...) {};
+    dummy(args = *vs[Idx].getWriter<Args>()...);
+}
+
+template <typename... Args, size_t... Idx>
+inline std::tuple<Args...> ToTuple(std::index_sequence<Idx...>,
+                                   std::vector<Variable>& vs) {
+    return {*vs[Idx].getWriter<Args>()...};
+}
+
+template <typename... Inputs>
+template <typename... Outputs>
+bool ExportIntermediate<Inputs...>::check() {
+    if (export_exes.size() == 0) {
+        return false;
+    }
+
+    bool valid_type = true;
+    for (size_t i = 0; i < sizeof...(Inputs); i++) {
+        std::vector<bool> check = {local_variables[InputNodeStr()][i]
+                                           .template isSameType<Inputs>()...};
+        valid_type = valid_type && check[i];
+    }
+    for (size_t i = 0; i < sizeof...(Outputs); i++) {
+        std::vector<bool> check = {local_variables[OutputNodeStr()][i]
+                                           .template isSameType<Outputs>()...};
+        valid_type = valid_type && check[i];
+    }
+    return valid_type;
+}
+
+template <typename... Inputs>
+template <typename... Outputs>
+std::function<std::tuple<Outputs...>(Inputs&&...)>
+ExportIntermediate<Inputs...>::get() {
+    if (!check<Outputs...>()) {
+        std::cerr << "[ExportIntermediate::get()] a type checking is failed."
+                  << std::endl;
+        return [](Inputs && ...) -> std::tuple<Outputs...> {
+            std::cerr << "a broken export pipe is called." << std::endl;
+            return {};
+        };
+    }
+
+    return [lvs = std::make_shared<
+                    std::map<std::string, std::vector<Variable>>>(
+                    std::move(local_variables)),
+            fs = std::move(export_exes)](Inputs&&... args) {
+        Let(std::index_sequence_for<Inputs...>(), (*lvs)[InputNodeStr()],
+            std::forward<Inputs>(args)...);
+        for (auto& f : fs) {
+            f();
+        }
+        return ToTuple<Outputs...>(std::index_sequence_for<Outputs...>(),
+                                   (*lvs)[OutputNodeStr()]);
+    };
+}
+
+template <typename... Inputs>
+template <typename... Outputs>
+std::function<void(Inputs&&..., Outputs*...)>
+ExportIntermediate<Inputs...>::getp() {
+    if (!check<Outputs...>()) {
+        std::cerr << "[ExportIntermediate::getp()] a type checking is failed."
+                  << std::endl;
+        return [](Inputs && ...) -> std::tuple<Outputs...> {
+            std::cerr << "a broken export pipe is called." << std::endl;
+        };
+    }
+
+    return [lvs = std::move(local_variables), fs = std::move(export_exes)](
+                   Inputs&&... args, Outputs*... outputs) {
+        Let(std::index_sequence_for<Inputs...>(), lvs[InputNodeStr()],
+            std::forward<Inputs>(args)...);
+        for (auto& f : fs) {
+            f();
+        }
+        Let(std::index_sequence_for<Outputs...>(), (*outputs)...,
+            lvs[OutputNodeStr()]);
+    };
+}
+
 }  // namespace fase
 
 #endif  // CORE_IMPL_H_20180622
