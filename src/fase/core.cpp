@@ -219,7 +219,7 @@ FaseCore& FaseCore::operator=(FaseCore& another) {
 
     is_locked_inout = another.is_locked_inout;
 
-    output_variables = decltype(output_variables)();
+    output_variables = another.output_variables;
     built_version = 0;
     is_profiling_built = another.is_profiling_built;
     report_box = decltype(report_box)();
@@ -956,6 +956,11 @@ const std::string& FaseCore::getMainPipelineNameLastSelected() const noexcept {
 
 const std::vector<Variable>& FaseCore::getOutputs() const {
     return output_variables.at(OutputNodeStr());
+}
+
+const std::map<std::string, std::vector<Variable>>& FaseCore::getOutputsAll()
+        const {
+    return output_variables;
 }
 
 int FaseCore::getVersion() const {

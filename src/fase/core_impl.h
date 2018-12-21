@@ -189,15 +189,15 @@ ExportIntermediate<Inputs...> FaseCore::exportPipeline(
 }
 
 template <typename... Args, size_t... Idx>
-inline void Let(std::index_sequence<Idx...>, std::vector<Variable>& vs,
-                Args&&... args) {
+inline void LetL2R(std::index_sequence<Idx...>, std::vector<Variable>& vs,
+                   Args&&... args) {
     auto dummy = [](Args&...) {};
     dummy(*vs[Idx].getWriter<Args>() = std::forward<Args>(args)...);
 }
 
 template <typename... Args, size_t... Idx>
-inline void Let(std::index_sequence<Idx...>, Args&... args,
-                std::vector<Variable>& vs) {
+inline void LetR2L(std::index_sequence<Idx...>, std::vector<Variable>& vs,
+                   Args&... args) {
     auto dummy = [](Args&...) {};
     dummy(args = *vs[Idx].getWriter<Args>()...);
 }
@@ -246,8 +246,8 @@ ExportIntermediate<Inputs...>::get() {
                     std::map<std::string, std::vector<Variable>>>(
                     std::move(local_variables)),
             fs = std::move(export_exes)](Inputs&&... args) {
-        Let(std::index_sequence_for<Inputs...>(), (*lvs)[InputNodeStr()],
-            std::forward<Inputs>(args)...);
+        LetL2R(std::index_sequence_for<Inputs...>(), (*lvs)[InputNodeStr()],
+               std::forward<Inputs>(args)...);
         for (auto& f : fs) {
             f();
         }
@@ -263,20 +263,23 @@ ExportIntermediate<Inputs...>::getp() {
     if (!check<Outputs...>()) {
         std::cerr << "[ExportIntermediate::getp()] a type checking is failed."
                   << std::endl;
-        return [](Inputs && ...) -> std::tuple<Outputs...> {
+        return [](Inputs&&..., Outputs*...) {
             std::cerr << "a broken export pipe is called." << std::endl;
         };
     }
 
-    return [lvs = std::move(local_variables), fs = std::move(export_exes)](
-                   Inputs&&... args, Outputs*... outputs) {
-        Let(std::index_sequence_for<Inputs...>(), lvs[InputNodeStr()],
-            std::forward<Inputs>(args)...);
+    return [lvs = std::make_shared<
+                    std::map<std::string, std::vector<Variable>>>(
+                    std::move(local_variables)),
+            fs = std::move(export_exes)](Inputs&&... args,
+                                         Outputs*... outputs) {
+        LetL2R(std::index_sequence_for<Inputs...>(), (*lvs)[InputNodeStr()],
+               std::forward<Inputs>(args)...);
         for (auto& f : fs) {
             f();
         }
-        Let(std::index_sequence_for<Outputs...>(), (*outputs)...,
-            lvs[OutputNodeStr()]);
+        LetR2L(std::index_sequence_for<Outputs...>(), (*lvs)[OutputNodeStr()],
+               (*outputs)...);
     };
 }
 

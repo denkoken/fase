@@ -157,7 +157,8 @@ public:
     std::vector<std::string> getSubPipelineNames() const;
     const std::string&       getMainPipelineNameLastSelected() const noexcept;
 
-    const std::vector<Variable>& getOutputs() const;
+    const std::vector<Variable>&                        getOutputs() const;
+    const std::map<std::string, std::vector<Variable>>& getOutputsAll() const;
     template <typename T>
     T getOutput(const std::string& node_name, const size_t& arg_idx,
                 const T& default_value = T());

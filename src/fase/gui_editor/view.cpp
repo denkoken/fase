@@ -977,7 +977,10 @@ private:
             } else if (var_editors.count(arg_type)) {
                 // Call registered GUI for editing
                 auto& func = var_editors.at(arg_type);
-                const Variable& var = node.arg_values[arg_idx];
+                const Variable& var =
+                        core.getOutputsAll().count(node_name) ?
+                                core.getOutputsAll().at(node_name)[arg_idx] :
+                                node.arg_values[arg_idx];
                 std::string expr;
                 const std::string view_label = arg_name + "##" + node_name;
                 Variable v = func(label(view_label), var);
@@ -1443,7 +1446,11 @@ private:
         const Node& node = core.getNodes().at(state.selected_nodes[0]);
         const Function& f = core.getFunctions().at(node.func_repr);
         size_t arg_idx = getIndex(f.arg_names, arg_name);
-        const Variable& var = node.arg_values[arg_idx];
+        const Variable& var =
+                core.getOutputsAll().count(state.selected_nodes[0]) ?
+                        core.getOutputsAll().at(
+                                state.selected_nodes[0])[arg_idx] :
+                        node.arg_values[arg_idx];
         std::string expr;
         const std::string view_label = arg_name;
         ImGui::BeginGroup();
