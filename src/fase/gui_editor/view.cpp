@@ -1582,7 +1582,7 @@ void View::updateState(const std::map<std::string, Variable>& resp) {
 
         // memorize editting pipeline histry to go back from sub pipeline
         // edittings.
-        if (state.edit_pipeline_histry.back() !=
+        if (0 < state.edit_pipeline_histry.size() && state.edit_pipeline_histry.back() !=
             core.getCurrentPipelineName()) {
             if (exists(core.getPipelineNames(),
                        core.getCurrentPipelineName())) {
