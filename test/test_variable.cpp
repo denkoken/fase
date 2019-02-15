@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "fase/fase.h"
+#include "fase2/fase.h"
 using namespace fase;
 
 class TestClass {
@@ -48,51 +48,42 @@ TEST_CASE("Variable test") {
         REQUIRE(v.getReader<TestClass>()->isMaked());
     }
 
-    SECTION("Create by temporary value") {
-        Variable v = TestClass();
-        REQUIRE(v.isSameType<TestClass>());
-        REQUIRE(v.getReader<TestClass>()->isMoved());
-    }
-
-    SECTION("Create by instance copy") {
-        TestClass a;
-        Variable v = a;
-        REQUIRE(a.isMaked());
-        REQUIRE(v.isSameType<TestClass>());
-        REQUIRE(v.getReader<TestClass>()->isMoved());
-        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal (copied)
-    }
-
-    SECTION("Create by instance move") {
-        TestClass a;
-        Variable v = std::move(a);
-        REQUIRE(v.isSameType<TestClass>());
-        REQUIRE(v.getReader<TestClass>()->isMoved());
-        REQUIRE(&*v.getReader<TestClass>() != &a);  // Not equal (copied)
-    }
-
-    SECTION("Create by set") {
-        std::shared_ptr<TestClass> a = std::make_shared<TestClass>();
-        Variable v = a;
-        REQUIRE(v.isSameType<TestClass>());
-        REQUIRE(v.getReader<TestClass>()->isMaked());  // Not copied
-        REQUIRE(&*v.getReader<TestClass>() == &*a);    // Equal (pointer copied)
-    }
-
-    SECTION("Create by const reference") {
-        const std::string &s = "test string";
-        Variable v = s;
-        REQUIRE(v.isSameType<std::string>());
-        REQUIRE(*v.getReader<std::string>() == "test string");
-        REQUIRE(&*v.getReader<std::string>() != &s);  // Not equal (copied)
-    }
-
     SECTION("Copy") {
-        Variable a = TestClass();
-        Variable b = TestClass();
+        Variable a;
+        a.create<TestClass>();
+        Variable b;
+        b.create<TestClass>();
         a.getReader<TestClass>()->clear();
         b.getReader<TestClass>()->clear();
         a = b;
+        REQUIRE(a.isSameType(b));
+        REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
+        REQUIRE(a.getReader<TestClass>()->isCopied());
+        REQUIRE(b.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("Clone copy") {
+        Variable a;
+        a.create<TestClass>();
+        Variable b;
+        b.create<TestClass>();
+        a.getReader<TestClass>()->clear();
+        b.getReader<TestClass>()->clear();
+        a = b.clone();
+        REQUIRE(a.isSameType(b));
+        REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
+        REQUIRE(a.getReader<TestClass>()->isCopied());
+        REQUIRE(b.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("Ref Copy") {
+        Variable a;
+        a.create<TestClass>();
+        Variable b;
+        b.create<TestClass>();
+        a.getReader<TestClass>()->clear();
+        b.getReader<TestClass>()->clear();
+        a = b.ref();
         REQUIRE(a.isSameType(b));
         REQUIRE(&(*a.getReader<TestClass>()) == &(*b.getReader<TestClass>()));
         // No copy/move is happened because shared_ptr is copied.
@@ -101,8 +92,10 @@ TEST_CASE("Variable test") {
     }
 
     SECTION("Move") {
-        Variable a = TestClass();
-        Variable b = TestClass();
+        Variable a;
+        a.create<TestClass>();
+        Variable b;
+        b.create<TestClass>();
         a.getReader<TestClass>()->clear();
         b.getReader<TestClass>()->clear();
         a = std::move(b);
@@ -110,17 +103,18 @@ TEST_CASE("Variable test") {
     }
 
     SECTION("Clone") {
-        Variable a = TestClass();
-        Variable b = a.clone();
+        Variable a;
+        a.create<TestClass>();
         a.getReader<TestClass>()->clear();
-        b.getReader<TestClass>()->clear();
+        Variable b = a.clone();
         REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
         REQUIRE(a.getReader<TestClass>()->isNone());
-        REQUIRE(b.getReader<TestClass>()->isNone());
+        REQUIRE(b.getReader<TestClass>()->isCopied());
     }
 
     SECTION("WrongTypeCast") {
-        Variable test_class = TestClass();
+        Variable test_class;
+        test_class.create<TestClass>();
         try {
             test_class.getReader<float>();
             REQUIRE(false);

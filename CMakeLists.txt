@@ -175,18 +175,7 @@ endif()
 
 # fase.so
 add_library(fase ${LINK_TYPE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/fase.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core_util.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/core_build.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/binded_pipe.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/type_utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/dst_code.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/editor_cli.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/editor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/view.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/popups.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase/gui_editor/menus.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/core.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
@@ -202,19 +191,19 @@ if (FASE_BUILD_EXAMPLES)
     # setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
     # GUI Editor
-    add_executable(guieditor
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
-    )
-    setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    # add_executable(guieditor
+    #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
+    # )
+    # setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
     # GUI Editor with OpenCV
     if (${OpenCV_FOUND})
-        add_executable(guieditor_opencv
-            ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main_opencv.cpp
-        )
-        list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
-        list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
-        setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+        # add_executable(guieditor_opencv
+        #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main_opencv.cpp
+        # )
+        # list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
+        # list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
+        # setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
     endif()
 endif()
 

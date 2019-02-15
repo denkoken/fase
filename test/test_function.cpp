@@ -1,56 +1,45 @@
 #include "catch.hpp"
 
-#include "fase/fase.h"
+#include "fase2/fase.h"
 using namespace fase;
 
 TEST_CASE("FunctionBuilder test") {
-    FunctionBuilder<int, int &, float> builder = [](int a, int &b, float c) {
-        (void)a;
-        b += c;
+    auto non_copyable = std::make_unique<int>(4);
+    auto buf = [non_copyable = std::move(non_copyable)](int a, float& b,
+                                                        double&& c) {
+        a++;
+        b += 2.f;
+        return a * int(b) + c;
     };
-    FunctionBuilder<int, int &, float> builder2 = [](int a, int &b, float c) {
-        b += (a + c);
+
+    auto worker = fase::UnivFuncGenerator<int, float&, double&&>::Gen(buf);
+
+    std::vector<fase::Variable> vs(3);
+
+    vs[0].create<int>(5);
+    vs[1].create<float>(3.5f);
+    vs[2].create<double>(5.3);
+
+    auto check = [&vs]() {
+        printf("%d, %f, %f\n", *vs[0].getReader<int>(),
+               *vs[1].getReader<float>(), *vs[2].getReader<double>());
     };
-    Variable v1 = 1, v2 = 2, v3 = 3.f;
 
-    SECTION("Dynamic build") {
-        std::function<void()> f = builder.build({&v1, &v2, &v3});
-        REQUIRE(*v2.getReader<int>() == 2);  // 2
-        f();
-        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
-        f();
-        REQUIRE(*v2.getReader<int>() == 8);  // 5 + 3
-    }
+    worker(vs);
+    REQUIRE(*vs[0].getReader<int>() == 5);
+    REQUIRE(*vs[1].getReader<float>() == 5.5f);
+    REQUIRE(*vs[2].getReader<double>() == 5.3);
+    worker(vs);
+    REQUIRE(*vs[0].getReader<int>() == 5);
+    REQUIRE(*vs[1].getReader<float>() == 7.5f);
+    REQUIRE(*vs[2].getReader<double>() == 5.3);
 
-    SECTION("Static build") {
-        std::function<void()> f = builder.build(&v1, &v2, &v3);
-        REQUIRE(*v2.getReader<int>() == 2);  // 2
-        f();
-        REQUIRE(*v2.getReader<int>() == 5);  // 2 + 3
-        f();
-        REQUIRE(*v2.getReader<int>() == 8);  // 5 + 3
-    }
+    vs.emplace_back();
+    vs[3].create<int>(9);
 
-    SECTION("Call by loop") {
-        REQUIRE_NOTHROW([&]() {
-            std::vector<FunctionBuilderBase *> builders = {&builder, &builder2,
-                                                           &builder};
-            REQUIRE(*v2.getReader<int>() == 2);  // 2
-            for (auto &b : builders) {
-                std::function<void()> f = b->build({&v1, &v2, &v3});
-                f();
-            }
-            REQUIRE(*v2.getReader<int>() == 12);  // 2 + 3 + (1 + 3) + 3
-        }());
-    }
-
-    SECTION("InvalidArgN") {
-        try {
-            builder.build({&v1, &v2});
-            REQUIRE(false);
-        } catch (InvalidArgN &e) {
-            REQUIRE(e.input_n == 2);
-            REQUIRE(e.expected_n == 3);
-        }
+    try {
+        worker(vs);
+        REQUIRE(false);
+    } catch (std::exception& e) {
     }
 }
