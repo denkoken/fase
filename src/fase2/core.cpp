@@ -1,6 +1,8 @@
 
 #include "core.h"
 
+#include <algorithm>
+#include <limits>
 #include <map>
 #include <memory>
 #include <vector>
