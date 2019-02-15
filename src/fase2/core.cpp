@@ -1,33 +1,22 @@
 
 #include "core.h"
 
-#include <algorithm>
 #include <limits>
 #include <map>
 #include <memory>
 #include <vector>
 
 #include "constants.h"
+#include "utils.h"
 
 namespace fase {
 
-using std::begin;
-using std::end;
 using std::map;
 using std::size_t;
 using std::string;
 using std::vector;
 
 using Vars = vector<Variable>;
-
-namespace {
-
-template <typename T, typename C>
-bool exsists(T& t, C& c) {
-    return end(c) != std::find(begin(c), end(c), t);
-}
-
-}  // namespace
 
 struct Node {
     string worker_name;
@@ -81,7 +70,7 @@ private:
     Vars inputs;
     Vars outputs;
 
-    vector<string> getRunOrder();
+    vector<vector<string>> getRunOrder();
 };
 
 // ============================= Member Functions ==============================
@@ -160,7 +149,7 @@ bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
     for (size_t i = 0; i < vars.size(); i++) {
         inputs[i] = vars[i].ref();
     }
-    nodes[InputNodeName()].args = inputs;
+    nodes[InputNodeName()].args.resize(inputs.size());
     return true;
 }
 
@@ -173,8 +162,9 @@ bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
     return true;
 }
 
-vector<string> Core::Impl::getRunOrder() {
+vector<vector<string>> Core::Impl::getRunOrder() {
     vector<string> dones = {InputNodeName()};
+    vector<vector<string>> dst;
 
     while (1) {
         int max_priority = std::numeric_limits<int>::min();
@@ -197,6 +187,7 @@ vector<string> Core::Impl::getRunOrder() {
             if (ok_f) {
                 if (node.priority > max_priority) {
                     runnables.clear();
+                    max_priority = node.priority;
                 }
                 if (node.priority >= max_priority) {
                     runnables.push_back(name);
@@ -204,42 +195,40 @@ vector<string> Core::Impl::getRunOrder() {
             }
         }
 
-        for (auto& a : runnables) {
-            dones.push_back(a);
-        }
-
-        if (dones.size() == nodes.size()) {
-            break;
-        }
-
         if (runnables.size() == 0) {
             return {};
         }
-    }
 
-    return {begin(dones) + 1, end(dones)};
+        dst.emplace_back(std::move(runnables));
+
+        if ([&dst] {
+                size_t s = 0;
+                for (auto& d : dst) s += d.size();
+                return s;
+            }() == nodes.size()) {
+            return dst;
+        }
+    }
 }
 
 bool Core::Impl::run() {
-    vector<string> order = getRunOrder();
+    vector<vector<string>> order = getRunOrder();
     if (order.size() == 0) {
         return false;
     }
 
-    nodes[InputNodeName()].args.resize(inputs.size());
+    nodes[InputNodeName()].args = inputs;
     nodes[OutputNodeName()].args.resize(outputs.size());
-
-    for (size_t i = 0; i < inputs.size(); i++) {
-        inputs[i] = nodes[InputNodeName()].args[i].clone();
-    }
 
     for (auto& link : links) {
         nodes[link.dst_node].args[link.dst_arg] =
                 nodes[link.src_node].args[link.src_arg].ref();
     }
 
-    for (auto& name : order) {
-        workers[nodes[name].worker_name].worker(nodes[name].args);
+    for (auto& names : order) {
+        for (auto& name : names) {
+            workers[nodes[name].worker_name].worker(nodes[name].args);
+        }
     }
 
     for (size_t i = 0; i < outputs.size(); i++) {
