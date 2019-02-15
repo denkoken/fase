@@ -46,6 +46,7 @@ public:
 
     // ======= stable API =========
     bool newNode(const string& name) noexcept;
+    bool renameNode(const std::string& old_name, const std::string& new_name);
     bool delNode(const string& name) noexcept;
 
     bool setArgument(const string& node, size_t idx, Variable& var);
@@ -96,8 +97,28 @@ bool Core::Impl::newNode(const string& name) noexcept {
     return true;
 }
 
+bool Core::Impl::renameNode(const std::string& old_name,
+                            const std::string& new_name) {
+    if (nodes.count(old_name)) {
+        return false;
+    }
+    nodes[new_name] = std::move(nodes[old_name]);
+    for (auto& link : links) {
+        if (link.dst_node == old_name) link.dst_node = new_name;
+        if (link.src_node == old_name) link.src_node = new_name;
+    }
+    return true;
+}
+
 bool Core::Impl::delNode(const string& name) noexcept {
-    return nodes.size() != nodes.erase(name);
+    if (nodes.count(name)) {
+        for (size_t i = 0; i < nodes[name].args.size(); i++) {
+            unlinkNode(name, i);
+        }
+        nodes.erase(name);
+        return true;
+    }
+    return false;
 }
 
 bool Core::Impl::setArgument(const string& node, size_t idx, Variable& var) {
@@ -254,6 +275,10 @@ bool Core::addUnivFunc(UnivFunc&& worker, const string& name,
 // ======= stable API =========
 bool Core::newNode(const string& name) noexcept {
     return pimpl->newNode(name);
+}
+bool Core::renameNode(const std::string& old_name,
+                      const std::string& new_name) {
+    return pimpl->renameNode(name);
 }
 bool Core::delNode(const string& name) noexcept {
     return pimpl->delNode(name);

@@ -49,6 +49,7 @@ public:
 
     // ======= stable API =========
     bool newNode(const std::string& name) noexcept;
+    bool renameNode(const std::string& old_name, const std::string& new_name);
     bool delNode(const std::string& name) noexcept;
 
     bool setArgument(const std::string& node, std::size_t idx, Variable& var);
