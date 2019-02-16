@@ -125,11 +125,6 @@ public:
         return v;
     }
 
-    template <typename T>
-    std::shared_ptr<const T> getPointer() const;
-    template <typename T>
-    std::shared_ptr<T> getPointer();
-
     explicit operator bool() const noexcept {
         return type != &typeid(void);
     }

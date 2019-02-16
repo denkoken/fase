@@ -1,8 +1,8 @@
 
 #include "core.h"
 
+#include <iostream>
 #include <limits>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -11,18 +11,27 @@
 
 namespace fase {
 
+constexpr char kInputFuncName[] = "FASE::InputFunc";
+constexpr char kOutputFuncName[] = "FASE::OutputFunc";
+
 using std::map;
-using std::size_t;
+using size_t = std::size_t;
 using std::string;
 using std::vector;
 
 using Vars = vector<Variable>;
 
-struct Node {
-    string worker_name;
-    vector<Variable> args;
-    int priority;
-};
+namespace {
+
+void RefCopy(Vars& src, Vars* dst) {
+    dst->clear();
+    dst->resize(src.size());
+    for (size_t i = 0; i < src.size(); i++) {
+        (*dst)[i] = src[i].ref();
+    }
+}
+
+}  // namespace
 
 struct Link {
     string src_node;
@@ -31,8 +40,8 @@ struct Link {
     size_t dst_arg;
 };
 
-struct WorkProp {
-    UnivFunc worker;
+struct FuncProps {
+    UnivFunc func;
     Vars default_args;
 };
 
@@ -41,18 +50,18 @@ public:
     Impl();
 
     // ======= unstable API =========
-    bool addUnivFunc(UnivFunc&& worker, const string& name,
+    bool addUnivFunc(UnivFunc&& func, const string& name,
                      std::vector<Variable>&& default_args);
 
     // ======= stable API =========
-    bool newNode(const string& name) noexcept;
+    bool newNode(const string& name);
     bool renameNode(const std::string& old_name, const std::string& new_name);
-    bool delNode(const string& name) noexcept;
+    bool delNode(const string& name);
 
     bool setArgument(const string& node, size_t idx, Variable& var);
     bool setPriority(const std::string& node, int priority);
 
-    bool allocateWork(const string& work, const string& node);
+    bool allocateFunc(const string& work, const string& node);
     bool linkNode(const string& src_node, size_t src_arg,
                   const string& dst_node, size_t dst_arg);
     bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
@@ -62,8 +71,12 @@ public:
 
     bool run();
 
+    const auto& getNodes() const noexcept {
+        return nodes;
+    }
+
 private:
-    map<string, WorkProp> workers;
+    map<string, FuncProps> funcs;
     map<string, Node> nodes;
 
     vector<Link> links;
@@ -71,25 +84,33 @@ private:
     Vars inputs;
     Vars outputs;
 
+    vector<Variable>& defaultArgs(const std::string& node_name) {
+        return funcs[nodes[node_name].func_name].default_args;
+    }
     vector<vector<string>> getRunOrder();
 };
 
 // ============================= Member Functions ==============================
 
 Core::Impl::Impl() {
-    nodes[InputNodeName()];
+    nodes[InputNodeName()] = {
+            kInputFuncName, {}, std::numeric_limits<int>::max()};
     nodes[OutputNodeName()];
-    workers[""] = {UnivFunc([](auto&) {}), {}};
+    nodes[OutputNodeName()] = {
+            kOutputFuncName, {}, std::numeric_limits<int>::min()};
+    auto no_task = UnivFunc([](auto&) {});
+    funcs[kOutputFuncName] = {no_task, {}};
+    funcs[kInputFuncName] = {no_task, {}};
 }
 
-bool Core::Impl::addUnivFunc(UnivFunc&& worker, const string& name,
+bool Core::Impl::addUnivFunc(UnivFunc&& func, const string& name,
                              std::vector<Variable>&& default_args) {
-    workers[name] = {std::forward<UnivFunc>(worker),
-                     std::forward<vector<Variable>>(default_args)};
+    funcs[name] = {std::forward<UnivFunc>(func),
+                   std::forward<vector<Variable>>(default_args)};
     return true;
 }
 
-bool Core::Impl::newNode(const string& name) noexcept {
+bool Core::Impl::newNode(const string& name) {
     if (nodes.count(name)) {
         return false;
     }
@@ -99,7 +120,8 @@ bool Core::Impl::newNode(const string& name) noexcept {
 
 bool Core::Impl::renameNode(const std::string& old_name,
                             const std::string& new_name) {
-    if (nodes.count(old_name)) {
+    if (!nodes.count(old_name) || old_name == InputNodeName() ||
+        old_name == OutputNodeName()) {
         return false;
     }
     nodes[new_name] = std::move(nodes[old_name]);
@@ -110,8 +132,9 @@ bool Core::Impl::renameNode(const std::string& old_name,
     return true;
 }
 
-bool Core::Impl::delNode(const string& name) noexcept {
-    if (nodes.count(name)) {
+bool Core::Impl::delNode(const string& name) {
+    if (nodes.count(name) && name != InputNodeName() &&
+        name != OutputNodeName()) {
         for (size_t i = 0; i < nodes[name].args.size(); i++) {
             unlinkNode(name, i);
         }
@@ -122,7 +145,7 @@ bool Core::Impl::delNode(const string& name) noexcept {
 }
 
 bool Core::Impl::setArgument(const string& node, size_t idx, Variable& var) {
-    if (idx >= nodes.size()) {
+    if (idx >= nodes.size() || !defaultArgs(node)[idx].isSameType(var)) {
         return false;
     }
     nodes[node].args[idx] = var.ref();
@@ -131,27 +154,29 @@ bool Core::Impl::setArgument(const string& node, size_t idx, Variable& var) {
 
 bool Core::Impl::setPriority(const string& node, int priority) {
     if (nodes.count(node)) {
-        return false;
+        nodes[node].priority = priority;
+        return true;
     }
-
-    nodes[node].priority = priority;
-    return true;
+    return false;
 }
 
-bool Core::Impl::allocateWork(const string& work, const string& node) {
-    if (workers.count(work)) {
-        return false;
+bool Core::Impl::allocateFunc(const string& func, const string& node) {
+    if (funcs.count(func)) {
+        nodes[node].func_name = func;
+        nodes[node].args = funcs[func].default_args;
+        return true;
     }
-    nodes[node].worker_name = work;
-    nodes[node].args.resize(workers[work].default_args.size());
-    return true;
+    return false;
 }
 
-bool Core::Impl::linkNode(const string& src_node, size_t src_arg,
-                          const string& dst_node, size_t dst_arg) {
-    unlinkNode(dst_node, dst_arg);
-    links.emplace_back(Link{src_node, src_arg, dst_node, dst_arg});
-    return true;
+bool Core::Impl::linkNode(const string& src_node, size_t s_idx,
+                          const string& dst_node, size_t d_idx) {
+    if (defaultArgs(src_node)[s_idx].isSameType(defaultArgs(dst_node)[d_idx])) {
+        unlinkNode(dst_node, d_idx);
+        links.emplace_back(Link{src_node, s_idx, dst_node, d_idx});
+        return true;
+    }
+    return false;
 }
 
 bool Core::Impl::unlinkNode(const std::string& dst_node, std::size_t dst_arg) {
@@ -165,27 +190,27 @@ bool Core::Impl::unlinkNode(const std::string& dst_node, std::size_t dst_arg) {
 }
 
 bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
-    inputs.clear();
-    inputs.resize(vars.size());
-    for (size_t i = 0; i < vars.size(); i++) {
-        inputs[i] = vars[i].ref();
-    }
-    nodes[InputNodeName()].args.resize(inputs.size());
+    RefCopy(vars, &inputs);
+    nodes[InputNodeName()].args = vars;
+    defaultArgs(InputNodeName()) = vars;
     return true;
 }
 
 bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
-    outputs.clear();
-    outputs.resize(vars.size());
-    for (size_t i = 0; i < vars.size(); i++) {
-        outputs[i] = vars[i].ref();
-    }
+    RefCopy(vars, &outputs);
+    RefCopy(vars, &nodes[OutputNodeName()].args);
+    defaultArgs(OutputNodeName()) = vars;
     return true;
 }
 
 vector<vector<string>> Core::Impl::getRunOrder() {
     vector<string> dones = {InputNodeName()};
-    vector<vector<string>> dst;
+    vector<vector<string>> dst = {dones};
+    auto get_size = [](auto& double_array) {
+        size_t s = 0;
+        for (auto& d : double_array) s += d.size();
+        return s;
+    };
 
     while (1) {
         int max_priority = std::numeric_limits<int>::min();
@@ -220,13 +245,10 @@ vector<vector<string>> Core::Impl::getRunOrder() {
             return {};
         }
 
+        dones.insert(dones.begin(), runnables.begin(), runnables.end());
         dst.emplace_back(std::move(runnables));
 
-        if ([&dst] {
-                size_t s = 0;
-                for (auto& d : dst) s += d.size();
-                return s;
-            }() == nodes.size()) {
+        if (get_size(dst) == nodes.size()) {
             return dst;
         }
     }
@@ -246,16 +268,14 @@ bool Core::Impl::run() {
                 nodes[link.src_node].args[link.src_arg].ref();
     }
 
-    for (auto& names : order) {
-        for (auto& name : names) {
-            workers[nodes[name].worker_name].worker(nodes[name].args);
+    for (auto& node_names : order) {
+        for (auto& node_name : node_names) {
+            funcs[nodes[node_name].func_name].func(nodes[node_name].args);
         }
     }
-
     for (size_t i = 0; i < outputs.size(); i++) {
         nodes[OutputNodeName()].args[i].copyTo(outputs[i]);
     }
-
     return true;
 }
 
@@ -265,22 +285,22 @@ Core::Core() : pimpl(std::make_unique<Impl>()) {}
 Core::~Core() = default;
 
 // ======= unstable API =========
-bool Core::addUnivFunc(UnivFunc&& worker, const string& name,
+bool Core::addUnivFunc(UnivFunc&& func, const string& name,
                        std::vector<Variable>&& default_args) {
     return pimpl->addUnivFunc(
-            std::forward<UnivFunc>(worker), name,
+            std::forward<UnivFunc>(func), name,
             std::forward<std::vector<Variable>>(default_args));
 }
 
 // ======= stable API =========
-bool Core::newNode(const string& name) noexcept {
+bool Core::newNode(const string& name) {
     return pimpl->newNode(name);
 }
 bool Core::renameNode(const std::string& old_name,
                       const std::string& new_name) {
-    return pimpl->renameNode(name);
+    return pimpl->renameNode(old_name, new_name);
 }
-bool Core::delNode(const string& name) noexcept {
+bool Core::delNode(const string& name) {
     return pimpl->delNode(name);
 }
 
@@ -288,8 +308,12 @@ bool Core::setArgument(const string& node, size_t idx, Variable& var) {
     return pimpl->setArgument(node, idx, var);
 }
 
-bool Core::allocateWork(const string& work, const string& node) {
-    return pimpl->allocateWork(work, node);
+bool Core::setPriority(const std::string& node, int priority) {
+    return pimpl->setPriority(node, priority);
+}
+
+bool Core::allocateFunc(const string& work, const string& node) {
+    return pimpl->allocateFunc(work, node);
 }
 
 bool Core::linkNode(const string& src_node, size_t src_arg,
@@ -312,8 +336,8 @@ bool Core::run() {
     return pimpl->run();
 }
 
-bool Core::setPriority(const std::string& node, int priority) {
-    return pimpl->setPriority(node, priority);
+const std::map<std::string, Node>& Core::getNodes() const noexcept {
+    return pimpl->getNodes();
 }
 
 }  // namespace fase

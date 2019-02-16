@@ -20,11 +20,6 @@ TEST_CASE("FunctionBuilder test") {
     vs[1].create<float>(3.5f);
     vs[2].create<double>(5.3);
 
-    auto check = [&vs]() {
-        printf("%d, %f, %f\n", *vs[0].getReader<int>(),
-               *vs[1].getReader<float>(), *vs[2].getReader<double>());
-    };
-
     worker(vs);
     REQUIRE(*vs[0].getReader<int>() == 5);
     REQUIRE(*vs[1].getReader<float>() == 5.5f);

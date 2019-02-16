@@ -1,6 +1,9 @@
 #include "catch.hpp"
 
 #include "fase2/fase.h"
+
+#include "fase2/constants.h"
+
 using namespace fase;
 
 static void Add(const int& a, const int& b, int& dst) {
@@ -12,95 +15,65 @@ static void Square(const int& in, int& dst) {
 }
 
 TEST_CASE("Core test") {
-#if 0
-    FaseCore core;
+    Core core;
+    {
+        auto univ_add =
+                UnivFuncGenerator<const int&, const int&, int&>::Gen(Add);
 
-    SECTION("Build basic") {
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
-                                           (const int&, const int&, int&)));
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
-        REQUIRE(core.addNode("add1", "Add"));
-        REQUIRE(core.addNode("square1", "Square"));
-        REQUIRE(core.addLink("add1", 2, "square1", 0));
-        REQUIRE(core.setNodeArg("add1", 0, "10", 10));
-        REQUIRE(core.setNodeArg("add1", 1, "20", 20));
-        REQUIRE(core.build());
-        core.run();
-        REQUIRE(core.getOutput<int>("square1", 1) == 900);  // (10 + 20) ** 2
+        std::vector<Variable> default_args(3);
+
+        default_args[0].create<int>(1);
+        default_args[1].create<int>(2);
+        default_args[2].create<int>(0);
+
+        REQUIRE(core.addUnivFunc(univ_add, "add", std::move(default_args)));
     }
 
-    SECTION("Build with default argument") {
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
-                                           (const int&, const int&, int&), 30));
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
-        REQUIRE(core.addNode("add1", "Add"));
-        REQUIRE(core.addNode("square1", "Square"));
-        REQUIRE(core.addLink("add1", 2, "square1", 0));
-        REQUIRE(core.setNodeArg("add1", 1, "20", 20));
-        REQUIRE(core.build());
-        core.run();
-        REQUIRE(core.getOutput<int>("square1", 1) == 2500);  // (30 + 20) ** 2
+    {
+        auto univ_sq = UnivFuncGenerator<const int&, int&>::Gen(Square);
+
+        std::vector<Variable> default_args(2);
+
+        default_args[0].create<int>(4);
+        default_args[1].create<int>(0);
+
+        REQUIRE(core.addUnivFunc(univ_sq, "square", std::move(default_args)));
     }
 
-    SECTION("Duplicate AddFunctionBuilder") {
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
-                                           (const int&, const int&, int&)));
-        REQUIRE_FALSE(FaseCoreAddFunctionBuilder(
-                core, Add, (const int&, const int&, int&)));
+    REQUIRE(core.newNode("a"));
+    REQUIRE(core.newNode("b"));
+    REQUIRE_FALSE(core.newNode("a"));
+    REQUIRE(core.allocateFunc("add", "a"));
+    REQUIRE(core.allocateFunc("add", "b"));
+    REQUIRE(core.allocateFunc("square", "b"));
+
+    REQUIRE(core.run());
+    REQUIRE(*core.getNodes().at("a").args[2].getReader<int>() == 3);
+    REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 16);
+
+    REQUIRE(core.linkNode("a", 2, "b", 0));
+
+    REQUIRE(core.run());
+    REQUIRE(*core.getNodes().at("a").args[2].getReader<int>() == 3);
+    REQUIRE(core.getNodes().at("b").args[0].getReader<int>().get() ==
+            core.getNodes().at("a").args[2].getReader<int>().get());
+    REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 9);
+
+    {
+        std::vector<Variable> inputs(2);
+        inputs[0].create<int>(4);
+        inputs[1].create<int>(5);
+        REQUIRE(core.supposeInput(inputs));
     }
+    std::vector<Variable> outputs(1);
+    outputs[0].create<int>();
+    REQUIRE(core.supposeOutput(outputs));
 
-    SECTION("Detect invalid node") {
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
-                                           (const int&, const int&, int&)));
-        REQUIRE(core.addNode("add1", "Add"));
-        // Function `Square` is not registered
-        REQUIRE_FALSE(core.addNode("square1", "Square"));
-        REQUIRE_FALSE(core.addLink("add1", 2, "square1", 0));
+    REQUIRE(core.linkNode(fase::InputNodeName(), 0, "a", 0));
+    REQUIRE(core.linkNode(fase::InputNodeName(), 1, "a", 1));
+    REQUIRE(core.linkNode("b", 1, fase::OutputNodeName(), 0));
 
-        REQUIRE(core.setNodeArg("add1", 1, "20", 20));
-        // Invalid argument index
-        REQUIRE_FALSE(core.setNodeArg("add1", 3, "40", 40));
-        // Invalid node name
-        REQUIRE_FALSE(core.setNodeArg("square1", 0, "0", 0));
+    REQUIRE(core.run());
 
-        REQUIRE(core.build());
-        core.run();
-        REQUIRE(core.getOutput<int>("add1", 2) == 20);
-    }
-
-    SECTION("Sub pipeline") {
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Add,
-                                           (const int&, const int&, int&), 30));
-        REQUIRE(FaseCoreAddFunctionBuilder(core, Square, (const int&, int&)));
-        // make sub pipeline "test".
-        REQUIRE(core.makeSubPipeline("test"));
-
-        // write contents of sub pipeline "test".
-        core.switchPipeline("test");
-
-        REQUIRE(core.addInput("in1"));
-        REQUIRE(core.addInput("in2"));
-        REQUIRE(core.addOutput("dst"));
-
-        REQUIRE(core.addNode("add", "Add"));
-        REQUIRE(core.addNode("square", "Square"));
-
-        REQUIRE(core.addLink(InputNodeStr(), 0, "add", 0));
-        REQUIRE(core.addLink(InputNodeStr(), 1, "add", 1));
-        REQUIRE(core.addLink("add", 2, "square", 0));
-        REQUIRE(core.addLink("square", 1, OutputNodeStr(), 0));
-
-        // use "test" function.
-        core.switchPipeline("Untitled");
-
-        REQUIRE(core.addNode("sub_p_test", SubPipelineFuncStr("test")));
-        REQUIRE(core.setNodeArg("sub_p_test", 0, "1", 1));
-        REQUIRE(core.setNodeArg("sub_p_test", 1, "2", 2));
-
-        REQUIRE(core.build());
-        core.run();
-
-        REQUIRE(core.getOutput<int>("sub_p_test", 2) == 9);  // (1 + 2) ** 2
-    }
-#endif
+    REQUIRE(*outputs[0].getReader<int>() == 81);
 }

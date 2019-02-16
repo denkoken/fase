@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,24 +39,30 @@ private:
     }
 };
 
+struct Node {
+    std::string func_name;
+    std::vector<Variable> args;
+    int priority;
+};
+
 class Core {
 public:
     Core();
     ~Core();
 
     // ======= unstable API =========
-    bool addUnivFunc(UnivFunc&& worker, const std::string& name,
+    bool addUnivFunc(UnivFunc&& func, const std::string& name,
                      std::vector<Variable>&& default_args);
 
     // ======= stable API =========
-    bool newNode(const std::string& name) noexcept;
+    bool newNode(const std::string& name);
     bool renameNode(const std::string& old_name, const std::string& new_name);
-    bool delNode(const std::string& name) noexcept;
+    bool delNode(const std::string& name);
 
     bool setArgument(const std::string& node, std::size_t idx, Variable& var);
     bool setPriority(const std::string& node, int priority);
 
-    bool allocateWork(const std::string& work, const std::string& node);
+    bool allocateFunc(const std::string& work, const std::string& node);
     bool linkNode(const std::string& src_node, std::size_t src_arg,
                   const std::string& dst_node, std::size_t dst_arg);
     bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
@@ -64,6 +71,8 @@ public:
     bool supposeOutput(std::vector<Variable>& vars);
 
     bool run();
+
+    const std::map<std::string, Node>& getNodes() const noexcept;
 
 private:
     class Impl;
