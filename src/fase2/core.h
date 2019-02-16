@@ -40,9 +40,9 @@ private:
 };
 
 struct Node {
-    std::string func_name;
+    std::string           func_name;
     std::vector<Variable> args;
-    int priority;
+    int                   priority;
 };
 
 class Core {
