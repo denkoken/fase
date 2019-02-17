@@ -83,16 +83,16 @@ public:
     }
 
     bool supposeInput(size_t size) override {
-        vector<Variable> vs(size);
-        if (core.supposeInput(vs)) {
+        inputs.resize(size);
+        if (core.supposeInput(inputs)) {
             cm_ref.get().updateBindedPipes(this);
             return true;
         }
         return false;
     }
     bool supposeOutput(size_t size) override {
-        vector<Variable> vs(size);
-        if (core.supposeOutput(vs)) {
+        outputs.resize(size);
+        if (core.supposeOutput(outputs)) {
             cm_ref.get().updateBindedPipes(this);
             return true;
         }
@@ -107,6 +107,8 @@ public:
 
     Core core;
     std::reference_wrapper<Impl> cm_ref;
+    vector<Variable> inputs;
+    vector<Variable> outputs;
 };
 
 // ======================== WrapedCore Member Functions ========================
@@ -115,19 +117,19 @@ bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
                                               size_t src_arg,
                                               const string& dst_node,
                                               size_t dst_arg) {
+    if (core.getNodes().at(src_node).args.size() <= src_arg) return false;
+    if (core.getNodes().at(dst_node).args.size() <= dst_arg) return false;
     if (core.linkNode(src_node, src_arg, dst_node, dst_arg)) return true;
 
     if (InputNodeName() == src_node) {
-        vector<Variable> vs = core.getNodes().at(InputNodeName()).args;
-        vs[src_arg] = core.getNodes().at(dst_node).args[dst_arg];
-        core.supposeInput(vs);
+        inputs[src_arg] = core.getNodes().at(dst_node).args[dst_arg];
+        core.supposeInput(inputs);
         cm_ref.get().updateBindedPipes(this);
         return core.linkNode(src_node, src_arg, dst_node, dst_arg);
 
     } else if (OutputNodeName() == dst_node) {
-        vector<Variable> vs = core.getNodes().at(OutputNodeName()).args;
-        vs[dst_arg] = core.getNodes().at(src_node).args[src_arg];
-        core.supposeOutput(vs);
+        outputs[dst_arg] = core.getNodes().at(src_node).args[src_arg];
+        core.supposeOutput(outputs);
         cm_ref.get().updateBindedPipes(this);
         return core.linkNode(src_node, src_arg, dst_node, dst_arg);
     }
@@ -193,10 +195,11 @@ bool CoreManager::Impl::updateBindedPipes(const string& name) {
         core.run();
     };
 
-    func.default_args = core.getNodes().at(InputNodeName()).args;
-    func.default_args.insert(func.default_args.end() - 1,
-                             core.getNodes().at(OutputNodeName()).args.begin(),
-                             core.getNodes().at(OutputNodeName()).args.end());
+    RefCopy(cores.at(name).inputs, &func.default_args);
+    func.default_args.resize(i_size + cores.at(name).outputs.size());
+    for (size_t i = 0; i < cores.at(name).outputs.size(); i++) {
+        func.default_args[i + i_size] = cores.at(name).outputs[i].ref();
+    }
 
     for (auto& pair : cores) {
         if (std::get<0>(pair) == name) {
