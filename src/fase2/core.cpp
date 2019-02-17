@@ -1,7 +1,6 @@
 
 #include "core.h"
 
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -21,25 +20,6 @@ using std::vector;
 
 using Vars = vector<Variable>;
 
-namespace {
-
-void RefCopy(Vars& src, Vars* dst) {
-    dst->clear();
-    dst->resize(src.size());
-    for (size_t i = 0; i < src.size(); i++) {
-        (*dst)[i] = src[i].ref();
-    }
-}
-
-}  // namespace
-
-struct Link {
-    string src_node;
-    size_t src_arg;
-    string dst_node;
-    size_t dst_arg;
-};
-
 struct FuncProps {
     UnivFunc func;
     Vars default_args;
@@ -50,7 +30,7 @@ public:
     Impl();
 
     // ======= unstable API =========
-    bool addUnivFunc(UnivFunc&& func, const string& name,
+    bool addUnivFunc(const UnivFunc& func, const string& name,
                      std::vector<Variable>&& default_args);
 
     // ======= stable API =========
@@ -74,6 +54,9 @@ public:
     const auto& getNodes() const noexcept {
         return nodes;
     }
+    const std::vector<Link>& getLinks() const noexcept {
+        return links;
+    };
 
 private:
     map<string, FuncProps> funcs;
@@ -103,10 +86,9 @@ Core::Impl::Impl() {
     funcs[kInputFuncName] = {no_task, {}};
 }
 
-bool Core::Impl::addUnivFunc(UnivFunc&& func, const string& name,
+bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& name,
                              std::vector<Variable>&& default_args) {
-    funcs[name] = {std::forward<UnivFunc>(func),
-                   std::forward<vector<Variable>>(default_args)};
+    funcs[name] = {func, std::forward<vector<Variable>>(default_args)};
     return true;
 }
 
@@ -285,11 +267,10 @@ Core::Core() : pimpl(std::make_unique<Impl>()) {}
 Core::~Core() = default;
 
 // ======= unstable API =========
-bool Core::addUnivFunc(UnivFunc&& func, const string& name,
+bool Core::addUnivFunc(const UnivFunc& func, const string& name,
                        std::vector<Variable>&& default_args) {
     return pimpl->addUnivFunc(
-            std::forward<UnivFunc>(func), name,
-            std::forward<std::vector<Variable>>(default_args));
+            func, name, std::forward<std::vector<Variable>>(default_args));
 }
 
 // ======= stable API =========
@@ -338,6 +319,10 @@ bool Core::run() {
 
 const std::map<std::string, Node>& Core::getNodes() const noexcept {
     return pimpl->getNodes();
+}
+
+const std::vector<Link>& Core::getLinks() const noexcept {
+    return pimpl->getLinks();
 }
 
 }  // namespace fase
