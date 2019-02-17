@@ -3,6 +3,7 @@
 #define COMMON_H_20190217
 
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,83 @@ struct Link {
     std::size_t src_arg;
     std::string dst_node;
     std::size_t dst_arg;
+};
+
+class PipelineAPI {
+public:
+    virtual bool newNode(const std::string& name) = 0;
+    virtual bool renameNode(const std::string& old_name,
+                            const std::string& new_name) = 0;
+    virtual bool delNode(const std::string& name) = 0;
+
+    virtual bool setArgument(const std::string& node, std::size_t idx,
+                             Variable& var) = 0;
+    virtual bool setPriority(const std::string& node, int priority) = 0;
+
+    virtual bool allocateFunc(const std::string& work,
+                              const std::string& node) = 0;
+
+    virtual bool smartLink(const std::string& src_node, std::size_t src_arg,
+                           const std::string& dst_node,
+                           std::size_t        dst_arg) = 0;
+    virtual bool unlinkNode(const std::string& dst_node,
+                            std::size_t        dst_arg) = 0;
+
+    virtual bool supposeInput(std::size_t size) = 0;
+    virtual bool supposeOutput(std::size_t size) = 0;
+
+    virtual bool run() = 0;
+
+    virtual const std::map<std::string, Node>& getNodes() const noexcept = 0;
+};
+
+class FaildDummy : public PipelineAPI {
+    bool newNode(const std::string&) override {
+        return false;
+    }
+    bool renameNode(const std::string&, const std::string&) override {
+        return false;
+    }
+    bool delNode(const std::string&) override {
+        return false;
+    }
+
+    bool setArgument(const std::string&, size_t, Variable&) override {
+        return false;
+    }
+    bool setPriority(const std::string&, int) override {
+        return false;
+    }
+
+    bool allocateFunc(const std::string&, const std::string&) override {
+        return false;
+    }
+
+    bool smartLink(const std::string&, size_t, const std::string&,
+                   size_t) override {
+        return false;
+    }
+    bool unlinkNode(const std::string&, size_t) override {
+        return false;
+    }
+
+    bool supposeInput(size_t) override {
+        return false;
+    }
+    bool supposeOutput(size_t) override {
+        return false;
+    }
+
+    bool run() override {
+        return false;
+    }
+
+    const std::map<std::string, Node>& getNodes() const noexcept override {
+        return dum;
+    }
+
+private:
+    std::map<std::string, Node> dum;
 };
 
 }  // namespace fase

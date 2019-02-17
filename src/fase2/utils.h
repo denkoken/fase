@@ -22,6 +22,16 @@ inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
     }
 }
 
+inline void RefCopy(std::vector<Variable>::iterator&& begin,
+                    std::vector<Variable>::iterator&& end,
+                    std::vector<Variable>*            dst) {
+    dst->clear();
+    dst->reserve(std::size_t(end - begin));
+    for (auto it = begin; it != end; it++) {
+        dst->emplace_back(it->ref());
+    }
+}
+
 }  // namespace fase
 
 #endif  // UTILS_H_20190215
