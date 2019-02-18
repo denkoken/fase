@@ -53,6 +53,8 @@ struct Link {
 
 class PipelineAPI {
 public:
+    virtual ~PipelineAPI() {}
+
     virtual bool newNode(const std::string& name) = 0;
     virtual bool renameNode(const std::string& old_name,
                             const std::string& new_name) = 0;
@@ -71,12 +73,13 @@ public:
     virtual bool unlinkNode(const std::string& dst_node,
                             std::size_t        dst_arg) = 0;
 
-    virtual bool supposeInput(std::size_t size) = 0;
-    virtual bool supposeOutput(std::size_t size) = 0;
+    virtual bool supposeInput(const std::vector<std::string>& arg_names) = 0;
+    virtual bool supposeOutput(const std::vector<std::string>& arg_names) = 0;
 
     virtual bool run() = 0;
 
     virtual const std::map<std::string, Node>& getNodes() const noexcept = 0;
+    virtual const std::vector<Link>&           getLinks() const noexcept = 0;
 };
 
 class FaildDummy : public PipelineAPI {
@@ -109,10 +112,10 @@ class FaildDummy : public PipelineAPI {
         return false;
     }
 
-    bool supposeInput(size_t) override {
+    bool supposeInput(const std::vector<std::string>&) override {
         return false;
     }
-    bool supposeOutput(size_t) override {
+    bool supposeOutput(const std::vector<std::string>&) override {
         return false;
     }
 
@@ -121,11 +124,16 @@ class FaildDummy : public PipelineAPI {
     }
 
     const std::map<std::string, Node>& getNodes() const noexcept override {
-        return dum;
+        return dum_n;
+    }
+
+    const std::vector<Link>& getLinks() const noexcept override {
+        return dum_l;
     }
 
 private:
-    std::map<std::string, Node> dum;
+    std::map<std::string, Node> dum_n;
+    std::vector<Link>           dum_l;
 };
 
 }  // namespace fase

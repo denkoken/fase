@@ -25,6 +25,8 @@ struct Function {
 
 class CoreManager::Impl {
 public:
+    Impl() = default;
+    ~Impl() = default;
     bool addUnivFunc(const UnivFunc& func, const string& name,
                      vector<Variable>&& default_args,
                      const vector<string>& arg_names,
@@ -53,6 +55,7 @@ private:
 class CoreManager::Impl::WrapedCore : public PipelineAPI {
 public:
     WrapedCore(CoreManager::Impl& cm) : cm_ref(std::ref(cm)) {}
+    ~WrapedCore() = default;
 
     bool newNode(const string& name) override {
         return core.newNode(name);
@@ -82,16 +85,19 @@ public:
         return core.unlinkNode(dst_node, dst_arg);
     }
 
-    bool supposeInput(size_t size) override {
-        inputs.resize(size);
+    bool supposeInput(const std::vector<std::string>& arg_names) override {
+        input_var_names = arg_names;
+        inputs.resize(arg_names.size());
         if (core.supposeInput(inputs)) {
             cm_ref.get().updateBindedPipes(this);
             return true;
         }
         return false;
     }
-    bool supposeOutput(size_t size) override {
-        outputs.resize(size);
+
+    bool supposeOutput(const std::vector<std::string>& arg_names) override {
+        output_var_names = arg_names;
+        outputs.resize(arg_names.size());
         if (core.supposeOutput(outputs)) {
             cm_ref.get().updateBindedPipes(this);
             return true;
@@ -104,11 +110,17 @@ public:
     const map<string, Node>& getNodes() const noexcept override {
         return core.getNodes();
     }
+    const vector<Link>& getLinks() const noexcept override {
+        return core.getLinks();
+    }
 
     Core core;
     std::reference_wrapper<Impl> cm_ref;
+
     vector<Variable> inputs;
     vector<Variable> outputs;
+    vector<string> input_var_names;
+    vector<string> output_var_names;
 };
 
 // ======================== WrapedCore Member Functions ========================
@@ -183,24 +195,40 @@ bool CoreManager::Impl::newPipeline(const string& name) {
 bool CoreManager::Impl::updateBindedPipes(const string& name) {
     Function& func = functions[name];
     auto& core = cores.at(name).core;
-    size_t i_size = core.getNodes().at(InputNodeName()).args.size();
 
-    func.func = [&core, name, i_size](vector<Variable>& vs) {
+    // Update Function::func (UnivFunc)
+    func.func = [&core, name](vector<Variable>& vs) {
+        size_t i_size = core.getNodes().at(InputNodeName()).args.size();
+        size_t o_size = core.getNodes().at(OutputNodeName()).args.size();
+        if (vs.size() != i_size + o_size) {
+            throw std::logic_error("Invalid size of variables at Binded Pipe.");
+        }
         vector<Variable> inputs, outputs;
         RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
-        RefCopy(vs.begin() + long(i_size), vs.end(), &inputs);
+        RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
 
         core.supposeInput(inputs);
         core.supposeOutput(outputs);
-        core.run();
+        if (!core.run()) {
+            throw(std::runtime_error(name + " is failed!"));
+        }
     };
 
+    // Update Function::default_args.
+    size_t i_size = core.getNodes().at(InputNodeName()).args.size();
     RefCopy(cores.at(name).inputs, &func.default_args);
     func.default_args.resize(i_size + cores.at(name).outputs.size());
     for (size_t i = 0; i < cores.at(name).outputs.size(); i++) {
         func.default_args[i + i_size] = cores.at(name).outputs[i].ref();
     }
 
+    // Update Function::utils::arg_names.
+    func.utils.arg_names = cores.at(name).input_var_names;
+    func.utils.arg_names.insert(func.utils.arg_names.end() - 1,
+                                cores.at(name).output_var_names.begin(),
+                                cores.at(name).output_var_names.end());
+
+    // Add updated function to other pipelines.
     for (auto& pair : cores) {
         if (std::get<0>(pair) == name) {
         } else if (!addFunction(name, std::get<0>(pair))) {

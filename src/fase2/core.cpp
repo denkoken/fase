@@ -1,6 +1,7 @@
 
 #include "core.h"
 
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -71,6 +72,7 @@ private:
         return funcs[nodes[node_name].func_name].default_args;
     }
     vector<vector<string>> getRunOrder();
+    void unlinkAll(const string& node_name);
 };
 
 // ============================= Member Functions ==============================
@@ -86,9 +88,43 @@ Core::Impl::Impl() {
     funcs[kInputFuncName] = {no_task, {}};
 }
 
+void Core::Impl::unlinkAll(const string& name) {
+    for (size_t i = 0; i < nodes[name].args.size(); i++) {
+        unlinkNode(name, i);
+    }
+    for (auto& link : links) {
+        if (link.src_node == name) {
+            unlinkNode(link.dst_node, link.dst_arg);
+        }
+    }
+}
+
 bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& name,
                              std::vector<Variable>&& default_args) {
     funcs[name] = {func, std::forward<vector<Variable>>(default_args)};
+
+    for (auto& pair : nodes) {
+        auto& node = std::get<1>(pair);
+        if (node.func_name == name) {
+            auto& node_name = std::get<0>(pair);
+            node.args = funcs[name].default_args;
+            vector<Link> storeds;
+            for (auto it = links.begin();;) {
+                it = std::find_if(it, links.end(), [&](auto& l) {
+                    return l.src_node == node_name || l.dst_node == node_name;
+                });
+                if (it == links.end()) {
+                    break;
+                }
+                storeds.emplace_back(*it);
+                it++;
+            }
+            unlinkAll(node_name);
+            for (auto& s : storeds) {
+                linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+            }
+        }
+    }
     return true;
 }
 
@@ -117,9 +153,7 @@ bool Core::Impl::renameNode(const std::string& old_name,
 bool Core::Impl::delNode(const string& name) {
     if (nodes.count(name) && name != InputNodeName() &&
         name != OutputNodeName()) {
-        for (size_t i = 0; i < nodes[name].args.size(); i++) {
-            unlinkNode(name, i);
-        }
+        unlinkAll(name);
         nodes.erase(name);
         return true;
     }
@@ -173,7 +207,7 @@ bool Core::Impl::unlinkNode(const std::string& dst_node, std::size_t dst_arg) {
 
 bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
     RefCopy(vars, &inputs);
-    nodes[InputNodeName()].args = vars;
+    nodes[InputNodeName()].args = inputs;
     defaultArgs(InputNodeName()) = vars;
     return true;
 }
@@ -255,6 +289,7 @@ bool Core::Impl::run() {
             funcs[nodes[node_name].func_name].func(nodes[node_name].args);
         }
     }
+
     for (size_t i = 0; i < outputs.size(); i++) {
         nodes[OutputNodeName()].args[i].copyTo(outputs[i]);
     }

@@ -55,8 +55,8 @@ TEST_CASE("Core test") {
 
     REQUIRE(core.run());
     REQUIRE(*core.getNodes().at("a").args[2].getReader<int>() == 3);
-    REQUIRE(core.getNodes().at("b").args[0].getReader<int>().get() ==
-            core.getNodes().at("a").args[2].getReader<int>().get());
+    REQUIRE(core.getNodes().at("b").args[0].getReader<int>() ==
+            core.getNodes().at("a").args[2].getReader<int>());
     REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 9);
 
     {

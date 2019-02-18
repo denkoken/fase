@@ -35,7 +35,12 @@ private:
 
 class Variable {
 public:
-    Variable() = default;
+    Variable() : cloner([](auto&, auto&) {}), copyer([](auto&, auto&) {}) {}
+
+    template <typename T>
+    Variable(std::shared_ptr<T>&& p) {
+        set(std::move(p));
+    }
 
     Variable(Variable&&) = default;
     Variable& operator=(Variable&&) = default;
@@ -66,8 +71,8 @@ public:
     }
 
     template <typename T>
-    void set(std::shared_ptr<T> v) {
-        data = v;
+    void set(std::shared_ptr<T>&& v) {
+        data = std::move(v);
         type = &typeid(T);  // The lifetime extends to the end of the program.
         cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
@@ -103,16 +108,12 @@ public:
     }
 
     void copyTo(Variable& v) const {
-        if (type != &typeid(void)) {
-            copyer(v, *this);
-        }
+        copyer(v, *this);
     }
 
     Variable clone() const {
         Variable v;
-        if (type != &typeid(void)) {
-            cloner(v, *this);
-        }
+        cloner(v, *this);
         return v;
     }
 

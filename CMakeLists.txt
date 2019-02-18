@@ -215,6 +215,7 @@ if (FASE_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test_variable.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test_function.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/test_core.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_core_manager.cpp
     )
     setup_target(fase_test "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 endif()

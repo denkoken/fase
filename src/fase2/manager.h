@@ -13,7 +13,7 @@
 namespace fase {
 
 struct FunctionUtils {
-    std::vector<std::string> args_names;
+    std::vector<std::string> arg_names;
     std::string              description;
 };
 
