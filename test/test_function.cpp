@@ -20,11 +20,13 @@ TEST_CASE("FunctionBuilder test") {
     vs[1].create<float>(3.5f);
     vs[2].create<double>(5.3);
 
-    worker(vs);
+    Report report;
+
+    worker(vs, nullptr);
     REQUIRE(*vs[0].getReader<int>() == 5);
     REQUIRE(*vs[1].getReader<float>() == 5.5f);
     REQUIRE(*vs[2].getReader<double>() == 5.3);
-    worker(vs);
+    worker(vs, &report);
     REQUIRE(*vs[0].getReader<int>() == 5);
     REQUIRE(*vs[1].getReader<float>() == 7.5f);
     REQUIRE(*vs[2].getReader<double>() == 5.3);
@@ -33,7 +35,7 @@ TEST_CASE("FunctionBuilder test") {
     vs[3].create<int>(9);
 
     try {
-        worker(vs);
+        worker(vs, nullptr);
         REQUIRE(false);
     } catch (std::exception& e) {
     }

@@ -14,6 +14,17 @@ inline bool exsists(T& t, C& c) {
     return std::end(c) != std::find(std::begin(c), std::end(c), t);
 }
 
+template <typename Container, class Checker>
+inline Container get_all_if(Container& c, Checker&& checker) {
+    Container storeds;
+    for (auto& v : c) {
+        if (checker(v)) {
+            storeds.emplace_back(v);
+        }
+    }
+    return {std::move(storeds)};
+}
+
 inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
     dst->clear();
     dst->resize(src.size());

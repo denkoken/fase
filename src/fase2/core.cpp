@@ -14,15 +14,13 @@ namespace fase {
 constexpr char kInputFuncName[] = "FASE::InputFunc";
 constexpr char kOutputFuncName[] = "FASE::OutputFunc";
 
-using std::map;
+using std::map, std::string, std::vector;
 using size_t = std::size_t;
-using std::string;
-using std::vector;
 
 using Vars = vector<Variable>;
 
 struct FuncProps {
-    UnivFunc func;
+    UnivFunc func = [](auto&, auto) {};
     Vars default_args;
 };
 
@@ -50,7 +48,7 @@ public:
     bool supposeInput(std::vector<Variable>& vars);
     bool supposeOutput(std::vector<Variable>& vars);
 
-    bool run();
+    bool run(Report* preport);
 
     const auto& getNodes() const noexcept {
         return nodes;
@@ -78,14 +76,17 @@ private:
 // ============================= Member Functions ==============================
 
 Core::Impl::Impl() {
-    nodes[InputNodeName()] = {
-            kInputFuncName, {}, std::numeric_limits<int>::max()};
-    nodes[OutputNodeName()];
-    nodes[OutputNodeName()] = {
-            kOutputFuncName, {}, std::numeric_limits<int>::min()};
-    auto no_task = UnivFunc([](auto&) {});
-    funcs[kOutputFuncName] = {no_task, {}};
-    funcs[kInputFuncName] = {no_task, {}};
+    funcs[kOutputFuncName];
+    funcs[kInputFuncName];
+
+    nodes[InputNodeName()] = {kInputFuncName,
+                              funcs[kInputFuncName].func,
+                              {},
+                              std::numeric_limits<int>::max()};
+    nodes[OutputNodeName()] = {kOutputFuncName,
+                               funcs[kOutputFuncName].func,
+                               {},
+                               std::numeric_limits<int>::min()};
 }
 
 void Core::Impl::unlinkAll(const string& name) {
@@ -99,30 +100,13 @@ void Core::Impl::unlinkAll(const string& name) {
     }
 }
 
-bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& name,
+bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& func_name,
                              std::vector<Variable>&& default_args) {
-    funcs[name] = {func, std::forward<vector<Variable>>(default_args)};
+    funcs[func_name] = {func, std::forward<vector<Variable>>(default_args)};
 
-    for (auto& pair : nodes) {
-        auto& node = std::get<1>(pair);
-        if (node.func_name == name) {
-            auto& node_name = std::get<0>(pair);
-            node.args = funcs[name].default_args;
-            vector<Link> storeds;
-            for (auto it = links.begin();;) {
-                it = std::find_if(it, links.end(), [&](auto& l) {
-                    return l.src_node == node_name || l.dst_node == node_name;
-                });
-                if (it == links.end()) {
-                    break;
-                }
-                storeds.emplace_back(*it);
-                it++;
-            }
-            unlinkAll(node_name);
-            for (auto& s : storeds) {
-                linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
-            }
+    for (auto& [node_name, node] : nodes) {
+        if (node.func_name == func_name) {
+            allocateFunc(func_name, node_name);
         }
     }
     return true;
@@ -176,10 +160,20 @@ bool Core::Impl::setPriority(const string& node, int priority) {
     return false;
 }
 
-bool Core::Impl::allocateFunc(const string& func, const string& node) {
+bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
     if (funcs.count(func)) {
-        nodes[node].func_name = func;
-        nodes[node].args = funcs[func].default_args;
+        auto& node = nodes[node_name];
+        node.func_name = func;
+        node.args = funcs[func].default_args;
+        node.func = funcs[func].func;
+
+        auto link_bufs = get_all_if(links, [n = node_name](auto& l) {
+            return l.src_node == n || l.dst_node == n;
+        });
+        unlinkAll(node_name);
+        for (auto& s : link_bufs) {
+            linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+        }
         return true;
     }
     return false;
@@ -231,10 +225,7 @@ vector<vector<string>> Core::Impl::getRunOrder() {
     while (1) {
         int max_priority = std::numeric_limits<int>::min();
         vector<string> runnables;
-        for (const auto& pair : nodes) {
-            auto& name = std::get<0>(pair);
-            auto& node = std::get<1>(pair);
-
+        for (auto& [name, node] : nodes) {
             if (exsists(name, dones)) {
                 continue;
             }
@@ -270,7 +261,7 @@ vector<vector<string>> Core::Impl::getRunOrder() {
     }
 }
 
-bool Core::Impl::run() {
+bool Core::Impl::run(Report* preport) {
     vector<vector<string>> order = getRunOrder();
     if (order.size() == 0) {
         return false;
@@ -286,7 +277,11 @@ bool Core::Impl::run() {
 
     for (auto& node_names : order) {
         for (auto& node_name : node_names) {
-            funcs[nodes[node_name].func_name].func(nodes[node_name].args);
+            Report* p = nullptr;
+            if (preport != nullptr) {
+                p = &preport->child_reports[node_name];
+            }
+            nodes[node_name].func(nodes[node_name].args, p);
         }
     }
 
@@ -348,8 +343,8 @@ bool Core::supposeOutput(std::vector<Variable>& vars) {
     return pimpl->supposeOutput(vars);
 }
 
-bool Core::run() {
-    return pimpl->run();
+bool Core::run(Report* preport) {
+    return pimpl->run(preport);
 }
 
 const std::map<std::string, Node>& Core::getNodes() const noexcept {

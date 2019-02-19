@@ -105,7 +105,7 @@ public:
         return false;
     }
 
-    bool run() override;
+    bool run(Report* preport = nullptr) override;
 
     const map<string, Node>& getNodes() const noexcept override {
         return core.getNodes();
@@ -148,8 +148,8 @@ bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
     return false;
 }
 
-bool CoreManager::Impl::WrapedCore::run() {
-    return core.run();
+bool CoreManager::Impl::WrapedCore::run(Report* preport) {
+    return core.run(preport);
 }
 
 // ========================== Impl Member Functions ============================
@@ -197,7 +197,7 @@ bool CoreManager::Impl::updateBindedPipes(const string& name) {
     auto& core = cores.at(name).core;
 
     // Update Function::func (UnivFunc)
-    func.func = [&core, name](vector<Variable>& vs) {
+    func.func = [&core, name](vector<Variable>& vs, Report* preport) {
         size_t i_size = core.getNodes().at(InputNodeName()).args.size();
         size_t o_size = core.getNodes().at(OutputNodeName()).args.size();
         if (vs.size() != i_size + o_size) {
@@ -209,7 +209,7 @@ bool CoreManager::Impl::updateBindedPipes(const string& name) {
 
         core.supposeInput(inputs);
         core.supposeOutput(outputs);
-        if (!core.run()) {
+        if (!core.run(preport)) {
             throw(std::runtime_error(name + " is failed!"));
         }
     };

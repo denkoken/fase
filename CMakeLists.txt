@@ -17,11 +17,10 @@ set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
 set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
-set(FASE_USE_CPP17 OFF CACHE BOOL "Use c++17 for further feathers")
 set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
-message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}, Use c++17: ${FASE_USE_CPP17}")
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
@@ -30,11 +29,7 @@ message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 # ------------------------------------------------------------------------------
 project(fase CXX C)
 
-if (FASE_USE_CPP17)
-    set(CMAKE_CXX_STANDARD 17)  # C++ 17
-else()
-    set(CMAKE_CXX_STANDARD 14)  # C++ 14
-endif()
+set(CMAKE_CXX_STANDARD 17)  # C++ 17
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(LINK_TYPE STATIC)

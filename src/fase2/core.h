@@ -38,7 +38,7 @@ public:
     bool supposeInput(std::vector<Variable>& vars);
     bool supposeOutput(std::vector<Variable>& vars);
 
-    bool run();
+    bool run(Report* preport = nullptr);
 
     const std::map<std::string, Node>& getNodes() const noexcept;
     const std::vector<Link>&           getLinks() const noexcept;

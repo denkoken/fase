@@ -2,6 +2,7 @@
 #ifndef COMMON_H_20190217
 #define COMMON_H_20190217
 
+#include <chrono>
 #include <functional>
 #include <map>
 #include <string>
@@ -11,37 +12,21 @@
 
 namespace fase {
 
-using UnivFunc = std::function<void(std::vector<Variable>&)>;
+struct Report {
+    using TimeType = decltype(std::chrono::system_clock::now() -
+                              std::chrono::system_clock::now());
+    TimeType execution_time;  // sec
 
-template <typename... Args>
-class UnivFuncGenerator {
-public:
-    template <typename Callable>
-    static auto Gen(Callable&& f) {
-        return Wrap(std::forward<Callable>(f),
-                    std::index_sequence_for<Args...>());
-    }
-
-private:
-    template <std::size_t... Seq, typename Callable>
-    static auto Wrap(Callable&& f, std::index_sequence<Seq...>) {
-        auto fp = std::make_shared<std::decay_t<Callable>>(
-                std::forward<std::decay_t<Callable>>(f));
-        return [fp](std::vector<Variable>& args) {
-            if (args.size() != sizeof...(Args)) {
-                throw std::logic_error(
-                        "Invalid size of variables at UnivFunc.");
-            }
-            (*fp)(static_cast<Args>(
-                    *args[Seq].getWriter<std::decay_t<Args>>())...);
-        };
-    }
+    std::map<std::string, Report> child_reports;
 };
 
+using UnivFunc = std::function<void(std::vector<Variable>&, Report*)>;
+
 struct Node {
-    std::string           func_name;
+    std::string           func_name = "";
+    UnivFunc              func = [](auto&, auto) {};
     std::vector<Variable> args;
-    int                   priority;
+    int                   priority = 0;
 };
 
 struct Link {
@@ -76,7 +61,7 @@ public:
     virtual bool supposeInput(const std::vector<std::string>& arg_names) = 0;
     virtual bool supposeOutput(const std::vector<std::string>& arg_names) = 0;
 
-    virtual bool run() = 0;
+    virtual bool run(Report* preport = nullptr) = 0;
 
     virtual const std::map<std::string, Node>& getNodes() const noexcept = 0;
     virtual const std::vector<Link>&           getLinks() const noexcept = 0;
@@ -119,7 +104,7 @@ class FaildDummy : public PipelineAPI {
         return false;
     }
 
-    bool run() override {
+    bool run(Report* = nullptr) override {
         return false;
     }
 
