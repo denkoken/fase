@@ -19,13 +19,14 @@ public:
     ~Core();
 
     // ======= unstable API =========
-    bool addUnivFunc(const UnivFunc& func, const std::string& name,
+    bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
                      std::vector<Variable>&& default_args);
 
     // ======= stable API =========
-    bool newNode(const std::string& name);
-    bool renameNode(const std::string& old_name, const std::string& new_name);
-    bool delNode(const std::string& name);
+    bool newNode(const std::string& n_name);
+    bool renameNode(const std::string& old_n_name,
+                    const std::string& new_n_name);
+    bool delNode(const std::string& n_name);
 
     bool setArgument(const std::string& node, std::size_t idx, Variable& var);
     bool setPriority(const std::string& node, int priority);

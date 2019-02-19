@@ -29,11 +29,6 @@ before_install:
 script:
     - mkdir build && cd build
     - cmake .. && make && ./bin/fase_test
-    # - cmake .. && make VERBOSE=1 && ./bin/fase_test
-    - cd ..
-    - mkdir build17 && cd build17
-    - cmake -DFASE_USE_CPP17=ON .. && make && ./bin/fase_test
-    # - cmake -DFASE_USE_CPP17=ON .. && make VERBOSE=1 && ./bin/fase_test
 
 notifications:
   email:

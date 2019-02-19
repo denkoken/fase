@@ -27,13 +27,13 @@ class CoreManager::Impl {
 public:
     Impl() = default;
     ~Impl() = default;
-    bool addUnivFunc(const UnivFunc& func, const string& name,
+    bool addUnivFunc(const UnivFunc& func, const string& f_name,
                      vector<Variable>&& default_args,
                      const vector<string>& arg_names,
                      const std::string& description);
 
-    PipelineAPI& operator[](const string& core_name);
-    const PipelineAPI& operator[](const string& name) const;
+    PipelineAPI& operator[](const string& c_name);
+    const PipelineAPI& operator[](const string& c_name) const;
 
     vector<string> getPipelineNames();
     map<string, FunctionUtils> getFunctionUtils();
@@ -46,9 +46,9 @@ private:
 
     FaildDummy dum;
 
-    bool newPipeline(const string& name);
-    bool addFunction(const string& func_name, const string& core_name);
-    bool updateBindedPipes(const string& name);
+    bool newPipeline(const string& c_name);
+    bool addFunction(const string& f_name, const string& c_name);
+    bool updateBindedPipes(const string& c_name);
     bool updateBindedPipes(WrapedCore* p);
 };
 
@@ -57,26 +57,27 @@ public:
     WrapedCore(CoreManager::Impl& cm) : cm_ref(std::ref(cm)) {}
     ~WrapedCore() = default;
 
-    bool newNode(const string& name) override {
-        return core.newNode(name);
+    bool newNode(const string& n_name) override {
+        return core.newNode(n_name);
     }
 
-    bool renameNode(const string& old_name, const string& new_name) override {
-        return core.renameNode(old_name, new_name);
+    bool renameNode(const string& old_n_name,
+                    const string& new_n_name) override {
+        return core.renameNode(old_n_name, new_n_name);
     }
-    bool delNode(const string& name) override {
-        return core.delNode(name);
-    }
-
-    bool setArgument(const string& node, size_t idx, Variable& var) override {
-        return core.setArgument(node, idx, var);
-    }
-    bool setPriority(const string& node, int priority) override {
-        return core.setPriority(node, priority);
+    bool delNode(const string& n_name) override {
+        return core.delNode(n_name);
     }
 
-    bool allocateFunc(const string& work, const string& node) override {
-        return core.allocateFunc(work, node);
+    bool setArgument(const string& n_name, size_t idx, Variable& var) override {
+        return core.setArgument(n_name, idx, var);
+    }
+    bool setPriority(const string& n_name, int priority) override {
+        return core.setPriority(n_name, priority);
+    }
+
+    bool allocateFunc(const string& f_name, const string& n_name) override {
+        return core.allocateFunc(f_name, n_name);
     }
 
     bool smartLink(const string& src_node, size_t src_arg,
@@ -161,43 +162,43 @@ bool CoreManager::Impl::addFunction(const string& func, const string& core) {
                                            std::move(vs));
 }
 
-bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& name,
+bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
                                     vector<Variable>&& default_args,
                                     const vector<string>& arg_names,
                                     const string& description) {
-    if (cores.count(name)) return false;
+    if (cores.count(f_name)) return false;
 
-    functions[name] = {
+    functions[f_name] = {
             func,
             std::move(default_args),
             {arg_names, description},
     };
-    for (auto& pair : cores) {
-        if (!addFunction(name, std::get<0>(pair))) return false;
+    for (auto& [c_name, wraped] : cores) {
+        if (!addFunction(f_name, c_name)) return false;
     }
     return true;
 }
 
-bool CoreManager::Impl::newPipeline(const string& name) {
-    if (cores.count(name) || functions.count(name)) return false;
+bool CoreManager::Impl::newPipeline(const string& c_name) {
+    if (cores.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc(UnivFunc{}, name, {}, {}, "Another pipeline");
+    addUnivFunc(UnivFunc{}, c_name, {}, {}, "Another pipeline");
 
-    cores.emplace(name, *this);  // create new WrapedCore.
-    for (auto& pair : functions) {
-        if (name != std::get<0>(pair)) {
-            addFunction(std::get<0>(pair), name);
+    cores.emplace(c_name, *this);  // create new WrapedCore.
+    for (auto& [f_name, func] : functions) {
+        if (c_name != f_name) {
+            addFunction(f_name, c_name);
         }
     }
     return true;
 }
 
-bool CoreManager::Impl::updateBindedPipes(const string& name) {
-    Function& func = functions[name];
-    auto& core = cores.at(name).core;
+bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
+    Function& func = functions[c_name];
+    auto& core = cores.at(c_name).core;
 
     // Update Function::func (UnivFunc)
-    func.func = [&core, name](vector<Variable>& vs, Report* preport) {
+    func.func = [&core, c_name](vector<Variable>& vs, Report* preport) {
         size_t i_size = core.getNodes().at(InputNodeName()).args.size();
         size_t o_size = core.getNodes().at(OutputNodeName()).args.size();
         if (vs.size() != i_size + o_size) {
@@ -210,31 +211,31 @@ bool CoreManager::Impl::updateBindedPipes(const string& name) {
         core.supposeInput(inputs);
         core.supposeOutput(outputs);
         if (!core.run(preport)) {
-            throw(std::runtime_error(name + " is failed!"));
+            throw(std::runtime_error(c_name + " is failed!"));
         }
     };
 
     // Update Function::default_args.
     size_t i_size = core.getNodes().at(InputNodeName()).args.size();
-    RefCopy(cores.at(name).inputs, &func.default_args);
-    func.default_args.resize(i_size + cores.at(name).outputs.size());
-    for (size_t i = 0; i < cores.at(name).outputs.size(); i++) {
-        func.default_args[i + i_size] = cores.at(name).outputs[i].ref();
+    RefCopy(cores.at(c_name).inputs, &func.default_args);
+    func.default_args.resize(i_size + cores.at(c_name).outputs.size());
+    for (size_t i = 0; i < cores.at(c_name).outputs.size(); i++) {
+        func.default_args[i + i_size] = cores.at(c_name).outputs[i].ref();
     }
 
     // Update Function::utils::arg_names.
-    func.utils.arg_names = cores.at(name).input_var_names;
+    func.utils.arg_names = cores.at(c_name).input_var_names;
     func.utils.arg_names.insert(func.utils.arg_names.end() - 1,
-                                cores.at(name).output_var_names.begin(),
-                                cores.at(name).output_var_names.end());
+                                cores.at(c_name).output_var_names.begin(),
+                                cores.at(c_name).output_var_names.end());
 
     // Add updated function to other pipelines.
-    for (auto& pair : cores) {
-        if (std::get<0>(pair) == name) {
-        } else if (!addFunction(name, std::get<0>(pair))) {
-            std::cerr << "CoreManager::updateBindedPipes(\"" + name +
+    for (auto& [other_c_name, wraped] : cores) {
+        if (other_c_name == c_name) {
+        } else if (!addFunction(c_name, other_c_name)) {
+            std::cerr << "CoreManager::updateBindedPipes(\"" + c_name +
                                  "\") : something went wrong at "
-                      << std::get<0>(pair) << std::endl;
+                      << other_c_name << std::endl;
             return false;
         }
     }
@@ -242,41 +243,40 @@ bool CoreManager::Impl::updateBindedPipes(const string& name) {
 }
 
 bool CoreManager::Impl::updateBindedPipes(WrapedCore* p) {
-    for (auto& pair : cores) {
-        if (&std::get<1>(pair) == p)
-            return updateBindedPipes(std::get<0>(pair));
+    for (auto& [c_name, wraped] : cores) {
+        if (&wraped == p) return updateBindedPipes(c_name);
     }
     return true;
 }
 
-PipelineAPI& CoreManager::Impl::operator[](const string& name) {
-    if (!cores.count(name)) {
-        if (!newPipeline(name)) {
+PipelineAPI& CoreManager::Impl::operator[](const string& c_name) {
+    if (!cores.count(c_name)) {
+        if (!newPipeline(c_name)) {
             return dum;
         }
     }
-    return cores.at(name);
+    return cores.at(c_name);
 }
 
-const PipelineAPI& CoreManager::Impl::operator[](const string& name) const {
-    if (!cores.count(name)) {
+const PipelineAPI& CoreManager::Impl::operator[](const string& c_name) const {
+    if (!cores.count(c_name)) {
         return dum;
     }
-    return cores.at(name);
+    return cores.at(c_name);
 }
 
 vector<string> CoreManager::Impl::getPipelineNames() {
     vector<string> dst;
-    for (auto& pair : cores) {
-        dst.emplace_back(std::get<0>(pair));
+    for (auto& [c_name, wraped] : cores) {
+        dst.emplace_back(c_name);
     }
     return dst;
 }
 
 map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils() {
     map<string, FunctionUtils> dst;
-    for (auto& pair : functions) {
-        dst[std::get<0>(pair)] = std::get<1>(pair).utils;
+    for (auto& [f_name, func] : functions) {
+        dst[f_name] = func.utils;
     }
     return dst;
 }
@@ -286,19 +286,19 @@ map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils() {
 CoreManager::CoreManager() : pimpl(std::make_unique<Impl>()) {}
 CoreManager::~CoreManager() = default;
 
-bool CoreManager::addUnivFunc(const UnivFunc& func, const string& name,
+bool CoreManager::addUnivFunc(const UnivFunc& func, const string& c_name,
                               vector<Variable>&& default_args,
                               const vector<string>& arg_names,
                               const std::string& description) {
-    return pimpl->addUnivFunc(func, name, move(default_args), arg_names,
+    return pimpl->addUnivFunc(func, c_name, move(default_args), arg_names,
                               description);
 }
 
-PipelineAPI& CoreManager::operator[](const string& name) {
-    return (*pimpl)[name];
+PipelineAPI& CoreManager::operator[](const string& c_name) {
+    return (*pimpl)[c_name];
 }
-const PipelineAPI& CoreManager::operator[](const string& name) const {
-    return (*pimpl)[name];
+const PipelineAPI& CoreManager::operator[](const string& c_name) const {
+    return (*pimpl)[c_name];
 }
 
 vector<string> CoreManager::getPipelineNames() {

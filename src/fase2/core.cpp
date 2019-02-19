@@ -29,13 +29,14 @@ public:
     Impl();
 
     // ======= unstable API =========
-    bool addUnivFunc(const UnivFunc& func, const string& name,
+    bool addUnivFunc(const UnivFunc& func, const string& f_name,
                      std::vector<Variable>&& default_args);
 
     // ======= stable API =========
-    bool newNode(const string& name);
-    bool renameNode(const std::string& old_name, const std::string& new_name);
-    bool delNode(const string& name);
+    bool newNode(const string& n_name);
+    bool renameNode(const std::string& old_n_name,
+                    const std::string& new_n_name);
+    bool delNode(const string& n_name);
 
     bool setArgument(const string& node, size_t idx, Variable& var);
     bool setPriority(const std::string& node, int priority);
@@ -66,11 +67,11 @@ private:
     Vars inputs;
     Vars outputs;
 
-    vector<Variable>& defaultArgs(const std::string& node_name) {
-        return funcs[nodes[node_name].func_name].default_args;
+    vector<Variable>& defaultArgs(const std::string& n_name) {
+        return funcs[nodes[n_name].func_name].default_args;
     }
     vector<vector<string>> getRunOrder();
-    void unlinkAll(const string& node_name);
+    void unlinkAll(const string& n_name);
 };
 
 // ============================= Member Functions ==============================
@@ -89,56 +90,56 @@ Core::Impl::Impl() {
                                std::numeric_limits<int>::min()};
 }
 
-void Core::Impl::unlinkAll(const string& name) {
-    for (size_t i = 0; i < nodes[name].args.size(); i++) {
-        unlinkNode(name, i);
+void Core::Impl::unlinkAll(const string& n_name) {
+    for (size_t i = 0; i < nodes[n_name].args.size(); i++) {
+        unlinkNode(n_name, i);
     }
     for (auto& link : links) {
-        if (link.src_node == name) {
+        if (link.src_node == n_name) {
             unlinkNode(link.dst_node, link.dst_arg);
         }
     }
 }
 
-bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& func_name,
+bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
                              std::vector<Variable>&& default_args) {
-    funcs[func_name] = {func, std::forward<vector<Variable>>(default_args)};
+    funcs[f_name] = {func, std::forward<vector<Variable>>(default_args)};
 
     for (auto& [node_name, node] : nodes) {
-        if (node.func_name == func_name) {
-            allocateFunc(func_name, node_name);
+        if (node.func_name == f_name) {
+            allocateFunc(f_name, node_name);
         }
     }
     return true;
 }
 
-bool Core::Impl::newNode(const string& name) {
-    if (nodes.count(name)) {
+bool Core::Impl::newNode(const string& n_name) {
+    if (nodes.count(n_name)) {
         return false;
     }
-    nodes[name];
+    nodes[n_name];
     return true;
 }
 
-bool Core::Impl::renameNode(const std::string& old_name,
-                            const std::string& new_name) {
-    if (!nodes.count(old_name) || old_name == InputNodeName() ||
-        old_name == OutputNodeName()) {
+bool Core::Impl::renameNode(const std::string& old_n_name,
+                            const std::string& new_n_name) {
+    if (!nodes.count(old_n_name) || old_n_name == InputNodeName() ||
+        old_n_name == OutputNodeName()) {
         return false;
     }
-    nodes[new_name] = std::move(nodes[old_name]);
+    nodes[new_n_name] = std::move(nodes[old_n_name]);
     for (auto& link : links) {
-        if (link.dst_node == old_name) link.dst_node = new_name;
-        if (link.src_node == old_name) link.src_node = new_name;
+        if (link.dst_node == old_n_name) link.dst_node = new_n_name;
+        if (link.src_node == old_n_name) link.src_node = new_n_name;
     }
     return true;
 }
 
-bool Core::Impl::delNode(const string& name) {
-    if (nodes.count(name) && name != InputNodeName() &&
-        name != OutputNodeName()) {
-        unlinkAll(name);
-        nodes.erase(name);
+bool Core::Impl::delNode(const string& n_name) {
+    if (nodes.count(n_name) && n_name != InputNodeName() &&
+        n_name != OutputNodeName()) {
+        unlinkAll(n_name);
+        nodes.erase(n_name);
         return true;
     }
     return false;
@@ -179,19 +180,20 @@ bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
     return false;
 }
 
-bool Core::Impl::linkNode(const string& src_node, size_t s_idx,
-                          const string& dst_node, size_t d_idx) {
-    if (defaultArgs(src_node)[s_idx].isSameType(defaultArgs(dst_node)[d_idx])) {
-        unlinkNode(dst_node, d_idx);
-        links.emplace_back(Link{src_node, s_idx, dst_node, d_idx});
+bool Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
+                          const string& d_n_name, size_t d_idx) {
+    if (defaultArgs(s_n_name)[s_idx].isSameType(defaultArgs(d_n_name)[d_idx])) {
+        unlinkNode(d_n_name, d_idx);
+        links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
         return true;
     }
     return false;
 }
 
-bool Core::Impl::unlinkNode(const std::string& dst_node, std::size_t dst_arg) {
+bool Core::Impl::unlinkNode(const std::string& dst_n_name,
+                            std::size_t dst_arg) {
     for (size_t i = 0; i < links.size(); i++) {
-        if (links[i].dst_node == dst_node && links[i].dst_arg == dst_arg) {
+        if (links[i].dst_node == dst_n_name && links[i].dst_arg == dst_arg) {
             links.erase(links.begin() + long(i));
             return true;
         }
@@ -225,14 +227,14 @@ vector<vector<string>> Core::Impl::getRunOrder() {
     while (1) {
         int max_priority = std::numeric_limits<int>::min();
         vector<string> runnables;
-        for (auto& [name, node] : nodes) {
-            if (exsists(name, dones)) {
+        for (auto& [n_name, node] : nodes) {
+            if (exsists(n_name, dones)) {
                 continue;
             }
 
             bool ok_f = true;
             for (auto& link : links) {
-                if (link.dst_node == name && !exsists(link.src_node, dones)) {
+                if (link.dst_node == n_name && !exsists(link.src_node, dones)) {
                     ok_f = false;
                     break;
                 }
@@ -243,7 +245,7 @@ vector<vector<string>> Core::Impl::getRunOrder() {
                     max_priority = node.priority;
                 }
                 if (node.priority >= max_priority) {
-                    runnables.push_back(name);
+                    runnables.push_back(n_name);
                 }
             }
         }
@@ -276,12 +278,12 @@ bool Core::Impl::run(Report* preport) {
     }
 
     for (auto& node_names : order) {
-        for (auto& node_name : node_names) {
+        for (auto& n_name : node_names) {
             Report* p = nullptr;
             if (preport != nullptr) {
-                p = &preport->child_reports[node_name];
+                p = &preport->child_reports[n_name];
             }
-            nodes[node_name].func(nodes[node_name].args, p);
+            nodes[n_name].func(nodes[n_name].args, p);
         }
     }
 
@@ -297,22 +299,22 @@ Core::Core() : pimpl(std::make_unique<Impl>()) {}
 Core::~Core() = default;
 
 // ======= unstable API =========
-bool Core::addUnivFunc(const UnivFunc& func, const string& name,
+bool Core::addUnivFunc(const UnivFunc& func, const string& f_name,
                        std::vector<Variable>&& default_args) {
     return pimpl->addUnivFunc(
-            func, name, std::forward<std::vector<Variable>>(default_args));
+            func, f_name, std::forward<std::vector<Variable>>(default_args));
 }
 
 // ======= stable API =========
-bool Core::newNode(const string& name) {
-    return pimpl->newNode(name);
+bool Core::newNode(const string& n_name) {
+    return pimpl->newNode(n_name);
 }
-bool Core::renameNode(const std::string& old_name,
-                      const std::string& new_name) {
-    return pimpl->renameNode(old_name, new_name);
+bool Core::renameNode(const std::string& old_n_name,
+                      const std::string& new_n_name) {
+    return pimpl->renameNode(old_n_name, new_n_name);
 }
-bool Core::delNode(const string& name) {
-    return pimpl->delNode(name);
+bool Core::delNode(const string& n_name) {
+    return pimpl->delNode(n_name);
 }
 
 bool Core::setArgument(const string& node, size_t idx, Variable& var) {
