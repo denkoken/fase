@@ -59,12 +59,10 @@ TEST_CASE("Core test") {
             core.getNodes().at("a").args[2].getReader<int>());
     REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 9);
 
-    {
-        std::vector<Variable> inputs(2);
-        inputs[0].create<int>(4);
-        inputs[1].create<int>(5);
-        REQUIRE(core.supposeInput(inputs));
-    }
+    std::vector<Variable> inputs(2);
+    inputs[0].create<int>(4);
+    inputs[1].create<int>(5);
+    REQUIRE(core.supposeInput(inputs));
     std::vector<Variable> outputs(1);
     outputs[0].create<int>();
     REQUIRE(core.supposeOutput(outputs));
@@ -76,4 +74,40 @@ TEST_CASE("Core test") {
     REQUIRE(core.run());
 
     REQUIRE(*outputs[0].getReader<int>() == 81);
+
+    // check deep copy
+    auto copied = core;
+    std::vector<Variable> copied_inputs(2);
+    copied_inputs[0].create<int>(3);
+    copied_inputs[1].create<int>(7);
+    REQUIRE(copied.supposeInput(copied_inputs));
+    std::vector<Variable> copied_outputs(1);
+    copied_outputs[0].create<int>();
+    REQUIRE(copied.supposeOutput(copied_outputs));
+
+    REQUIRE(copied.run());
+
+    REQUIRE(*copied_outputs[0].getReader<int>() == 100);
+
+    REQUIRE(*outputs[0].getReader<int>() == 81);
+
+    *inputs[0].getWriter<int>() = 2;
+    *inputs[1].getWriter<int>() = 6;
+
+    REQUIRE(core.newNode("c"));
+    REQUIRE(core.allocateFunc("square", "c"));
+
+    REQUIRE_FALSE(core.linkNode("b", 2, "c", 0));
+    REQUIRE(core.linkNode("b", 1, "c", 0));
+    REQUIRE(core.linkNode("c", 1, fase::OutputNodeName(), 0));
+
+    REQUIRE(core.run());
+    REQUIRE(*outputs[0].getReader<int>() == 64 * 64);
+
+    *copied_inputs[0].getWriter<int>() = 1;
+    *copied_inputs[1].getWriter<int>() = 4;
+    REQUIRE(copied.supposeInput(copied_inputs));
+
+    REQUIRE(copied.run());
+    REQUIRE(*copied_outputs[0].getReader<int>() == 25);
 }

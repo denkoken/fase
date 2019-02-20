@@ -182,12 +182,17 @@ bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
 
 bool Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
                           const string& d_n_name, size_t d_idx) {
-    if (defaultArgs(s_n_name)[s_idx].isSameType(defaultArgs(d_n_name)[d_idx])) {
-        unlinkNode(d_n_name, d_idx);
-        links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
-        return true;
+    if (nodes[s_n_name].args.size() <= s_idx ||
+        nodes[d_n_name].args.size() <= d_idx) {
+        return false;
     }
-    return false;
+    if (!defaultArgs(s_n_name)[s_idx].isSameType(
+                defaultArgs(d_n_name)[d_idx])) {
+        return false;
+    }
+    unlinkNode(d_n_name, d_idx);
+    links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
+    return true;
 }
 
 bool Core::Impl::unlinkNode(const std::string& dst_n_name,
@@ -218,11 +223,6 @@ bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
 vector<vector<string>> Core::Impl::getRunOrder() {
     vector<string> dones = {InputNodeName()};
     vector<vector<string>> dst = {dones};
-    auto get_size = [](auto& double_array) {
-        size_t s = 0;
-        for (auto& d : double_array) s += d.size();
-        return s;
-    };
 
     while (1) {
         int max_priority = std::numeric_limits<int>::min();
@@ -257,7 +257,7 @@ vector<vector<string>> Core::Impl::getRunOrder() {
         dones.insert(dones.begin(), runnables.begin(), runnables.end());
         dst.emplace_back(std::move(runnables));
 
-        if (get_size(dst) == nodes.size()) {
+        if (dones.size() == nodes.size()) {
             return dst;
         }
     }
@@ -277,6 +277,7 @@ bool Core::Impl::run(Report* preport) {
                 nodes[link.src_node].args[link.src_arg].ref();
     }
 
+    auto start = std::chrono::system_clock::now();
     for (auto& node_names : order) {
         for (auto& n_name : node_names) {
             Report* p = nullptr;
@@ -285,6 +286,9 @@ bool Core::Impl::run(Report* preport) {
             }
             nodes[n_name].func(nodes[n_name].args, p);
         }
+    }
+    if (preport != nullptr) {
+        preport->execution_time = std::chrono::system_clock::now() - start;
     }
 
     for (size_t i = 0; i < outputs.size(); i++) {
@@ -296,6 +300,21 @@ bool Core::Impl::run(Report* preport) {
 // ============================== Pimpl Pattern ================================
 
 Core::Core() : pimpl(std::make_unique<Impl>()) {}
+Core::Core(Core& o) : pimpl(std::make_unique<Impl>(*o.pimpl)) {}
+Core::Core(const Core& o) : pimpl(std::make_unique<Impl>(*o.pimpl)) {}
+Core::Core(Core&& o) : pimpl(std::make_unique<Impl>(std::move(*o.pimpl))) {}
+Core& Core::operator=(Core& o) {
+    pimpl = std::make_unique<Impl>(*o.pimpl);
+    return *this;
+}
+Core& Core::operator=(const Core& o) {
+    pimpl = std::make_unique<Impl>(*o.pimpl);
+    return *this;
+}
+Core& Core::operator=(Core&& o) {
+    pimpl = std::make_unique<Impl>(std::move(*o.pimpl));
+    return *this;
+}
 Core::~Core() = default;
 
 // ======= unstable API =========

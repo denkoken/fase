@@ -46,7 +46,7 @@ private:
                 using std::chrono::system_clock;
                 auto start_t = system_clock::now();
                 f(args);
-                preport->execution_time = start_t - system_clock::now();
+                preport->execution_time = system_clock::now() - start_t;
             } else {
                 f(args);
             }

@@ -16,6 +16,12 @@ namespace fase {
 class Core {
 public:
     Core();
+    Core(Core&);
+    Core(const Core&);
+    Core(Core&&);
+    Core& operator=(Core&);
+    Core& operator=(const Core&);
+    Core& operator=(Core&&);
     ~Core();
 
     // ======= unstable API =========
