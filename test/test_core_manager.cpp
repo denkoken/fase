@@ -71,7 +71,6 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe1"].smartLink(kINPUT, 1, "a", 1));
     REQUIRE(cm["Pipe1"].smartLink("a", 2, "b", 0));
     REQUIRE(cm["Pipe1"].smartLink("b", 1, kOUTPUT, 0));
-    REQUIRE(cm["Pipe1"].run());
 
     REQUIRE(cm["Pipe2"].newNode("One"));
     REQUIRE(cm["Pipe2"].newNode("l"));
@@ -89,4 +88,21 @@ TEST_CASE("Core Manager test") {
 
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((5 + 6) * (5 + 6))));
+
+    {  // check DependenceTree.
+        REQUIRE_FALSE(cm["Pipe1"].allocateFunc("Pipe2", "a"));
+
+        REQUIRE(cm["Pipe3"].newNode("p2"));
+        REQUIRE(cm["Pipe3"].allocateFunc("Pipe2", "p2"));
+
+        REQUIRE_FALSE(cm["Pipe1"].allocateFunc("Pipe3", "a"));
+
+        REQUIRE(cm["Pipe3"].allocateFunc("square", "p2"));
+
+        REQUIRE(cm["Pipe1"].allocateFunc("Pipe3", "a"));
+
+        REQUIRE_FALSE(cm["Pipe3"].allocateFunc("Pipe2", "p2"));
+        REQUIRE(cm["Pipe1"].delNode("a"));
+        REQUIRE(cm["Pipe3"].allocateFunc("Pipe2", "p2"));
+    }
 }

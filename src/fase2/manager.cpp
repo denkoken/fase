@@ -44,12 +44,13 @@ private:
     map<string, WrapedCore> cores;
     map<string, Function> functions;
 
+    DependenceTree dependence_tree;
+
     FaildDummy dum;
 
     bool newPipeline(const string& c_name);
     bool addFunction(const string& f_name, const string& c_name);
     bool updateBindedPipes(const string& c_name);
-    bool updateBindedPipes(WrapedCore* p);
 };
 
 class CoreManager::Impl::WrapedCore : public PipelineAPI {
@@ -66,6 +67,8 @@ public:
         return core.renameNode(old_n_name, new_n_name);
     }
     bool delNode(const string& n_name) override {
+        auto& d_tree = cm_ref.get().dependence_tree;
+        d_tree.del(myname(), core.getNodes().at(n_name).func_name);
         return core.delNode(n_name);
     }
 
@@ -77,7 +80,14 @@ public:
     }
 
     bool allocateFunc(const string& f_name, const string& n_name) override {
-        return core.allocateFunc(f_name, n_name);
+        auto& d_tree = cm_ref.get().dependence_tree;
+        if (cm_ref.get().cores.count(core.getNodes().at(n_name).func_name)) {
+            d_tree.del(myname(), core.getNodes().at(n_name).func_name);
+        }
+        if (d_tree.add(myname(), f_name)) {
+            return core.allocateFunc(f_name, n_name);
+        }
+        return false;
     }
 
     bool smartLink(const string& src_node, size_t src_arg,
@@ -90,7 +100,7 @@ public:
         input_var_names = arg_names;
         inputs.resize(arg_names.size());
         if (core.supposeInput(inputs)) {
-            cm_ref.get().updateBindedPipes(this);
+            cm_ref.get().updateBindedPipes(myname());
             return true;
         }
         return false;
@@ -100,7 +110,7 @@ public:
         output_var_names = arg_names;
         outputs.resize(arg_names.size());
         if (core.supposeOutput(outputs)) {
-            cm_ref.get().updateBindedPipes(this);
+            cm_ref.get().updateBindedPipes(myname());
             return true;
         }
         return false;
@@ -122,6 +132,13 @@ public:
     vector<Variable> outputs;
     vector<string> input_var_names;
     vector<string> output_var_names;
+
+    const string& myname() {
+        for (auto& [c_name, wraped] : cm_ref.get().cores) {
+            if (&wraped == this) return c_name;
+        }
+        throw std::logic_error("myname is not found!");
+    }
 };
 
 // ======================== WrapedCore Member Functions ========================
@@ -137,13 +154,13 @@ bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
     if (InputNodeName() == src_node) {
         inputs[src_arg] = core.getNodes().at(dst_node).args[dst_arg];
         core.supposeInput(inputs);
-        cm_ref.get().updateBindedPipes(this);
+        cm_ref.get().updateBindedPipes(myname());
         return core.linkNode(src_node, src_arg, dst_node, dst_arg);
 
     } else if (OutputNodeName() == dst_node) {
         outputs[dst_arg] = core.getNodes().at(src_node).args[src_arg];
         core.supposeOutput(outputs);
-        cm_ref.get().updateBindedPipes(this);
+        cm_ref.get().updateBindedPipes(myname());
         return core.linkNode(src_node, src_arg, dst_node, dst_arg);
     }
     return false;
@@ -238,13 +255,6 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
                       << other_c_name << std::endl;
             return false;
         }
-    }
-    return true;
-}
-
-bool CoreManager::Impl::updateBindedPipes(WrapedCore* p) {
-    for (auto& [c_name, wraped] : cores) {
-        if (&wraped == p) return updateBindedPipes(c_name);
     }
     return true;
 }

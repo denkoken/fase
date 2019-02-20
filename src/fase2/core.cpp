@@ -228,13 +228,13 @@ vector<vector<string>> Core::Impl::getRunOrder() {
         int max_priority = std::numeric_limits<int>::min();
         vector<string> runnables;
         for (auto& [n_name, node] : nodes) {
-            if (exsists(n_name, dones)) {
+            if (exists(n_name, dones)) {
                 continue;
             }
 
             bool ok_f = true;
             for (auto& link : links) {
-                if (link.dst_node == n_name && !exsists(link.src_node, dones)) {
+                if (link.dst_node == n_name && !exists(link.src_node, dones)) {
                     ok_f = false;
                     break;
                 }
