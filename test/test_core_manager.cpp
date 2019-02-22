@@ -89,6 +89,94 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((5 + 6) * (5 + 6))));
 
+    struct {
+        int count = 0;
+        void operator()(int& dst) {
+            dst = count++;
+        }
+    } counter;
+
+    auto univ_counter = UnivFuncGenerator<int&>::Gen(std::move(counter));
+
+    REQUIRE(cm.addUnivFunc(univ_counter, "counter", {std::make_shared<int>(0)},
+                           {"count"}, ""));
+    REQUIRE(cm["Pipe1"].newNode("c"));
+    REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
+    REQUIRE(cm["Pipe1"].supposeInput({"in1"}));
+    REQUIRE(cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
+    REQUIRE(cm["Pipe1"].smartLink("c", 0, "a", 1));
+    REQUIRE(cm["Pipe1"].run());
+
+    REQUIRE(*cm["Pipe1"].getNodes().at("c").args[0].getReader<int>() == 0);
+    REQUIRE(cm["Pipe1"].run());
+    REQUIRE(*cm["Pipe1"].getNodes().at("c").args[0].getReader<int>() == 1);
+    REQUIRE(*cm["Pipe1"].getNodes().at("a").args[0].getReader<int>() == 1);
+    REQUIRE(*cm["Pipe1"].getNodes().at("b").args[1].getReader<int>() == 4);
+
+    REQUIRE(cm["Pipe2"].smartLink("One", 1, "l", 0));
+    v = std::make_shared<int>(3);
+    REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
+    REQUIRE(cm["Pipe2"].run());
+
+    REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
+            int(3.5f * ((3 + 2) * (3 + 2))));
+
+    REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
+    REQUIRE(cm["Pipe2"].run());
+    REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
+            int(3.5f * ((3 + 0) * (3 + 0))));
+    REQUIRE(cm["Pipe2"].run());
+    REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
+            int(3.5f * ((3 + 1) * (3 + 1))));
+    REQUIRE(cm["Pipe2"].run());
+    REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
+            int(3.5f * ((3 + 2) * (3 + 2))));
+
+    {  // exportPipe test.
+        auto exported = cm.exportPipe("Pipe1");
+        std::vector<Variable> vs = {std::make_shared<int>(3),
+                                    std::make_shared<int>()};
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == (3 + 4) * (3 + 4));
+        exported(vs);
+        exported(vs);
+        exported(vs);
+        exported(vs);
+        exported.reset();
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
+        exported(vs);
+        exported(vs);
+        exported(vs);
+    }
+
+    {  // exportPipe test, with pipe dependence.
+        REQUIRE(cm["Pipe2"].supposeInput({"in1"}));
+        REQUIRE(cm["Pipe2"].supposeOutput({"dst"}));
+        REQUIRE(cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
+        REQUIRE(cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
+        auto exported = cm.exportPipe("Pipe2");
+        std::vector<Variable> vs = {std::make_shared<int>(1),
+                                    std::make_shared<int>()};
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 4) * (1 + 4)));
+        exported(vs);
+        exported(vs);
+        exported.reset();
+        exported(vs);
+        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
+        exported(vs);
+        exported(vs);
+        exported(vs);
+    }
+    REQUIRE(cm["Pipe2"].run());
+    REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
+            int(3.5f * ((3 + 3) * (3 + 3))));
+
     {  // check DependenceTree.
         REQUIRE_FALSE(cm["Pipe1"].allocateFunc("Pipe2", "a"));
 

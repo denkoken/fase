@@ -8,9 +8,27 @@
 #include <vector>
 
 #include "common.h"
+#include "core.h"
 #include "variable.h"
 
 namespace fase {
+
+class CoreManager;
+
+class ExportedPipe {
+public:
+    ExportedPipe(Core&& core_, std::function<void(Core*)>&& reseter_)
+        : core(std::move(core_)), reseter(std::move(reseter_)) {}
+
+    void operator()(std::vector<Variable>& vs);
+    void reset() {
+        reseter(&core);
+    }
+
+private:
+    Core                       core;
+    std::function<void(Core*)> reseter;
+};
 
 struct FunctionUtils {
     std::vector<std::string> arg_names;
@@ -37,6 +55,8 @@ public:
 
     PipelineAPI&       operator[](const std::string& name);
     const PipelineAPI& operator[](const std::string& name) const;
+
+    ExportedPipe exportPipe(const std::string& name) const;
 
     std::vector<std::string>             getPipelineNames();
     std::map<std::string, FunctionUtils> getFunctionUtils();

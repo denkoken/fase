@@ -26,6 +26,20 @@ inline Container get_all_if(Container& c, Checker&& checker) {
     return {std::move(storeds)};
 }
 
+template <typename T>
+inline void Extend(T&& a, T* b) {
+    b->insert(std::begin(*b), std::begin(a), std::end(a));
+}
+
+template <typename Key, typename Val>
+inline std::vector<Key> getKeys(const std::map<Key, Val>& map) {
+    std::vector<Key> dst;
+    for (auto& pair : map) {
+        dst.emplace_back(std::get<0>(pair));
+    }
+    return dst;
+}
+
 inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
     dst->clear();
     dst->resize(src.size());
@@ -58,6 +72,31 @@ public:
         if (trees[depending][depended] <= 0) {
             trees[depending].erase(depended);
         }
+    }
+
+    std::vector<std::vector<std::string>> getDependenceLayer(
+            const std::string& depending) const {
+        if (isIndependent(depending)) return {};
+
+        std::vector<std::vector<std::string>> dst;
+        dst.emplace_back(getKeys(trees.at(depending)));
+
+        for (auto& str : dst[0]) {
+            auto deps = getDependenceLayer(str);
+            dst.resize(std::max(deps.size() + 1, dst.size()));
+            for (std::size_t i = 0; i < deps.size(); i++) {
+                Extend(std::move(deps[i]), &dst[i + 1]);
+            }
+        }
+        return dst;
+    }
+
+    bool isIndependent(const std::string& a) const {
+        return !trees.count(a);
+    }
+
+    std::vector<std::string> getDependings(const std::string& a) const {
+        return getKeys(trees.at(a));
     }
 
 private:

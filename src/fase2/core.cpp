@@ -278,6 +278,7 @@ bool Core::Impl::run(Report* preport) {
     }
 
     auto start = std::chrono::system_clock::now();
+#if 1
     for (auto& node_names : order) {
         for (auto& n_name : node_names) {
             Report* p = nullptr;
@@ -287,6 +288,25 @@ bool Core::Impl::run(Report* preport) {
             nodes[n_name].func(nodes[n_name].args, p);
         }
     }
+#else
+    std::launch policy = std::launch::async | std::launch::deferred;
+
+    for (auto& node_names : order) {
+        map<string, std::future<void>> futures;
+        for (auto& n_name : node_names) {
+            Report* p = nullptr;
+            if (preport != nullptr) {
+                p = &preport->child_reports[n_name];
+            }
+            futures[n_name] = std::async(policy, [&]() {
+                nodes[n_name].func(nodes[n_name].args, p);
+            });
+        }
+        for (auto& n_name : node_names) {
+            futures[n_name].wait();
+        }
+    }
+#endif
     if (preport != nullptr) {
         preport->execution_time = std::chrono::system_clock::now() - start;
     }
