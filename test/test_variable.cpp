@@ -119,8 +119,8 @@ TEST_CASE("Variable test") {
             test_class.getReader<float>();
             REQUIRE(false);
         } catch (WrongTypeCast &e) {
-            REQUIRE(*e.casted_type == typeid(TestClass));
-            REQUIRE(*e.cast_type == typeid(float));
+            REQUIRE(e.casted_type == typeid(TestClass));
+            REQUIRE(e.cast_type == typeid(float));
         }
     }
 }

@@ -5,16 +5,16 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <typeindex>
 
 namespace fase {
 
 class WrongTypeCast : public std::logic_error {
 public:
-    WrongTypeCast(const std::type_info& cast_type_,
-                  const std::type_info& casted_type_)
+    WrongTypeCast(std::type_index cast_type_, std::type_index casted_type_)
         : std::logic_error("WrongTypeCast"),
-          cast_type(&cast_type_),
-          casted_type(&casted_type_),
+          cast_type(cast_type_),
+          casted_type(casted_type_),
           err_message(
                   std::string("Variable::getReader() failed : Invalid cast (") +
                   cast_type_.name() + std::string(" vs ") +
@@ -22,8 +22,8 @@ public:
 
     ~WrongTypeCast() {}
 
-    const std::type_info* cast_type;
-    const std::type_info* casted_type;
+    std::type_index cast_type;
+    std::type_index casted_type;
 
     const char* what() const noexcept {
         return err_message.c_str();
@@ -73,7 +73,7 @@ public:
     template <typename T>
     void set(std::shared_ptr<T>&& v) {
         data = std::move(v);
-        type = &typeid(T);  // The lifetime extends to the end of the program.
+        type = typeid(T);  // The lifetime extends to the end of the program.
         cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
         };
@@ -84,17 +84,17 @@ public:
 
     template <typename T>
     bool isSameType() const {
-        return *type == typeid(T);
+        return type == typeid(T);
     }
 
     bool isSameType(const Variable& v) const {
-        return *type == *v.type;
+        return type == v.type;
     }
 
     template <typename T>
     std::shared_ptr<T> getWriter() {
         if (!isSameType<T>()) {
-            throw(WrongTypeCast(typeid(T), *type));
+            throw(WrongTypeCast(typeid(T), type));
         }
         return std::static_pointer_cast<T>(data);
     }
@@ -102,7 +102,7 @@ public:
     template <typename T>
     std::shared_ptr<T> getReader() const {
         if (!isSameType<T>()) {
-            throw(WrongTypeCast(typeid(T), *type));
+            throw(WrongTypeCast(typeid(T), type));
         }
         return std::static_pointer_cast<T>(data);
     }
@@ -127,12 +127,12 @@ public:
     }
 
     explicit operator bool() const noexcept {
-        return type != &typeid(void);
+        return type != typeid(void);
     }
 
 private:
-    std::shared_ptr<void>                           data;
-    const std::type_info*                           type = &typeid(void);
+    std::shared_ptr<void> data;
+    std::type_index type = typeid(void);
     std::function<void(Variable&, const Variable&)> cloner;
     std::function<void(Variable&, const Variable&)> copyer;
 };
