@@ -58,8 +58,8 @@ public:
 
     ExportedPipe exportPipe(const std::string& name) const;
 
-    std::vector<std::string>             getPipelineNames();
-    std::map<std::string, FunctionUtils> getFunctionUtils();
+    std::vector<std::string>             getPipelineNames() const;
+    std::map<std::string, FunctionUtils> getFunctionUtils() const;
 
 private:
     class Impl;

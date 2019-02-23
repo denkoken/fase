@@ -67,58 +67,18 @@ public:
     virtual const std::vector<Link>&           getLinks() const noexcept = 0;
 };
 
-class FaildDummy : public PipelineAPI {
-    bool newNode(const std::string&) override {
-        return false;
-    }
-    bool renameNode(const std::string&, const std::string&) override {
-        return false;
-    }
-    bool delNode(const std::string&) override {
-        return false;
-    }
+struct TypeStringConverters {
+    using Serializer = std::function<std::string(const Variable&)>;
+    using Deserializer = std::function<void(Variable&, const std::string&)>;
+    using Checker = std::function<bool(const Variable&)>;
+    using DefMaker = Serializer;
 
-    bool setArgument(const std::string&, size_t, Variable&) override {
-        return false;
-    }
-    bool setPriority(const std::string&, int) override {
-        return false;
-    }
+    Serializer   serializer;
+    Deserializer deserializer;
+    Checker      checker;
+    DefMaker     def_maker;
 
-    bool allocateFunc(const std::string&, const std::string&) override {
-        return false;
-    }
-
-    bool smartLink(const std::string&, size_t, const std::string&,
-                   size_t) override {
-        return false;
-    }
-    bool unlinkNode(const std::string&, size_t) override {
-        return false;
-    }
-
-    bool supposeInput(const std::vector<std::string>&) override {
-        return false;
-    }
-    bool supposeOutput(const std::vector<std::string>&) override {
-        return false;
-    }
-
-    bool run(Report* = nullptr) override {
-        return false;
-    }
-
-    const std::map<std::string, Node>& getNodes() const noexcept override {
-        return dum_n;
-    }
-
-    const std::vector<Link>& getLinks() const noexcept override {
-        return dum_l;
-    }
-
-private:
-    std::map<std::string, Node> dum_n;
-    std::vector<Link>           dum_l;
+    std::string name;
 };
 
 }  // namespace fase

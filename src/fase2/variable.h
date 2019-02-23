@@ -100,11 +100,11 @@ public:
     }
 
     template <typename T>
-    std::shared_ptr<T> getReader() const {
+    std::shared_ptr<const T> getReader() const {
         if (!isSameType<T>()) {
             throw(WrongTypeCast(typeid(T), type));
         }
-        return std::static_pointer_cast<T>(data);
+        return std::static_pointer_cast<const T>(data);
     }
 
     void copyTo(Variable& v) const {
@@ -131,8 +131,8 @@ public:
     }
 
 private:
-    std::shared_ptr<void> data;
-    std::type_index type = typeid(void);
+    std::shared_ptr<void>                           data;
+    std::type_index                                 type = typeid(void);
     std::function<void(Variable&, const Variable&)> cloner;
     std::function<void(Variable&, const Variable&)> copyer;
 };

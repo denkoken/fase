@@ -35,6 +35,60 @@ void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
     }
 }
 
+class FaildDummy : public PipelineAPI {
+    bool newNode(const std::string&) override {
+        return false;
+    }
+    bool renameNode(const std::string&, const std::string&) override {
+        return false;
+    }
+    bool delNode(const std::string&) override {
+        return false;
+    }
+
+    bool setArgument(const std::string&, size_t, Variable&) override {
+        return false;
+    }
+    bool setPriority(const std::string&, int) override {
+        return false;
+    }
+
+    bool allocateFunc(const std::string&, const std::string&) override {
+        return false;
+    }
+
+    bool smartLink(const std::string&, size_t, const std::string&,
+                   size_t) override {
+        return false;
+    }
+    bool unlinkNode(const std::string&, size_t) override {
+        return false;
+    }
+
+    bool supposeInput(const std::vector<std::string>&) override {
+        return false;
+    }
+    bool supposeOutput(const std::vector<std::string>&) override {
+        return false;
+    }
+
+    bool run(Report* = nullptr) override {
+        return false;
+    }
+
+    const std::map<std::string, Node>& getNodes() const noexcept override {
+        return dum_n;
+    }
+
+    const std::vector<Link>& getLinks() const noexcept override {
+        return dum_l;
+    }
+
+private:
+    const std::map<std::string, Node> dum_n;
+    const std::vector<Link> dum_l;
+};
+
 // ============================== CoreManager ==================================
 
 struct Function {
@@ -50,15 +104,15 @@ public:
     bool addUnivFunc(const UnivFunc& func, const string& f_name,
                      vector<Variable>&& default_args,
                      const vector<string>& arg_names,
-                     const std::string& description);
+                     const string& description);
 
     PipelineAPI& operator[](const string& c_name);
     const PipelineAPI& operator[](const string& c_name) const;
 
     ExportedPipe exportPipe(const std::string& name) const;
 
-    vector<string> getPipelineNames();
-    map<string, FunctionUtils> getFunctionUtils();
+    vector<string> getPipelineNames() const;
+    map<string, FunctionUtils> getFunctionUtils() const;
 
 private:
     class WrapedCore;
@@ -335,7 +389,7 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
                         }};
 }
 
-vector<string> CoreManager::Impl::getPipelineNames() {
+vector<string> CoreManager::Impl::getPipelineNames() const {
     vector<string> dst;
     for (auto& [c_name, wrapeds] : wrapeds) {
         dst.emplace_back(c_name);
@@ -343,7 +397,7 @@ vector<string> CoreManager::Impl::getPipelineNames() {
     return dst;
 }
 
-map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils() {
+map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils() const {
     map<string, FunctionUtils> dst;
     for (auto& [f_name, func] : functions) {
         dst[f_name] = func.utils;
@@ -375,11 +429,11 @@ ExportedPipe CoreManager::exportPipe(const std::string& name) const {
     return pimpl->exportPipe(name);
 }
 
-vector<string> CoreManager::getPipelineNames() {
+vector<string> CoreManager::getPipelineNames() const {
     return pimpl->getPipelineNames();
 }
 
-map<string, FunctionUtils> CoreManager::getFunctionUtils() {
+map<string, FunctionUtils> CoreManager::getFunctionUtils() const {
     return pimpl->getFunctionUtils();
 }
 

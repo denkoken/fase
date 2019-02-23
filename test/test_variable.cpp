@@ -19,16 +19,16 @@ public:
         return *this;
     }
 
-    bool isNone() {
+    bool isNone() const {
         return status == Status::NONE;
     }
-    bool isMaked() {
+    bool isMaked() const {
         return status == Status::MAKED;
     }
-    bool isCopied() {
+    bool isCopied() const {
         return status == Status::COPIED;
     }
-    bool isMoved() {
+    bool isMoved() const {
         return status == Status::MOVED;
     }
 
@@ -53,8 +53,8 @@ TEST_CASE("Variable test") {
         a.create<TestClass>();
         Variable b;
         b.create<TestClass>();
-        a.getReader<TestClass>()->clear();
-        b.getReader<TestClass>()->clear();
+        a.getWriter<TestClass>()->clear();
+        b.getWriter<TestClass>()->clear();
         a = b;
         REQUIRE(a.isSameType(b));
         REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
@@ -67,8 +67,8 @@ TEST_CASE("Variable test") {
         a.create<TestClass>();
         Variable b;
         b.create<TestClass>();
-        a.getReader<TestClass>()->clear();
-        b.getReader<TestClass>()->clear();
+        a.getWriter<TestClass>()->clear();
+        b.getWriter<TestClass>()->clear();
         a = b.clone();
         REQUIRE(a.isSameType(b));
         REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
@@ -81,8 +81,8 @@ TEST_CASE("Variable test") {
         a.create<TestClass>();
         Variable b;
         b.create<TestClass>();
-        a.getReader<TestClass>()->clear();
-        b.getReader<TestClass>()->clear();
+        a.getWriter<TestClass>()->clear();
+        b.getWriter<TestClass>()->clear();
         a = b.ref();
         REQUIRE(a.isSameType(b));
         REQUIRE(&(*a.getReader<TestClass>()) == &(*b.getReader<TestClass>()));
@@ -96,8 +96,8 @@ TEST_CASE("Variable test") {
         a.create<TestClass>();
         Variable b;
         b.create<TestClass>();
-        a.getReader<TestClass>()->clear();
-        b.getReader<TestClass>()->clear();
+        a.getWriter<TestClass>()->clear();
+        b.getWriter<TestClass>()->clear();
         a = std::move(b);
         REQUIRE(a.getReader<TestClass>()->isNone());
     }
@@ -105,7 +105,7 @@ TEST_CASE("Variable test") {
     SECTION("Clone") {
         Variable a;
         a.create<TestClass>();
-        a.getReader<TestClass>()->clear();
+        a.getWriter<TestClass>()->clear();
         Variable b = a.clone();
         REQUIRE(&(*a.getReader<TestClass>()) != &(*b.getReader<TestClass>()));
         REQUIRE(a.getReader<TestClass>()->isNone());
