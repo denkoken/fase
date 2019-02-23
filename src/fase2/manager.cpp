@@ -85,8 +85,8 @@ class FaildDummy : public PipelineAPI {
     }
 
 private:
-    const std::map<std::string, Node> dum_n;
-    const std::vector<Link> dum_l;
+    std::map<std::string, Node> dum_n;
+    std::vector<Link> dum_l;
 };
 
 // ============================== CoreManager ==================================
