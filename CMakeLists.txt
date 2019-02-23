@@ -172,6 +172,7 @@ endif()
 add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/core.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/type_converter.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
