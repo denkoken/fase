@@ -53,16 +53,18 @@ public:
 
 private:
     std::shared_ptr<CoreManager> pcm;
-    std::shared_mutex            cm_mutex;
+    std::shared_timed_mutex      cm_mutex;
 
     std::map<std::type_index, TypeStringConverters> converter_map;
 
-    std::tuple<std::shared_lock<std::shared_mutex>,
+    std::tuple<std::shared_lock<std::shared_timed_mutex>,
                std::shared_ptr<const CoreManager>>
-    getReader() override;
-    std::tuple<std::unique_lock<std::shared_mutex>,
+    getReader(const std::chrono::nanoseconds& wait_time =
+                      std::chrono::nanoseconds{-1}) override;
+    std::tuple<std::unique_lock<std::shared_timed_mutex>,
                std::shared_ptr<CoreManager>>
-    getWriter() override;
+    getWriter(const std::chrono::nanoseconds& wait_time =
+                      std::chrono::nanoseconds{-1}) override;
 };
 
 // =============================================================================
@@ -72,7 +74,8 @@ private:
 void SetupTypeConverters(std::map<std::type_index, TypeStringConverters>*);
 
 template <class... Parts>
-inline Fase<Parts...>::Fase() : Parts()... {
+inline Fase<Parts...>::Fase()
+    : Parts()..., pcm(std::make_shared<CoreManager>()) {
     SetupTypeConverters(&converter_map);
 }
 
@@ -118,19 +121,25 @@ inline bool Fase<Parts...>::registerTextIO(
 }
 
 template <class... Parts>
-inline std::tuple<std::shared_lock<std::shared_mutex>,
+inline std::tuple<std::shared_lock<std::shared_timed_mutex>,
                   std::shared_ptr<const CoreManager>>
-Fase<Parts...>::getReader() {
-    return {std::shared_lock<std::shared_mutex>{cm_mutex},
-            std::static_pointer_cast<const CoreManager>(pcm)};
+Fase<Parts...>::getReader(const std::chrono::nanoseconds& wait_time) {
+    std::shared_lock<std::shared_timed_mutex> lock(cm_mutex, wait_time);
+    if (lock)
+        return {std::move(lock),
+                std::static_pointer_cast<const CoreManager>(pcm)};
+    return {};
 }
 
 template <class... Parts>
-inline std::tuple<std::unique_lock<std::shared_mutex>,
+inline std::tuple<std::unique_lock<std::shared_timed_mutex>,
                   std::shared_ptr<CoreManager>>
-Fase<Parts...>::getWriter() {
-    return {std::unique_lock<std::shared_mutex>{cm_mutex},
-            std::static_pointer_cast<CoreManager>(pcm)};
+Fase<Parts...>::getWriter(const std::chrono::nanoseconds& wait_time) {
+    std::unique_lock<std::shared_timed_mutex> lock(cm_mutex, wait_time);
+    if (lock) {
+        return {std::move(lock), pcm};
+    }
+    return {};
 }
 
 }  // namespace fase
