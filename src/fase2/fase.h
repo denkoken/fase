@@ -93,13 +93,14 @@ inline bool Fase<Parts...>::registerTextIO(
         std::function<std::string(const T&)>&& serializer,
         std::function<T(const std::string&)>&& deserializer,
         std::function<std::string(const T&)>&& def_maker) {
-    converter_map[typeid(T)].serializer = [serializer](const Variable& v) {
-        return serializer(*v.getReader<T>());
-    };
+    converter_map[typeid(T)].serializer =
+            [serializer = std::move(serializer)](const Variable& v) {
+                return serializer(*v.getReader<T>());
+            };
 
     converter_map[typeid(T)].deserializer =
-            [deserializer = std::forward<decltype(deserializer)>(deserializer)](
-                    Variable& v, const std::string& str) {
+            [deserializer = std::move(deserializer)](Variable&          v,
+                                                     const std::string& str) {
                 v.create<T>(deserializer(str));
             };
 
@@ -110,8 +111,9 @@ inline bool Fase<Parts...>::registerTextIO(
     converter_map[typeid(T)].name = name;
 
     converter_map[typeid(T)].def_maker =
-            [def_maker = std::forward<decltype(def_maker)>(def_maker)](
-                    const Variable& v) { return def_maker(*v.getReader<T>()); };
+            [def_maker = std::move(def_maker)](const Variable& v) {
+                return def_maker(*v.getReader<T>());
+            };
     return true;
 }
 
