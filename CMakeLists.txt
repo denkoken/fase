@@ -173,6 +173,7 @@ add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/core.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/type_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/imgui_editor.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
@@ -181,17 +182,11 @@ list(APPEND FASE_LIBRARY fase)
 
 # ---------------------------------- examples ----------------------------------
 if (FASE_BUILD_EXAMPLES)
-    # CLI Editor
-    # add_executable(clieditor
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/clieditor/main.cpp
-    # )
-    # setup_target(clieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
-
     # GUI Editor
-    # add_executable(guieditor
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
-    # )
-    # setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    add_executable(guieditor
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
+    )
+    setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
     # GUI Editor with OpenCV
     if (${OpenCV_FOUND})

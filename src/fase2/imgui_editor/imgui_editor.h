@@ -18,7 +18,7 @@ using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
  *      `examples/guieditor/main.cpp`.
  */
 // clang-format on
-class ImGuiEditor : PartsBase {
+class ImGuiEditor : public PartsBase {
 public:
     ImGuiEditor();
     ~ImGuiEditor();
@@ -69,16 +69,16 @@ private:
     /**
      * @brief add wraped variable editor.
      *
-     * @param p type_info of type of variable.
+     * @param type typeid of type of variable.
      * @param f wraped variable editor
      *
      * @return succeeded or not.
      */
-    bool addVarEditor(const std::type_info* p, VarEditorWraped&& f);
+    bool addVarEditor(std::type_index&& type, VarEditorWraped&& f);
 
     // pImpl pattern
     class Impl;
-    std::unique_ptr<Impl> impl;
+    std::unique_ptr<Impl> pimpl;
 };
 
 }  // namespace fase
