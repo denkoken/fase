@@ -11,7 +11,7 @@
 namespace fase {
 
 template <typename T, typename C>
-inline bool exists(T& t, C& c) {
+inline bool exists(T&& t, C& c) {
     return std::end(c) != std::find(std::begin(c), std::end(c), t);
 }
 
@@ -24,6 +24,12 @@ inline Container get_all_if(Container& c, Checker&& checker) {
         }
     }
     return {std::move(storeds)};
+}
+
+template <typename Container, class V>
+inline void erase_all(Container& c, V&& v) {
+    auto end = std::remove(c.begin(), c.end(), v);
+    c.erase(end, c.end());
 }
 
 template <typename T>
