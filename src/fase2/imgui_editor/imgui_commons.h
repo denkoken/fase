@@ -21,12 +21,30 @@ inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
 
 class WindowRAII {
 public:
-    WindowRAII(const std::string& name, bool* p_open = nullptr,
+    WindowRAII(const char* name, bool* p_open = nullptr,
                ImGuiWindowFlags flags = 0) {
-        opened = ImGui::Begin(name.c_str(), p_open, flags);
+        opened = ImGui::Begin(name, p_open, flags);
     }
     ~WindowRAII() {
         ImGui::End();
+    }
+
+    operator bool() const noexcept {
+        return opened;
+    }
+
+private:
+    bool opened;
+};
+
+class ChildRAII {
+public:
+    ChildRAII(const char* name, const ImVec2& size = ImVec2(0, 0),
+              bool border = false, ImGuiWindowFlags flags = 0) {
+        opened = ImGui::BeginChild(name, size, border, flags);
+    }
+    ~ChildRAII() {
+        ImGui::EndChild();
     }
 
     operator bool() const noexcept {

@@ -18,6 +18,11 @@ struct OptionalButton {
     std::string description;
 };
 
+bool BeginPopupContext(const char* str, bool condition, int button) {
+    if (condition && ImGui::IsMouseReleased(button)) ImGui::OpenPopup(str);
+    return ImGui::BeginPopup(str);
+}
+
 float GetVolume(const size_t& idx) {
     if (idx == 0)
         return 0.f;
@@ -133,6 +138,8 @@ private:
     vector<OptionalButton> optional_buttons;
     InputText new_core_name_it{64, ImGuiInputTextFlags_EnterReturnsTrue};
 
+    void drawCanvasPannel(const PipelineAPI& core_api, LabelWrapper label);
+
     bool drawEditWindow(const string& p_name, const string& win_title,
                         const CoreManager& cm, LabelWrapper label);
     bool drawEditWindows(const string& win_title, LabelWrapper label);
@@ -147,6 +154,50 @@ void ImGuiEditor::Impl::addOptinalButton(std::string&& name,
             std::move(name), std::move(callback), std::move(description)});
 }
 
+void ImGuiEditor::Impl::drawCanvasPannel(const PipelineAPI& core_api,
+                                         LabelWrapper label) {
+    label.addSuffix("##Canvas");
+    ChildRAII raii(label(""));
+
+    DrawCanvas(ImVec2(0, 0), 100);
+    const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
+    // Draw node box
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    draw_list->ChannelsSplit(2);
+    draw_list->ChannelsSetCurrent(0);  // Background
+    size_t i = 0;
+    string hovered = "";
+    for (auto& [name, node] : core_api.getNodes()) {
+        ImGui::SetCursorScreenPos(canvas_offset + ImVec2(i * 200, 10));
+        drawNodeBox(canvas_offset + ImVec2(i * 200, 10), ImVec2(150, 150), true,
+                    i, label);
+        if (ImGui::IsItemHovered()) {
+            hovered = name;
+        }
+        i++;
+    }
+    for (auto& [name, node] : core_api.getNodes()) {
+        if (BeginPopupContext(label(name + "_context"), hovered == name, 1)) {
+            ImGui::Text("%s", name.c_str());
+            ImGui::Separator();
+            if (ImGui::Selectable("delete")) {
+            }
+            if (ImGui::Selectable("rename")) {
+            }
+            ImGui::Separator();
+            if (ImGui::Selectable("alocate function")) {
+            }
+            ImGui::EndPopup();
+        }
+    }
+
+    if (BeginPopupContext(label("canvas_context"), hovered.empty(), 1)) {
+        if (ImGui::Selectable("new node")) {
+        }
+        ImGui::EndPopup();
+    }
+}
+
 bool ImGuiEditor::Impl::drawEditWindow(const string& p_name,
                                        const string& win_title,
                                        const CoreManager& cm,
@@ -155,14 +206,7 @@ bool ImGuiEditor::Impl::drawEditWindow(const string& p_name,
     bool opened = true;
     if (auto raii = WindowRAII(label(win_title + " : Pipe Edit - " + p_name),
                                &opened)) {
-        DrawCanvas(ImVec2(0, 0), 100);
-        const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
-        // Draw node box
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        draw_list->ChannelsSplit(2);
-        draw_list->ChannelsSetCurrent(0);  // Background
-        ImGui::SetCursorScreenPos(canvas_offset);
-        drawNodeBox(canvas_offset, ImVec2(300, 150), true, 0, label);
+        drawCanvasPannel(cm[p_name], label);
     }
 
     return opened;
@@ -191,10 +235,11 @@ bool ImGuiEditor::Impl::drawEditWindows(const string& win_title,
 bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
                                            LabelWrapper label) {
     label.addSuffix("##ControlWindow");
-    if (auto raii = WindowRAII(label(win_title + " : Control Window"))) {
-        ImGui::Text("Open Pipeline");
+    if (auto raii = WindowRAII(label(win_title + " : Control Window"), nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Open Pipeline : ");
         ImGui::SameLine();
-        if (new_core_name_it.draw(label("name"))) {
+        if (new_core_name_it.draw(label("##core_open_name"))) {
             if (!exists(new_core_name_it.text(), opened_pipelines)) {
                 opened_pipelines.emplace_back(new_core_name_it.text());
                 new_core_name_it.set("");
@@ -224,6 +269,9 @@ bool ImGuiEditor::Impl::init() {
 
 bool ImGuiEditor::Impl::addVarEditor(std::type_index&& type,
                                      VarEditorWraped&& f) {
+    // TODO
+    (void)type;
+    (void)f;
     return true;
 }
 
