@@ -132,6 +132,7 @@ bool Core::Impl::renameNode(const std::string& old_n_name,
         if (link.dst_node == old_n_name) link.dst_node = new_n_name;
         if (link.src_node == old_n_name) link.src_node = new_n_name;
     }
+    delNode(old_n_name);
     return true;
 }
 

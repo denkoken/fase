@@ -20,10 +20,15 @@ class Fase : public Parts... {
 public:
     Fase();
 
+    template <typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     std::vector<Variable>&&         default_args,
                      const std::vector<std::string>& arg_names,
-                     const std::string&              description);
+                     const std::string&              description = "");
+    template <typename... Args>
+    bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
+                     const std::vector<std::string>& arg_names,
+                     const std::string&              description,
+                     std::vector<Variable>&&         default_args);
 
     /**
      * @brief
@@ -67,9 +72,31 @@ private:
                       std::chrono::nanoseconds{-1}) override;
 };
 
+#define FaseAddFunctionBuilder(func, arg_types, arg_names, ...) \
+    fase::AddingUnivFuncHelper<void arg_types>::Gen(            \
+            #func, FaseExpandList(arg_names), func, __VA_ARGS__);
+
 // =============================================================================
 // =========================== Non User Interface ==============================
 // =============================================================================
+
+template <bool head, bool... tails>
+constexpr bool is_all_ok() {
+    if constexpr (sizeof...(tails) == 0) {
+        return head;
+    } else {
+        return head && is_all_ok<tails...>();
+    }
+}
+
+template <typename... Args>
+std::vector<Variable> GetDefaultValueVariables() {
+    if constexpr (sizeof...(Args) == 0) {
+        return {};
+    } else {
+        return {std::make_shared<std::decay_t<Args>>()...};
+    }
+}
 
 void SetupTypeConverters(std::map<std::type_index, TypeStringConverters>*);
 
@@ -80,13 +107,29 @@ inline Fase<Parts...>::Fase()
 }
 
 template <class... Parts>
+template <typename... Args>
 inline bool Fase<Parts...>::addUnivFunc(
         const UnivFunc& func, const std::string& f_name,
-        std::vector<Variable>&&         default_args,
+        const std::vector<std::string>& arg_names,
+        const std::string& description, std::vector<Variable>&& default_args) {
+    return pcm->addUnivFunc(func, f_name, std::move(default_args), arg_names,
+                            description);
+}
+
+template <class... Parts>
+template <typename... Args>
+inline bool Fase<Parts...>::addUnivFunc(
+        const UnivFunc& func, const std::string& f_name,
         const std::vector<std::string>& arg_names,
         const std::string&              description) {
-    pcm->addUnivFunc(func, f_name, std::move(default_args), arg_names,
-                     description);
+    static_assert(
+            is_all_ok<std::is_default_constructible_v<std::decay_t<Args>>...>(),
+            "Fase::addUnivFunc<Args...> : "
+            "If not all Args have default constructor,"
+            "do not call me WITHOUT default_args!");
+    std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
+    return pcm->addUnivFunc(func, f_name, std::move(default_args), arg_names,
+                            description);
 }
 
 template <class... Parts>
@@ -141,6 +184,50 @@ Fase<Parts...>::getWriter(const std::chrono::nanoseconds& wait_time) {
     }
     return {};
 }
+
+#define FaseExpandListHelper(...)            \
+    {                                        \
+        std::initializer_list<std::string> { \
+            __VA_ARGS__                      \
+        }                                    \
+    }
+#define FaseExpandList(v) FaseExpandListHelper v
+
+template <typename... Args>
+struct AddingUnivFuncHelper {};
+
+template <typename... Args>
+struct AddingUnivFuncHelper<void(Args...)> {
+    template <class FaseClass, class Callable>
+    static void Gen(const std::string&              f_name,
+                    const std::vector<std::string>& arg_names, Callable&& f,
+                    FaseClass& app, std::string description = "") {
+        auto unived =
+                UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
+        app.template addUnivFunc<Args...>(unived, f_name, arg_names,
+                                          description);
+    }
+
+    template <class FaseClass, class Callable>
+    static void Gen(const std::string&              f_name,
+                    const std::vector<std::string>& arg_names, Callable&& f,
+                    FaseClass& app, std::string description,
+                    std::tuple<std::decay_t<Args>...>&& default_args) {
+        auto unived =
+                UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
+        app.template addUnivFunc<Args...>(
+                unived, f_name, arg_names, description,
+                toVariables(std::move(default_args),
+                            std::index_sequence_for<Args...>()));
+    }
+    template <size_t... Seq>
+    static std::vector<Variable> toVariables(
+            std::tuple<std::decay_t<Args>...>&& a,
+            std::index_sequence<Seq...>) {
+        return {std::make_shared<std::decay_t<Args>>(
+                std::move(std::get<Seq>(a)))...};
+    }
+};
 
 }  // namespace fase
 

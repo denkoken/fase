@@ -35,16 +35,16 @@ int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::ImGuiEditor> app;
 
-#if 0
-#if !defined(__cpp_if_constexpr) || !defined(__cpp_inline_variables)
+#if 1
     // Register functions
-    FaseAddFunctionBuilder(app, Add, (const int&, const int&, int&),
-                           ("in1", "in2", "out"));
-    FaseAddFunctionBuilder(app, Square, (const int&, int&), ("in", "out"));
-    FaseAddFunctionBuilder(app, Print, (const int&), ("in"));
-    FaseAddFunctionBuilder(app, Wait, (const int&), ("seconds"));
-    FaseAddFunctionBuilder(app, Assert, (const int&, const int&), ("a", "b"));
-#endif
+    FaseAddFunctionBuilder(Add, (const int&, const int&, int&),
+                           ("in1", "in2", "out"), app);
+    FaseAddFunctionBuilder(Square, (const int&, int&), ("in", "out"), app);
+    FaseAddFunctionBuilder(Print, (const int&), ("in"), app);
+    FaseAddFunctionBuilder(Wait, (const int&), ("seconds"), app,
+                           "wait for \"seconds\".");
+    FaseAddFunctionBuilder(Assert, (const int&, const int&), ("a", "b"), app,
+                           "assert(a == b)", {1, 1});
 #endif
 
     auto bg_col = std::make_shared<std::vector<float>>(3);
