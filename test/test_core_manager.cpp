@@ -30,7 +30,10 @@ TEST_CASE("Core Manager test") {
         default_args[2].create<int>(0);
 
         REQUIRE(cm.addUnivFunc(univ_add, "add", std::move(default_args),
-                               {"a", "b", "dst"}, "dst := a + b"));
+                               {{"a", "b", "dst"},
+                                {typeid(int), typeid(int), typeid(int)},
+                                {true, true, false},
+                                "dst := a + b"}));
     }
 
     {
@@ -42,7 +45,10 @@ TEST_CASE("Core Manager test") {
         default_args[1].create<int>(0);
 
         REQUIRE(cm.addUnivFunc(univ_sq, "square", std::move(default_args),
-                               {"in", "dst"}, "dst := in * in"));
+                               {{"in", "dst"},
+                                {typeid(int), typeid(int)},
+                                {true, false},
+                                "dst := in * in"}));
     }
 
     {
@@ -55,7 +61,10 @@ TEST_CASE("Core Manager test") {
                                               std::make_shared<int>()};
 
         REQUIRE(cm.addUnivFunc(univ_lambda, "lambda", std::move(default_args),
-                               {"in", "dst"}, "dst := C * in"));
+                               {{"in", "dst"},
+                                {typeid(int), typeid(int)},
+                                {true, false},
+                                "dst := in * in"}));
     }
     const std::string kINPUT = fase::InputNodeName();
     const std::string kOUTPUT = fase::OutputNodeName();
@@ -99,7 +108,7 @@ TEST_CASE("Core Manager test") {
     auto univ_counter = UnivFuncGenerator<int&>::Gen(std::move(counter));
 
     REQUIRE(cm.addUnivFunc(univ_counter, "counter", {std::make_shared<int>(0)},
-                           {"count"}, ""));
+                           {{"count"}, {typeid(int)}, {false}, "counter."}));
     REQUIRE(cm["Pipe1"].newNode("c"));
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
     REQUIRE(cm["Pipe1"].supposeInput({"in1"}));

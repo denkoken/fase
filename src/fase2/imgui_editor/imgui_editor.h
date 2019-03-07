@@ -81,6 +81,13 @@ private:
     std::unique_ptr<Impl> pimpl;
 };
 
+template <typename T>
+bool ImGuiEditor::addVarEditor(VarEditor<T>&& var_editor) {
+    return addVarEditor(typeid(T), [var_editor](auto c, const Variable& var) {
+        var_editor(c, *var.getReader<T>());
+    });
+}
+
 }  // namespace fase
 
 #endif  // IMGUI_EDITOR_H_20190223

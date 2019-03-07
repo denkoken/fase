@@ -31,8 +31,10 @@ private:
 };
 
 struct FunctionUtils {
-    std::vector<std::string> arg_names;
-    std::string              description;
+    std::vector<std::string>     arg_names;
+    std::vector<std::type_index> arg_types;
+    std::vector<bool>            is_input_args;
+    std::string                  description;
 };
 
 class CoreManager {
@@ -49,9 +51,8 @@ public:
     ~CoreManager();
 
     bool addUnivFunc(const UnivFunc& func, const std::string& name,
-                     std::vector<Variable>&&         default_args,
-                     const std::vector<std::string>& arg_names,
-                     const std::string&              description = {});
+                     std::vector<Variable>&& default_args,
+                     FunctionUtils&&         utils);
 
     PipelineAPI&       operator[](const std::string& name);
     const PipelineAPI& operator[](const std::string& name) const;
@@ -59,7 +60,8 @@ public:
     ExportedPipe exportPipe(const std::string& name) const;
 
     std::vector<std::string>             getPipelineNames() const;
-    std::map<std::string, FunctionUtils> getFunctionUtils() const;
+    std::map<std::string, FunctionUtils> getFunctionUtils(
+            const std::string& p_name) const;
 
 private:
     class Impl;

@@ -17,24 +17,6 @@ using std::vector;
 
 using size_t = std::size_t;
 
-void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
-              Report* preport) {
-    size_t i_size = pcore->getNodes().at(InputNodeName()).args.size();
-    size_t o_size = pcore->getNodes().at(OutputNodeName()).args.size();
-    if (vs.size() != i_size + o_size) {
-        throw std::logic_error("Invalid size of variables at Binded Pipe.");
-    }
-    vector<Variable> inputs, outputs;
-    RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
-    RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
-
-    pcore->supposeInput(inputs);
-    pcore->supposeOutput(outputs);
-    if (!pcore->run(preport)) {
-        throw(std::runtime_error(c_name + " is failed!"));
-    }
-}
-
 class FaildDummy : public PipelineAPI {
     bool newNode(const std::string&) override {
         return false;
@@ -89,6 +71,24 @@ private:
     std::vector<Link> dum_l;
 };
 
+void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
+              Report* preport) {
+    size_t i_size = pcore->getNodes().at(InputNodeName()).args.size();
+    size_t o_size = pcore->getNodes().at(OutputNodeName()).args.size();
+    if (vs.size() != i_size + o_size) {
+        throw std::logic_error("Invalid size of variables at Binded Pipe.");
+    }
+    vector<Variable> inputs, outputs;
+    RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
+    RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
+
+    pcore->supposeInput(inputs);
+    pcore->supposeOutput(outputs);
+    if (!pcore->run(preport)) {
+        throw(std::runtime_error(c_name + " is failed!"));
+    }
+}
+
 // ============================== CoreManager ==================================
 
 struct Function {
@@ -101,10 +101,9 @@ class CoreManager::Impl {
 public:
     Impl() = default;
     ~Impl() = default;
-    bool addUnivFunc(const UnivFunc& func, const string& f_name,
-                     vector<Variable>&& default_args,
-                     const vector<string>& arg_names,
-                     const string& description);
+    bool addUnivFunc(const UnivFunc& func, const std::string& name,
+                     std::vector<Variable>&& default_args,
+                     FunctionUtils&& utils);
 
     PipelineAPI& operator[](const string& c_name);
     const PipelineAPI& operator[](const string& c_name) const;
@@ -112,7 +111,7 @@ public:
     ExportedPipe exportPipe(const std::string& name) const;
 
     vector<string> getPipelineNames() const;
-    map<string, FunctionUtils> getFunctionUtils() const;
+    map<string, FunctionUtils> getFunctionUtils(const string& p_name) const;
 
 private:
     class WrapedCore;
@@ -263,14 +262,13 @@ bool CoreManager::Impl::addFunction(const string& func, const string& core) {
 
 bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
                                     vector<Variable>&& default_args,
-                                    const vector<string>& arg_names,
-                                    const string& description) {
+                                    FunctionUtils&& utils) {
     if (wrapeds.count(f_name)) return false;
 
     functions[f_name] = {
             func,
             std::move(default_args),
-            {arg_names, description},
+            std::move(utils),
     };
     for (auto& [c_name, wrapeds] : wrapeds) {
         if (!addFunction(f_name, c_name)) return false;
@@ -281,7 +279,7 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 bool CoreManager::Impl::newPipeline(const string& c_name) {
     if (wrapeds.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc(UnivFunc{}, c_name, {}, {}, "Another pipeline");
+    addUnivFunc(UnivFunc{}, c_name, {}, {{}, {}, {}, "Another pipeline"});
 
     wrapeds.emplace(c_name, *this);  // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
@@ -314,6 +312,17 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
     func.utils.arg_names.insert(func.utils.arg_names.end() - 1,
                                 wrapeds.at(c_name).output_var_names.begin(),
                                 wrapeds.at(c_name).output_var_names.end());
+
+    // Update Function::utils::arg_types and is_input_args
+    func.utils.arg_types.clear();
+    for (auto& var : wrapeds.at(c_name).inputs) {
+        func.utils.arg_types.emplace_back(var.getType());
+        func.utils.is_input_args.emplace_back(false);
+    }
+    for (auto& var : wrapeds.at(c_name).outputs) {
+        func.utils.arg_types.emplace_back(var.getType());
+        func.utils.is_input_args.emplace_back(true);
+    }
 
     // Add updated function to other pipelines.
     for (auto& [other_c_name, wrapeds] : wrapeds) {
@@ -397,8 +406,21 @@ vector<string> CoreManager::Impl::getPipelineNames() const {
     return dst;
 }
 
-map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils() const {
+map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
+        const string& p_name) const {
     map<string, FunctionUtils> dst;
+    dst[""];
+    dst[kInputFuncName] = {wrapeds.at(p_name).input_var_names, {}, {}, ""};
+    for (auto& input : wrapeds.at(p_name).inputs) {
+        dst[kInputFuncName].arg_types.emplace_back(input.getType());
+        dst[kInputFuncName].is_input_args.emplace_back(false);
+    }
+    dst[kOutputFuncName] = {wrapeds.at(p_name).output_var_names, {}, {}, ""};
+    for (auto& output : wrapeds.at(p_name).outputs) {
+        dst[kOutputFuncName].arg_types.emplace_back(output.getType());
+        dst[kOutputFuncName].is_input_args.emplace_back(true);
+    }
+
     for (auto& [f_name, func] : functions) {
         dst[f_name] = func.utils;
     }
@@ -412,10 +434,9 @@ CoreManager::~CoreManager() = default;
 
 bool CoreManager::addUnivFunc(const UnivFunc& func, const string& c_name,
                               vector<Variable>&& default_args,
-                              const vector<string>& arg_names,
-                              const std::string& description) {
-    return pimpl->addUnivFunc(func, c_name, move(default_args), arg_names,
-                              description);
+                              FunctionUtils&& utils) {
+    return pimpl->addUnivFunc(func, c_name, move(default_args),
+                              std::move(utils));
 }
 
 PipelineAPI& CoreManager::operator[](const string& c_name) {
@@ -433,8 +454,9 @@ vector<string> CoreManager::getPipelineNames() const {
     return pimpl->getPipelineNames();
 }
 
-map<string, FunctionUtils> CoreManager::getFunctionUtils() const {
-    return pimpl->getFunctionUtils();
+map<string, FunctionUtils> CoreManager::getFunctionUtils(
+        const string& p_name) const {
+    return pimpl->getFunctionUtils(p_name);
 }
 
 }  // namespace fase

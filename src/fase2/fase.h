@@ -100,6 +100,13 @@ std::vector<Variable> GetDefaultValueVariables() {
 
 void SetupTypeConverters(std::map<std::type_index, TypeStringConverters>*);
 
+template <typename... Args>
+std::vector<bool> GetIsInputArgs() {
+    return {!(std::is_lvalue_reference_v<Args> &&
+              std::is_same_v<std::remove_reference_t<Args>,
+                             std::decay_t<Args>>)...};
+}
+
 template <class... Parts>
 inline Fase<Parts...>::Fase()
     : Parts()..., pcm(std::make_shared<CoreManager>()) {
@@ -112,8 +119,10 @@ inline bool Fase<Parts...>::addUnivFunc(
         const UnivFunc& func, const std::string& f_name,
         const std::vector<std::string>& arg_names,
         const std::string& description, std::vector<Variable>&& default_args) {
-    return pcm->addUnivFunc(func, f_name, std::move(default_args), arg_names,
-                            description);
+    std::vector<std::type_index> types = {typeid(Args)...};
+    std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
+    return pcm->addUnivFunc(func, f_name, std::move(default_args),
+                            {arg_names, types, is_input_args, description});
 }
 
 template <class... Parts>
@@ -128,8 +137,10 @@ inline bool Fase<Parts...>::addUnivFunc(
             "If not all Args have default constructor,"
             "do not call me WITHOUT default_args!");
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
-    return pcm->addUnivFunc(func, f_name, std::move(default_args), arg_names,
-                            description);
+    std::vector<std::type_index> types = {typeid(Args)...};
+    std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
+    return pcm->addUnivFunc(func, f_name, std::move(default_args),
+                            {arg_names, types, is_input_args, description});
 }
 
 template <class... Parts>

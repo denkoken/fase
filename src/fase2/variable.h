@@ -130,6 +130,10 @@ public:
         return type != typeid(void);
     }
 
+    const std::type_index& getType() const {
+        return type;
+    }
+
 private:
     std::shared_ptr<void>                           data;
     std::type_index                                 type = typeid(void);

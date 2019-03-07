@@ -6,6 +6,9 @@
 
 namespace fase {
 
+constexpr char kInputFuncName[] = "FASE::InputFunc";
+constexpr char kOutputFuncName[] = "FASE::OutputFunc";
+
 static std::string InputNodeName() {
     return "Input";
 }
