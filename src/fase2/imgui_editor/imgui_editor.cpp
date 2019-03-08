@@ -7,6 +7,7 @@
 #include "../utils.h"
 #include "imgui_commons.h"
 #include "pipe_edit_window.h"
+#include "setup_var_editors.h"
 
 namespace fase {
 
@@ -153,6 +154,7 @@ bool ImGuiEditor::Impl::runEditing(const std::string& win_title,
 }
 
 bool ImGuiEditor::Impl::init() {
+    SetupDefaultVarEditors(&var_editors);
     return true;
 }
 
