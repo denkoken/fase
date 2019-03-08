@@ -203,6 +203,9 @@ bool Core::Impl::setPriority(const string& node, int priority) {
 }
 
 bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
+    if (node_name == InputNodeName() || node_name == OutputNodeName()) {
+        return false;
+    }
     if (funcs.count(func)) {
         auto& node = nodes[node_name];
         node.func_name = func;
