@@ -17,6 +17,49 @@ using std::vector;
 
 using size_t = std::size_t;
 
+namespace {
+
+bool CheckGoodVarName(const string& name) {
+    if (name.empty()) {
+        return false;
+    }
+
+    std::string invalid_strs[] = {
+            " ",  "__", ",", "@", ":", "&", "%", "+", "-",
+            "\\", "^",  "~", "=", "(", ")", "#", "$", "\"",
+            "!",  "<",  ">", "?", "{", "}", "[", "]", "`",
+    };
+
+    for (auto& str : invalid_strs) {
+        if (name.find(str) != std::string::npos) {
+            return false;
+        }
+    }
+
+    // check _ + Large character start
+    for (size_t i = 0; i < 27; i++) {
+        if (name.find("_" + std::string({char('A' + i)})) == 0) {
+            return false;
+        }
+    }
+    // check __ + small character start
+    for (size_t i = 0; i < 27; i++) {
+        if (name.find("__" + std::string({char('a' + i)})) == 0) {
+            return false;
+        }
+    }
+    // check Number start
+    for (size_t i = 0; i < 10; i++) {
+        if (name.find(std::string({char('0' + i)})) == 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+}  // namespace
+
 class FaildDummy : public PipelineAPI {
     bool newNode(const std::string&) override {
         return false;
@@ -134,11 +177,13 @@ public:
     ~WrapedCore() = default;
 
     bool newNode(const string& n_name) override {
+        if (!CheckGoodVarName(n_name)) return false;
         return core.newNode(n_name);
     }
 
     bool renameNode(const string& old_n_name,
                     const string& new_n_name) override {
+        if (!CheckGoodVarName(new_n_name)) return false;
         return core.renameNode(old_n_name, new_n_name);
     }
     bool delNode(const string& n_name) override {

@@ -154,7 +154,7 @@ bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 }
 
 bool Core::Impl::newNode(const string& n_name) {
-    if (nodes.count(n_name)) {
+    if (nodes.count(n_name) || n_name.empty()) {
         return false;
     }
     nodes[n_name];
@@ -164,7 +164,7 @@ bool Core::Impl::newNode(const string& n_name) {
 bool Core::Impl::renameNode(const std::string& old_n_name,
                             const std::string& new_n_name) {
     if (!nodes.count(old_n_name) || old_n_name == InputNodeName() ||
-        old_n_name == OutputNodeName()) {
+        old_n_name == OutputNodeName() || new_n_name.empty()) {
         return false;
     }
     nodes[new_n_name] = std::move(nodes[old_n_name]);
@@ -236,6 +236,10 @@ bool Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
     }
     unlinkNode(d_n_name, d_idx);
     links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
+    if (GetRunOrder(nodes, links).empty()) {
+        links.pop_back();
+        return false;
+    }
     return true;
 }
 
