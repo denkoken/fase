@@ -201,18 +201,10 @@ void drawNodeContent(const string& n_name, const Node& node,
     if (!s_flag && !simple) {
         int priority = node.priority;
         ImGui::PushItemWidth(100);
-#if 0
-        int priority_min = preference.priority_min;
-        int priority_max = preference.priority_max;
-#else
-        int priority_min = -10;
-        int priority_max = 10;
-#endif
-        ImGui::SliderInt(label("priority"), &priority, priority_min,
-                         priority_max);
+        ImGui::InputInt(label("priority"), &priority);
         ImGui::PopItemWidth();
-        priority = std::min(priority, priority_max);
-        priority = std::max(priority, priority_min);
+        priority = std::min(priority, std::numeric_limits<int>::max() - 1);
+        priority = std::max(priority, std::numeric_limits<int>::min() + 1);
         if (priority != node.priority) {
             issues->emplace_back([priority, p_name, n_name](auto pcm) {
                 (*pcm)[p_name].setPriority(n_name, priority);
