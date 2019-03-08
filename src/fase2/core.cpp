@@ -16,6 +16,50 @@ using size_t = std::size_t;
 
 using Vars = vector<Variable>;
 
+vector<vector<string>> GetRunOrder(const map<string, Node>& nodes,
+                                   const vector<Link>& links) {
+    vector<string> dones = {InputNodeName()};
+    vector<vector<string>> dst = {dones};
+
+    while (1) {
+        int max_priority = std::numeric_limits<int>::min();
+        vector<string> runnables;
+        for (auto& [n_name, node] : nodes) {
+            if (exists(n_name, dones)) {
+                continue;
+            }
+
+            bool ok_f = true;
+            for (auto& link : links) {
+                if (link.dst_node == n_name && !exists(link.src_node, dones)) {
+                    ok_f = false;
+                    break;
+                }
+            }
+            if (ok_f) {
+                if (node.priority > max_priority) {
+                    runnables.clear();
+                    max_priority = node.priority;
+                }
+                if (node.priority >= max_priority) {
+                    runnables.push_back(n_name);
+                }
+            }
+        }
+
+        if (runnables.size() == 0) {
+            return {};
+        }
+
+        dones.insert(dones.begin(), runnables.begin(), runnables.end());
+        dst.emplace_back(std::move(runnables));
+
+        if (dones.size() == nodes.size()) {
+            return dst;
+        }
+    }
+}
+
 struct FuncProps {
     UnivFunc func = [](auto&, auto) {};
     Vars default_args;
@@ -67,7 +111,6 @@ private:
     vector<Variable>& defaultArgs(const std::string& n_name) {
         return funcs[nodes[n_name].func_name].default_args;
     }
-    vector<vector<string>> getRunOrder();
     void unlinkAll(const string& n_name);
 };
 
@@ -218,51 +261,8 @@ bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
     return true;
 }
 
-vector<vector<string>> Core::Impl::getRunOrder() {
-    vector<string> dones = {InputNodeName()};
-    vector<vector<string>> dst = {dones};
-
-    while (1) {
-        int max_priority = std::numeric_limits<int>::min();
-        vector<string> runnables;
-        for (auto& [n_name, node] : nodes) {
-            if (exists(n_name, dones)) {
-                continue;
-            }
-
-            bool ok_f = true;
-            for (auto& link : links) {
-                if (link.dst_node == n_name && !exists(link.src_node, dones)) {
-                    ok_f = false;
-                    break;
-                }
-            }
-            if (ok_f) {
-                if (node.priority > max_priority) {
-                    runnables.clear();
-                    max_priority = node.priority;
-                }
-                if (node.priority >= max_priority) {
-                    runnables.push_back(n_name);
-                }
-            }
-        }
-
-        if (runnables.size() == 0) {
-            return {};
-        }
-
-        dones.insert(dones.begin(), runnables.begin(), runnables.end());
-        dst.emplace_back(std::move(runnables));
-
-        if (dones.size() == nodes.size()) {
-            return dst;
-        }
-    }
-}
-
 bool Core::Impl::run(Report* preport) {
-    vector<vector<string>> order = getRunOrder();
+    vector<vector<string>> order = GetRunOrder(nodes, links);
     if (order.size() == 0) {
         return false;
     }

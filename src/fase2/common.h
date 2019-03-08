@@ -81,6 +81,10 @@ struct TypeStringConverters {
     std::string name;
 };
 
+std::vector<std::vector<std::string>> GetRunOrder(
+        const std::map<std::string, Node>& nodes,
+        const std::vector<Link>&           links);
+
 }  // namespace fase
 
 #endif  // COMMON_H_20190217
