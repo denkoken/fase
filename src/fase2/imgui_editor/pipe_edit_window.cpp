@@ -454,7 +454,6 @@ void EditWindow::updateMembers(const CoreManager& cm, const string& p_name) {
 bool EditWindow::draw(const string& p_name, const string& win_title,
                       const CoreManager& cm, LabelWrapper label, Issues* issues,
                       VarEditors* var_editors) {
-    cm[p_name];
     label.addSuffix("##" + p_name);
     updateMembers(cm, p_name);
 

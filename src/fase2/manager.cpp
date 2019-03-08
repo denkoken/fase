@@ -447,6 +447,9 @@ vector<string> CoreManager::Impl::getPipelineNames() const {
 
 map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
         const string& p_name) const {
+    if (!wrapeds.count(p_name)) {
+        return {};
+    }
     map<string, FunctionUtils> dst;
     dst[""];
     dst[kInputFuncName] = {wrapeds.at(p_name).input_var_names, {}, {}, ""};
@@ -482,7 +485,7 @@ PipelineAPI& CoreManager::operator[](const string& c_name) {
     return (*pimpl)[c_name];
 }
 const PipelineAPI& CoreManager::operator[](const string& c_name) const {
-    return (*pimpl)[c_name];
+    return std::as_const(*pimpl)[c_name];
 }
 
 ExportedPipe CoreManager::exportPipe(const std::string& name) const {

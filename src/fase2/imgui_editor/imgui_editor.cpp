@@ -119,6 +119,9 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
         if (new_core_name_it.draw(label("##core_open_name"))) {
             if (!exists(new_core_name_it.text(), opened_pipelines)) {
                 opened_pipelines.emplace_back(new_core_name_it.text());
+                issues.emplace_back([name = new_core_name_it.text()](auto pcm) {
+                    (*pcm)[name];
+                });
                 new_core_name_it.set("");
             }
         }
