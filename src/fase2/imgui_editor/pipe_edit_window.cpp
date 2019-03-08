@@ -21,7 +21,7 @@ PopupRAII BeginPopupContext(const char* str, bool condition, int button) {
 PopupModalRAII BeginPopupModal(const char* str, bool condition,
                                ImGuiWindowFlags flags = 0) {
     if (condition) ImGui::OpenPopup(str);
-    return {str, false, flags};
+    return {str, true, flags};
 }
 
 float GetVolume(const size_t& idx) {

@@ -42,12 +42,6 @@ bool CheckGoodVarName(const string& name) {
             return false;
         }
     }
-    // check __ + small character start
-    for (size_t i = 0; i < 27; i++) {
-        if (name.find("__" + std::string({char('a' + i)})) == 0) {
-            return false;
-        }
-    }
     // check Number start
     for (size_t i = 0; i < 10; i++) {
         if (name.find(std::string({char('0' + i)})) == 0) {
