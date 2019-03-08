@@ -176,6 +176,7 @@ add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/imgui_editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/pipe_edit_window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/setup_var_editors.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/links_view.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")

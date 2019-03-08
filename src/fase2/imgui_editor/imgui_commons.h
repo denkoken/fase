@@ -2,11 +2,19 @@
 #ifndef IMGUI_COMMONS_H_20190223
 #define IMGUI_COMMONS_H_20190223
 
-#include <imgui.h>
+#include <cmath>
+#include <deque>
+#include <functional>
 #include <string>
 #include <vector>
 
+#include <imgui.h>
+
+#include "../manager.h"
+
 namespace fase {
+
+using Issues = std::deque<std::function<void(CoreManager*)>>;
 
 // Extend ImGui's operator
 inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
@@ -18,6 +26,37 @@ inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
 inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
     return ImVec2(lhs.x * rhs, lhs.y * rhs);
 }
+inline float Length(const ImVec2& v) {
+    return std::sqrt(v.x * v.x + v.y * v.y);
+}
+
+ImU32 GenNodeColor(const size_t& idx);
+
+struct GuiNode {
+    ImVec2 pos;
+    ImVec2 size;
+    std::vector<ImVec2> arg_poses;
+    std::vector<char> arg_inp_hovered;
+    std::vector<char> arg_out_hovered;
+    size_t id = size_t(-1);
+
+    size_t arg_size() const {
+        return arg_poses.size();
+    }
+
+    void alloc(size_t n_args) {
+        arg_poses.resize(n_args);
+        arg_inp_hovered.resize(n_args);
+        arg_out_hovered.resize(n_args);
+    }
+
+    ImVec2 getInputSlot(const size_t idx) const {
+        return arg_poses[idx];
+    }
+    ImVec2 getOutputSlot(const size_t idx) const {
+        return ImVec2(arg_poses[idx].x + size.x, arg_poses[idx].y);
+    }
+};
 
 class WindowRAII {
 public:
@@ -109,7 +148,7 @@ public:
     }
 
     std::string text() {
-        return {chars.begin(), chars.end()};
+        return {chars.begin(), std::find(chars.begin(), chars.end(), '\0')};
     }
 
     void set(const std::string& str) {

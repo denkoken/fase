@@ -8,6 +8,7 @@
 namespace fase {
 
 using std::map, std::string, std::vector;
+using size_t = std::size_t;
 
 namespace {
 
@@ -36,22 +37,6 @@ float GetVolume(const size_t& idx) {
 
 constexpr float NODE_COL_SCALE = 155.f;
 constexpr float NODE_COL_OFFSET = 100.f;
-
-ImU32 GenNodeColor(const size_t& idx) {
-    const float v = GetVolume(idx);
-    // clang-format off
-    float r = (v <= 0.25f) ? 1.f :
-              (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
-    float g = (v <= 0.25f) ? v / 0.25f :
-              (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
-    float b = (v <= 0.50f) ? 0.f :
-              (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
-    // clang-format on
-    r = r * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
-    g = g * NODE_COL_SCALE * 0.5f + NODE_COL_OFFSET;
-    b = b * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
-    return IM_COL32(int(r), int(g), int(b), 200);
-}
 
 void DrawCanvas(const ImVec2& scroll_pos, float size) {
     const ImU32 GRID_COLOR = IM_COL32(200, 200, 200, 40);
@@ -254,6 +239,22 @@ size_t SearchUnusedID(const map<string, GuiNode>& node_gui_utils) {
 
 }  // namespace
 
+ImU32 GenNodeColor(const size_t& idx) {
+    const float v = GetVolume(idx);
+    // clang-format off
+    float r = (v <= 0.25f) ? 1.f :
+              (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
+    float g = (v <= 0.25f) ? v / 0.25f :
+              (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
+    float b = (v <= 0.50f) ? 0.f :
+              (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+    // clang-format on
+    r = r * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    g = g * NODE_COL_SCALE * 0.5f + NODE_COL_OFFSET;
+    b = b * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    return IM_COL32(int(r), int(g), int(b), 200);
+}
+
 string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
                              Issues* issues, VarEditors* var_editors) {
     const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
@@ -378,6 +379,9 @@ void EditWindow::drawCanvasPannel(const PipelineAPI& core_api,
 
     DrawCanvas(ImVec2(0, 0), 100);
     string hovered = drawNodes(core_api, label, issues, var_editors);
+
+    links_view.draw(core_api.getNodes(), core_api.getLinks(), pipe_name,
+                    node_gui_utils, issues);
 
     drawNodeContextMenu(hovered, core_api, label, issues);
     drawCanvasContextMenu(hovered, label, issues);
