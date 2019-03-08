@@ -110,6 +110,14 @@ std::vector<bool> GetIsInputArgs() {
 template <class... Parts>
 inline Fase<Parts...>::Fase()
     : Parts()..., pcm(std::make_shared<CoreManager>()) {
+    auto succeeded_flags = {std::make_tuple(std::string(typeid(Parts).name()),
+                                            Parts::init())...};
+    for (auto [name, f] : succeeded_flags) {
+        if (!f) {
+            std::cerr << "Fase Parts : \"" + name + "\"'s init() is failed"
+                      << std::endl;
+        }
+    }
     SetupTypeConverters(&converter_map);
 }
 
