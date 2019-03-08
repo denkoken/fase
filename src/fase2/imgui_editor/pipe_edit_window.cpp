@@ -268,7 +268,6 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
     // Draw node box
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     string hovered = "";
-    size_t i = 0;
     for (auto& [n_name, node] : core_api.getNodes()) {
         draw_list->ChannelsSplit(2);
         GuiNode& gui_node = node_gui_utils[n_name];
@@ -276,7 +275,7 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
 
         // Draw node contents first
         draw_list->ChannelsSetCurrent(1);  // Foreground
-        ImGui::SetCursorScreenPos(canvas_offset + ImVec2(i * 200, 10) +
+        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
                                   NODE_WINDOW_PADDING);
         drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name,
                         gui_node, false, label, var_editors, issues);
@@ -286,8 +285,8 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
 
         // Draw node box
         draw_list->ChannelsSetCurrent(0);  // Background
-        ImGui::SetCursorScreenPos(canvas_offset + ImVec2(i * 200, 10));
-        drawNodeBox(canvas_offset + ImVec2(i * 200, 10), gui_node.size, true,
+        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
+        drawNodeBox(canvas_offset + gui_node.pos, gui_node.size, true,
                     gui_node.id, label);
 
         // Draw link slots
@@ -296,7 +295,6 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
         if (ImGui::IsItemHovered()) {
             hovered = n_name;
         }
-        i++;
         ImGui::PopID();
         draw_list->ChannelsMerge();
     }
@@ -394,6 +392,8 @@ void EditWindow::drawCanvasPannel(const PipelineAPI& core_api,
 }
 
 void EditWindow::updateGuiNodeUtils(const PipelineAPI& core_api) {
+    auto& nodes = core_api.getNodes();
+
     // delete unused gui nodes.
     vector<string> erase_list;
     for (auto& [gn_name, node] : node_gui_utils) {
@@ -401,20 +401,41 @@ void EditWindow::updateGuiNodeUtils(const PipelineAPI& core_api) {
             erase_list.emplace_back(gn_name);
             continue;
         }
+        node_gui_utils[gn_name].alloc(nodes.at(gn_name).args.size());
     }
     for (auto& gn_name : erase_list) {
         node_gui_utils.erase(gn_name);
     }
 
     // make new gui nodes.
-    for (auto& [n_name, node] : core_api.getNodes()) {
+    for (auto& [n_name, node] : nodes) {
         if (!node_gui_utils.count(n_name)) {
             node_gui_utils[n_name].id = SearchUnusedID(node_gui_utils);
         }
     }
 
-    for (auto& [gn_name, node] : node_gui_utils) {
-        node.alloc(core_api.getNodes().at(gn_name).args.size());
+    // set node positions
+    static constexpr float MIN_POS_X = 30;
+    static constexpr float MIN_POS_Y = 10;
+    static constexpr float INTERVAL_X = 50;
+    static constexpr float INTERVAL_Y = 10;
+
+    auto order = GetRunOrder(nodes, core_api.getLinks());
+
+    float baseline_y = 0;
+    float x = MIN_POS_X, y = MIN_POS_Y, maxy = 0;
+    for (auto& name_set : order) {
+        float maxx = 0;
+        for (auto& n_name : name_set) {
+            maxx = std::max(maxx, node_gui_utils[n_name].size.x);
+        }
+        for (auto& n_name : name_set) {
+            node_gui_utils[n_name].pos = ImVec2(x, y + baseline_y);
+            y += node_gui_utils[n_name].size.y + INTERVAL_Y;
+        }
+        maxy = std::max(maxy, y);
+        y = MIN_POS_Y;
+        x += maxx + INTERVAL_X;
     }
 }
 
