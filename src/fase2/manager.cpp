@@ -187,7 +187,19 @@ public:
     }
 
     bool setArgument(const string& n_name, size_t idx, Variable& var) override {
-        return core.setArgument(n_name, idx, var);
+        if (!core.setArgument(n_name, idx, var)) {
+            return false;
+        }
+        if (n_name == InputNodeName()) {
+            inputs[idx] = var.ref();
+            core.supposeInput(inputs);
+            cm_ref.get().updateBindedPipes(myname());
+        } else if (n_name == OutputNodeName()) {
+            outputs[idx] = var.ref();
+            core.supposeOutput(outputs);
+            cm_ref.get().updateBindedPipes(myname());
+        }
+        return true;
     }
     bool setPriority(const string& n_name, int priority) override {
         return core.setPriority(n_name, priority);
