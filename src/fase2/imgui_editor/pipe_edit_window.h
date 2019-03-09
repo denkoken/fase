@@ -30,6 +30,8 @@ private:
 
     LinksView links_view;
 
+    Report report;
+
     // for allocate function popup
     Combo function_combo;
     // for rename/new node popup

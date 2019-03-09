@@ -418,8 +418,13 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     label.addSuffix("##CContext");
     bool modal_f = false;
     if (auto raii = BeginPopupContext(label("canvas"), hovered.empty(), 1)) {
-        if (ImGui::Selectable("new node")) {
+        if (ImGui::Selectable(label("new node"))) {
             modal_f = true;
+        }
+        ImGui::Separator();
+        if (ImGui::Selectable(label("run"))) {
+            issues->emplace_back(
+                    [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
         }
     }
 
