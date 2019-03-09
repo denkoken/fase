@@ -18,10 +18,15 @@ PopupRAII BeginPopupContext(const char* str, bool condition, int button) {
     return {str};
 }
 
-PopupModalRAII BeginPopupModal(const char* str, bool condition,
-                               ImGuiWindowFlags flags = 0) {
+PopupModalRAII BeginPopupModal(
+        const char* str, bool condition,
+        ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize) {
     if (condition) ImGui::OpenPopup(str);
     return {str, true, flags};
+}
+
+bool IsSpecialNodeName(const string& name) {
+    return name == InputNodeName() || name == OutputNodeName();
 }
 
 float GetVolume(const size_t& idx) {
@@ -300,6 +305,8 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
     label.addSuffix("##NContext");
     bool rename_open_f = false;
     bool allocate_function_f = false;
+    bool edit_input_output_f = false;
+
     for (auto& [n_name, node] : core_api.getNodes()) {
         if (auto p_raii = BeginPopupContext(label(n_name + "_context"),
                                             hovered == n_name, 1)) {
@@ -316,14 +323,19 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
                 rename_open_f = true;
             }
             ImGui::Separator();
-            if (ImGui::Selectable("alocate function")) {
-                allocate_function_f = true;
+            if (IsSpecialNodeName(n_name)) {
+                if (ImGui::Selectable(label("edit input/output"))) {
+                    edit_input_output_f = true;
+                }
+            } else {
+                if (ImGui::Selectable(label("alocate function"))) {
+                    allocate_function_f = true;
+                }
             }
         }
     }
 
-    if (auto raii = BeginPopupModal(label("rename_modal"), rename_open_f,
-                                    ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (auto raii = BeginPopupModal(label("rename_modal"), rename_open_f)) {
         if (new_node_name_it.draw(label("new name"))) {
             issues->emplace_back([p_name = pipe_name,
                                   n_name = new_node_name_it.text(),
@@ -335,8 +347,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
     }
 
     if (auto raii = BeginPopupModal(label("allocate function modal"),
-                                    allocate_function_f,
-                                    ImGuiWindowFlags_AlwaysAutoResize)) {
+                                    allocate_function_f)) {
         function_combo.draw(label("func_combo"));
         if (ImGui::Button(label("OK"))) {
             issues->emplace_back([p_name = pipe_name,
@@ -346,6 +357,53 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
             });
             ImGui::CloseCurrentPopup();
         }
+    }
+
+    if (auto raii = BeginPopupModal(label("Edit input/output"),
+                                    edit_input_output_f)) {
+        ImGui::BeginGroup();
+        int size = input_arg_name_its.size();
+        if (ImGui::InputInt(label("input size"), &size)) {
+            input_arg_name_its.resize(size_t(size));
+        }
+        int i = 0;
+        for (auto& it : input_arg_name_its) {
+            it.draw(label("input" + std::to_string(i++)));
+        }
+        if (ImGui::Button(label("OK##ine"))) {
+            vector<string> arg_names;
+            for (auto& it : input_arg_name_its) {
+                arg_names.emplace_back(it.text());
+            }
+            issues->emplace_back([arg_names = std::move(arg_names),
+                                  p_name = pipe_name](auto pcm) {
+                (*pcm)[p_name].supposeInput(arg_names);
+            });
+        }
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+
+        ImGui::BeginGroup();
+        size = output_arg_name_its.size();
+        if (ImGui::InputInt(label("output size"), &size)) {
+            output_arg_name_its.resize(size_t(size));
+        }
+        i = 0;
+        for (auto& it : output_arg_name_its) {
+            it.draw(label("output" + std::to_string(i++)));
+        }
+        if (ImGui::Button(label("OK##oute"))) {
+            vector<string> arg_names;
+            for (auto& it : output_arg_name_its) {
+                arg_names.emplace_back(it.text());
+            }
+            issues->emplace_back([arg_names = std::move(arg_names),
+                                  p_name = pipe_name](auto pcm) {
+                (*pcm)[p_name].supposeOutput(arg_names);
+            });
+        }
+        ImGui::EndGroup();
     }
 }
 
@@ -359,8 +417,7 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
         }
     }
 
-    if (auto raii = BeginPopupModal(label("name_modal"), modal_f,
-                                    ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (auto raii = BeginPopupModal(label("name_modal"), modal_f)) {
         if (new_node_name_it.draw(label("new name"))) {
             issues->emplace_back([p_name = pipe_name,
                                   n_name = new_node_name_it.text()](auto pcm) {

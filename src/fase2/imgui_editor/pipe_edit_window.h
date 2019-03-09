@@ -23,15 +23,22 @@ public:
               VarEditors* var_editors);
 
 private:
-    InputText new_node_name_it{64, ImGuiInputTextFlags_EnterReturnsTrue |
-                                           ImGuiInputTextFlags_AutoSelectAll};
     std::string selected_node_name;
     std::map<std::string, GuiNode> node_gui_utils;
-    Combo function_combo;
     std::map<std::string, FunctionUtils> funcs;
     std::string pipe_name;
 
     LinksView links_view;
+
+    // for allocate function popup
+    Combo function_combo;
+    // for rename/new node popup
+    InputText new_node_name_it{64, ImGuiInputTextFlags_EnterReturnsTrue |
+                                           ImGuiInputTextFlags_AutoSelectAll};
+
+    // for edit input/output popup
+    std::vector<InputText> input_arg_name_its;
+    std::vector<InputText> output_arg_name_its;
 
     void updateGuiNodeUtils(const PipelineAPI& cm);
     void updateMembers(const CoreManager& cm, const std::string& p_name);
