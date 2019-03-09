@@ -417,16 +417,21 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
                                        LabelWrapper label, Issues* issues) {
     label.addSuffix("##CContext");
     bool modal_f = false;
+    bool run_f = false;
     if (auto raii = BeginPopupContext(label("canvas"), hovered.empty(), 1)) {
-        if (ImGui::Selectable(label("new node"))) {
-            modal_f = true;
-        }
+        ImGui::MenuItem(label("new node"), "Ctrl-a", &modal_f);
         ImGui::Separator();
-        if (ImGui::Selectable(label("run"))) {
-            issues->emplace_back(
-                    [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
-        }
+        ImGui::MenuItem(label("run"), "Ctrl-r", &run_f);
     }
+
+    run_f |= ImGui::GetIO().KeyCtrl &&
+             ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + 'r' - 'a');
+    if (run_f) {
+        issues->emplace_back(
+                [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
+    }
+    modal_f |= ImGui::GetIO().KeyCtrl &&
+               ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A));
 
     if (auto raii = BeginPopupModal(label("name_modal"), modal_f)) {
         if (new_node_name_it.draw(label("new name"))) {
