@@ -83,8 +83,10 @@ void LinksView::draw(const map<string, Node>& nodes, const vector<Link>& links,
         const size_t n_args = node.args.size();
         for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
             // Get slot position
-            const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx);
-            const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx);
+            const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx) +
+                                    ImVec2(1, 0) * SLOT_HOVER_RADIUS;
+            const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx) -
+                                    ImVec2(1, 0) * SLOT_HOVER_RADIUS;
             // Get hovered conditions
             char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
             char& out_hov = gui_node.arg_out_hovered[arg_idx];

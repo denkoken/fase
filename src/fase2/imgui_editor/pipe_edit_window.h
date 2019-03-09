@@ -44,7 +44,8 @@ private:
     void updateMembers(const CoreManager& cm, const std::string& p_name);
 
     std::string drawNodes(const PipelineAPI& core_api, LabelWrapper label,
-                          Issues* issues, VarEditors* var_editors);
+                          const int base_channel, Issues* issues,
+                          VarEditors* var_editors);
     void drawNodeContextMenu(const std::string& hovered,
                              const PipelineAPI& core_api, LabelWrapper label,
                              Issues* issues);

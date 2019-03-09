@@ -17,9 +17,9 @@ public:
               const std::vector<Link>& links, const std::string& p_name,
               std::map<std::string, GuiNode>& node_gui_utils, Issues* issues);
 
+    constexpr static float SLOT_HOVER_RADIUS = 8.f;
 private:
     constexpr static ImU32 LINK_COLOR = IM_COL32(200, 200, 100, 255);
-    constexpr static float SLOT_HOVER_RADIUS = 8.f;
     // const float ARROW_BEZIER_SIZE = 80.f;
     constexpr static float ARROW_HEAD_SIZE = 15.f;
     const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;

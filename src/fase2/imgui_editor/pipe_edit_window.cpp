@@ -61,20 +61,17 @@ void DrawCanvas(const ImVec2& scroll_pos, float size) {
 const ImVec2 NODE_WINDOW_PADDING = ImVec2(8.f, 6.f);
 
 const ImU32 BORDER_COLOR = IM_COL32(100, 100, 100, 255);
-const ImU32 BG_NML_COLOR = IM_COL32(60, 60, 60, 255);
-const ImU32 BG_ACT_COLOR = IM_COL32(75, 75, 75, 255);
+const ImU32 BORDER_ACT_COLOR = IM_COL32(30, 30, 255, 255);
+const ImU32 BG_NML_COLOR = IM_COL32(40, 40, 40, 200);
 
-void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
+bool drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
                  const bool is_active, const size_t node_id,
                  LabelWrapper label) {
     const ImVec2 node_rect_max = node_rect_min + node_size;
-    ImGui::InvisibleButton(label("node"), node_size);
+    bool ret = ImGui::InvisibleButton(label("node"), node_size);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     // Background
-    const ImU32 bg_col = is_active ? BG_ACT_COLOR : BG_NML_COLOR;
-    draw_list->AddRectFilled(node_rect_min, node_rect_max, bg_col, 4.f);
-    // Border
-    draw_list->AddRect(node_rect_min, node_rect_max, BORDER_COLOR, 4.f);
+    draw_list->AddRectFilled(node_rect_min, node_rect_max, BG_NML_COLOR, 4.f);
     // Title
     const float line_height = ImGui::GetTextLineHeight();
     const float pad_height = NODE_WINDOW_PADDING.y * 2;
@@ -82,6 +79,12 @@ void drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
             node_rect_min + ImVec2(node_size.x, line_height + pad_height);
     draw_list->AddRectFilled(node_rect_min, node_title_rect_max,
                              GenNodeColor(node_id), 4.f);
+    // Border
+    const ImU32 border_col = is_active ? BORDER_ACT_COLOR : BORDER_COLOR;
+    const float thickness = is_active ? 5.f : 1.f;
+    draw_list->AddRect(node_rect_min, node_rect_max, border_col, 4.f,
+                       ImDrawCornerFlags_All, thickness);
+    return ret;
 }
 
 bool IsSpecialFuncName(const string& n_name) {
@@ -211,8 +214,10 @@ void drawLinkSlots(const GuiNode& gui_node) {
     const size_t n_args = gui_node.arg_poses.size();
     for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
         // Get slot position
-        const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx);
-        const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx);
+        const ImVec2 inp_slot = gui_node.getInputSlot(arg_idx) +
+                                ImVec2(LinksView::SLOT_HOVER_RADIUS, 0);
+        const ImVec2 out_slot = gui_node.getOutputSlot(arg_idx) -
+                                ImVec2(LinksView::SLOT_HOVER_RADIUS, 0);
         // Get hovered conditions
         const char& inp_hov = gui_node.arg_inp_hovered[arg_idx];
         const char& out_hov = gui_node.arg_out_hovered[arg_idx];
@@ -261,18 +266,18 @@ ImU32 GenNodeColor(const size_t& idx) {
 }
 
 string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
-                             Issues* issues, VarEditors* var_editors) {
+                             const int base_channel, Issues* issues,
+                             VarEditors* var_editors) {
     const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
     // Draw node box
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     string hovered = "";
     for (auto& [n_name, node] : core_api.getNodes()) {
-        draw_list->ChannelsSplit(2);
         GuiNode& gui_node = node_gui_utils[n_name];
         ImGui::PushID(label(n_name));
 
         // Draw node contents first
-        draw_list->ChannelsSetCurrent(1);  // Foreground
+        draw_list->ChannelsSetCurrent(1 + base_channel);  // Foreground
         ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
                                   NODE_WINDOW_PADDING);
         drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name,
@@ -282,10 +287,12 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
         gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
 
         // Draw node box
-        draw_list->ChannelsSetCurrent(0);  // Background
+        draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
         ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
-        drawNodeBox(canvas_offset + gui_node.pos, gui_node.size, true,
-                    gui_node.id, label);
+        if (drawNodeBox(canvas_offset + gui_node.pos, gui_node.size,
+                        selected_node_name == n_name, gui_node.id, label)) {
+            selected_node_name = n_name;
+        }
 
         // Draw link slots
         drawLinkSlots(gui_node);
@@ -294,7 +301,6 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
             hovered = n_name;
         }
         ImGui::PopID();
-        draw_list->ChannelsMerge();
     }
     return hovered;
 }
@@ -435,10 +441,15 @@ void EditWindow::drawCanvasPannel(const PipelineAPI& core_api,
     ChildRAII raii(label(""));
 
     DrawCanvas(ImVec2(0, 0), 100);
-    string hovered = drawNodes(core_api, label, issues, var_editors);
 
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    draw_list->ChannelsSplit(3);
+    string hovered = drawNodes(core_api, label, 1, issues, var_editors);
+
+    draw_list->ChannelsSetCurrent(0);
     links_view.draw(core_api.getNodes(), core_api.getLinks(), pipe_name,
                     node_gui_utils, issues);
+    draw_list->ChannelsMerge();
 
     drawNodeContextMenu(hovered, core_api, label, issues);
     drawCanvasContextMenu(hovered, label, issues);
@@ -458,12 +469,16 @@ void EditWindow::updateGuiNodeUtils(const PipelineAPI& core_api) {
     }
     for (auto& gn_name : erase_list) {
         node_gui_utils.erase(gn_name);
+        if (selected_node_name == gn_name) {
+            selected_node_name = "";
+        }
     }
 
     // make new gui nodes.
     for (auto& [n_name, node] : nodes) {
         if (!node_gui_utils.count(n_name)) {
             node_gui_utils[n_name].id = SearchUnusedID(node_gui_utils);
+            node_gui_utils[n_name].alloc(nodes.at(n_name).args.size());
         }
     }
 
