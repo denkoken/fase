@@ -215,9 +215,17 @@ public:
     }
 
     bool supposeInput(const std::vector<std::string>& arg_names) override {
-        input_var_names = arg_names;
+        for (auto& name : arg_names) {
+            if (!CheckGoodVarName(name)) {
+                return false;
+            }
+        }
+        if (CheckRepetition(arg_names, output_var_names)) {
+            return false;
+        }
         inputs.resize(arg_names.size());
         if (core.supposeInput(inputs)) {
+            input_var_names = arg_names;
             cm_ref.get().updateBindedPipes(myname());
             return true;
         }
@@ -225,9 +233,17 @@ public:
     }
 
     bool supposeOutput(const std::vector<std::string>& arg_names) override {
-        output_var_names = arg_names;
+        for (auto& name : arg_names) {
+            if (!CheckGoodVarName(name)) {
+                return false;
+            }
+        }
+        if (CheckRepetition(arg_names, input_var_names)) {
+            return false;
+        }
         outputs.resize(arg_names.size());
         if (core.supposeOutput(outputs)) {
+            output_var_names = arg_names;
             cm_ref.get().updateBindedPipes(myname());
             return true;
         }
@@ -348,12 +364,12 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
 
     // Update Function::utils::arg_names.
     func.utils.arg_names = wrapeds.at(c_name).input_var_names;
-    func.utils.arg_names.insert(func.utils.arg_names.end() - 1,
-                                wrapeds.at(c_name).output_var_names.begin(),
-                                wrapeds.at(c_name).output_var_names.end());
+    Extend(vector<string>{wrapeds.at(c_name).output_var_names},
+           &func.utils.arg_names);
 
     // Update Function::utils::arg_types and is_input_args
     func.utils.arg_types.clear();
+    func.utils.is_input_args.clear();
     for (auto& var : wrapeds.at(c_name).inputs) {
         func.utils.arg_types.emplace_back(var.getType());
         func.utils.is_input_args.emplace_back(false);

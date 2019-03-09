@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <map>
+#include <numeric>
 #include <vector>
 
 #include "variable.h"
@@ -34,7 +35,7 @@ inline void erase_all(Container& c, V&& v) {
 
 template <typename T>
 inline void Extend(T&& a, T* b) {
-    b->insert(std::begin(*b), std::begin(a), std::end(a));
+    b->insert(std::end(*b), std::begin(a), std::end(a));
 }
 
 template <typename Key, typename Val>
@@ -61,6 +62,22 @@ inline void RefCopy(std::vector<Variable>::iterator&& begin,
     dst->reserve(std::size_t(end - begin));
     for (auto it = begin; it != end; it++) {
         dst->emplace_back(it->ref());
+    }
+}
+
+template <class HeadContainer, class... TailContainers>
+inline bool CheckRepetition(HeadContainer&& head, TailContainers&&... tail) {
+    for (auto& v : head) {
+        auto counts = {std::count(std::begin(head), std::end(head), v),
+                       std::count(std::begin(tail), std::end(tail), v)...};
+        if (1 < std::accumulate(counts.begin(), counts.end(), 0)) {
+            return true;
+        }
+    }
+    if constexpr (sizeof...(tail) == 0) {
+        return false;
+    } else {
+        return CheckRepetition(tail...);
     }
 }
 
