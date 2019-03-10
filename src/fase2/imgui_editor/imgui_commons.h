@@ -32,6 +32,34 @@ inline float Length(const ImVec2& v) {
 
 ImU32 GenNodeColor(const std::size_t& idx);
 
+inline bool GetIsKeyPressed(char key, bool ctrl = false, bool shift = false,
+                            bool alt = false, bool super = false) {
+    auto& io = ImGui::GetIO();
+
+    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
+    s_keys &= !shift || (shift && io.KeyShift);
+    s_keys &= !alt || (alt && io.KeyAlt);
+    s_keys &= !super || (super && io.KeySuper);
+
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
+           s_keys;
+}
+
+inline bool GetIsKeyDown(char key, bool ctrl = false, bool shift = false,
+                         bool alt = false, bool super = false) {
+    auto& io = ImGui::GetIO();
+
+    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
+    s_keys &= !shift || (shift && io.KeyShift);
+    s_keys &= !alt || (alt && io.KeyAlt);
+    s_keys &= !super || (super && io.KeySuper);
+
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
+           s_keys;
+}
+
 struct GuiNode {
     ImVec2 pos;
     ImVec2 size;

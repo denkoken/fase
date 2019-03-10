@@ -65,6 +65,14 @@ inline void RefCopy(std::vector<Variable>::iterator&& begin,
     }
 }
 
+inline void replace(const std::string& fr, const std::string& to,
+                    std::string* str) {
+    const size_t len = fr.length();
+    for (size_t p = str->find(fr); p != std::string::npos; p = str->find(fr)) {
+        *str = str->replace(p, len, to);
+    }
+}
+
 template <class HeadContainer, class... TailContainers>
 inline bool CheckRepetition(HeadContainer&& head, TailContainers&&... tail) {
     for (auto& v : head) {

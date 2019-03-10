@@ -19,14 +19,36 @@ PopupRAII BeginPopupContext(const char* str, bool condition, int button) {
 }
 
 PopupModalRAII BeginPopupModal(
-        const char* str, bool condition,
+        const char* str, bool condition, bool closable = true,
         ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize) {
     if (condition) ImGui::OpenPopup(str);
-    return {str, true, flags};
+    return {str, closable, flags};
 }
 
 bool IsSpecialNodeName(const string& name) {
     return name == InputNodeName() || name == OutputNodeName();
+}
+
+string ToSnakeCase(const string& in) {
+    string str = in;
+    if (str[0] <= 'Z' && str[0] >= 'A') {
+        str[0] -= 'A' - 'a';
+    }
+
+    for (char c = 'A'; c <= 'Z'; c++) {
+        replace({c}, "_" + string({char((c - 'A') + 'a')}), &str);
+    }
+    return str;
+}
+
+string GetEasyName(const string& func_name, const map<string, Node>& nodes) {
+    string node_name = ToSnakeCase(func_name);
+
+    int i = 0;
+    while (nodes.count(node_name)) {
+        node_name = ToSnakeCase(func_name) + std::to_string(++i);
+    }
+    return node_name;
 }
 
 float GetVolume(const size_t& idx) {
@@ -88,7 +110,7 @@ bool drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
 }
 
 bool IsSpecialFuncName(const string& n_name) {
-    return n_name == InputNodeName() || n_name == OutputNodeName();
+    return n_name == kInputFuncName || n_name == kOutputFuncName;
 }
 
 void DrawColTextBox(const ImVec4& col, const char* text) {
@@ -131,9 +153,13 @@ void drawNodeContent(const string& n_name, const Node& node,
                      VarEditors* var_editors, Issues* issues) {
     label.addSuffix("##" + n_name);
     ImGui::BeginGroup();  // Lock horizontal position
-    bool s_flag = IsSpecialFuncName(n_name);
+    bool s_flag = IsSpecialNodeName(n_name);
 
-    ImGui::Text("[%s] %s", node.func_name.c_str(), n_name.c_str());
+    if (s_flag) {
+        ImGui::Text("%s", n_name.c_str());
+    } else {
+        ImGui::Text("[%s] %s", node.func_name.c_str(), n_name.c_str());
+    }
 
     ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
 
@@ -420,25 +446,57 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     bool run_f = false;
     if (auto raii = BeginPopupContext(label("canvas"), hovered.empty(), 1)) {
         ImGui::MenuItem(label("new node"), "Ctrl-a", &modal_f);
+        ImGui::TextDisabled("Press to Ctrl-e to open \"easy node generater\"");
         ImGui::Separator();
         ImGui::MenuItem(label("run"), "Ctrl-r", &run_f);
     }
 
-    run_f |= ImGui::GetIO().KeyCtrl &&
-             ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + 'r' - 'a');
-    if (run_f) {
+    // run this pipeline.
+    if (run_f || GetIsKeyPressed('r', true)) {
         issues->emplace_back(
                 [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
     }
-    modal_f |= ImGui::GetIO().KeyCtrl &&
-               ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A));
 
-    if (auto raii = BeginPopupModal(label("name_modal"), modal_f)) {
+    // new node maker popup.
+    modal_f |= GetIsKeyPressed('a', true);
+    if (auto raii = BeginPopupModal(label("new node popup"), modal_f)) {
         if (new_node_name_it.draw(label("new name"))) {
             issues->emplace_back([p_name = pipe_name,
                                   n_name = new_node_name_it.text()](auto pcm) {
                 (*pcm)[p_name].newNode(n_name);
             });
+            ImGui::CloseCurrentPopup();
+        }
+    }
+
+    // Easy Node generater popup.
+    if (auto raii = BeginPopupModal(label("easy node generater"),
+                                    GetIsKeyDown('e', true), false)) {
+        auto count = 0;
+        ImGui::BeginGroup();
+        for (auto& [f_name, f_utils] : funcs) {
+            if (f_name.empty() || IsSpecialFuncName(f_name)) {
+                continue;
+            }
+            if (ImGui::Selectable(label(f_name), false,
+                                  ImGuiSelectableFlags_DontClosePopups)) {
+                issues->emplace_back([p_name = pipe_name,
+                                      f_name = f_name](auto pcm) {
+                    auto name = GetEasyName(f_name, (*pcm)[p_name].getNodes());
+                    (*pcm)[p_name].newNode(name);
+                    (*pcm)[p_name].allocateFunc(f_name, name);
+                });
+            }
+            count++;
+        }
+        ImGui::EndGroup();
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        for (int i = 0; i < count; i++) {
+            ImGui::TextDisabled("   (click me!)");
+        }
+        ImGui::EndGroup();
+        if (!GetIsKeyDown('e', true)) {
             ImGui::CloseCurrentPopup();
         }
     }
