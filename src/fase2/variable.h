@@ -73,7 +73,7 @@ public:
     template <typename T>
     void set(std::shared_ptr<T>&& v) {
         data = std::move(v);
-        type = typeid(T);  // The lifetime extends to the end of the program.
+        type = typeid(T);
         cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
         };
@@ -135,10 +135,12 @@ public:
     }
 
 private:
-    std::shared_ptr<void>                           data;
-    std::type_index                                 type = typeid(void);
-    std::function<void(Variable&, const Variable&)> cloner;
-    std::function<void(Variable&, const Variable&)> copyer;
+    using VFunc = void (*)(Variable&, const Variable&);
+
+    std::shared_ptr<void> data;
+    std::type_index       type = typeid(void);
+    VFunc                 cloner;
+    VFunc                 copyer;
 };
 
 }  // namespace fase
