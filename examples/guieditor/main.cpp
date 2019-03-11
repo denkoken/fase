@@ -46,6 +46,8 @@ int main() {
     FaseAddFunctionBuilder(Assert, (const int&, const int&), ("a", "b"), app,
                            "assert(a == b)", {1, 1});
 #endif
+    FaseAddFunctionBuilder([](int, int) {}, (int, int), ("a", "b"), app,
+                           "empty lambda", {1, 1});
 
     auto bg_col = std::make_shared<std::vector<float>>(3);
 

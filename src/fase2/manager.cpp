@@ -349,7 +349,7 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 bool CoreManager::Impl::newPipeline(const string& c_name) {
     if (wrapeds.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc(UnivFunc{}, c_name, {}, {{}, {}, {}, "Another pipeline"});
+    addUnivFunc(UnivFunc{}, c_name, {}, {{}, {}, {}, true, "Another pipeline"});
 
     wrapeds.emplace(c_name, *this);  // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
@@ -485,12 +485,14 @@ map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
     }
     map<string, FunctionUtils> dst;
     dst[""];
-    dst[kInputFuncName] = {wrapeds.at(p_name).input_var_names, {}, {}, ""};
+    dst[kInputFuncName] = {
+            wrapeds.at(p_name).input_var_names, {}, {}, true, ""};
     for (auto& input : wrapeds.at(p_name).inputs) {
         dst[kInputFuncName].arg_types.emplace_back(input.getType());
         dst[kInputFuncName].is_input_args.emplace_back(false);
     }
-    dst[kOutputFuncName] = {wrapeds.at(p_name).output_var_names, {}, {}, ""};
+    dst[kOutputFuncName] = {
+            wrapeds.at(p_name).output_var_names, {}, {}, true, ""};
     for (auto& output : wrapeds.at(p_name).outputs) {
         dst[kOutputFuncName].arg_types.emplace_back(output.getType());
         dst[kOutputFuncName].is_input_args.emplace_back(true);

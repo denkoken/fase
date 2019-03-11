@@ -22,13 +22,13 @@ public:
 
     template <typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     const std::vector<std::string>& arg_names,
-                     const std::string&              description = "");
+                     const std::vector<std::string>& arg_names, bool pure,
+                     const std::string& description = "");
     template <typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     const std::vector<std::string>& arg_names,
-                     const std::string&              description,
-                     std::vector<Variable>&&         default_args);
+                     const std::vector<std::string>& arg_names, bool pure,
+                     const std::string&      description,
+                     std::vector<Variable>&& default_args);
 
     /**
      * @brief
@@ -74,9 +74,12 @@ private:
     const TSCMap& getConverterMap() override;
 };
 
-#define FaseAddFunctionBuilder(func, arg_types, arg_names, ...) \
-    fase::AddingUnivFuncHelper<void arg_types>::Gen(            \
-            #func, FaseExpandList(arg_names), func, __VA_ARGS__);
+#define FaseAddFunctionBuilder(func, arg_types, arg_names, ...)   \
+    [&](auto&& f) {                                               \
+        fase::AddingUnivFuncHelper<void arg_types>::Gen(          \
+                #func, FaseExpandList(arg_names),                 \
+                std::is_function_v<decltype(f)>, f, __VA_ARGS__); \
+    }(func);
 
 // =============================================================================
 // =========================== Non User Interface ==============================
@@ -127,20 +130,21 @@ template <class... Parts>
 template <typename... Args>
 inline bool Fase<Parts...>::addUnivFunc(
         const UnivFunc& func, const std::string& f_name,
-        const std::vector<std::string>& arg_names,
+        const std::vector<std::string>& arg_names, bool pure,
         const std::string& description, std::vector<Variable>&& default_args) {
     std::vector<std::type_index> types = {typeid(Args)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
-    return pcm->addUnivFunc(func, f_name, std::move(default_args),
-                            {arg_names, types, is_input_args, description});
+    return pcm->addUnivFunc(
+            func, f_name, std::move(default_args),
+            {arg_names, types, is_input_args, pure, description});
 }
 
 template <class... Parts>
 template <typename... Args>
 inline bool Fase<Parts...>::addUnivFunc(
         const UnivFunc& func, const std::string& f_name,
-        const std::vector<std::string>& arg_names,
-        const std::string&              description) {
+        const std::vector<std::string>& arg_names, bool pure,
+        const std::string& description) {
     static_assert(
             is_all_ok<std::is_default_constructible_v<std::decay_t<Args>>...>(),
             "Fase::addUnivFunc<Args...> : "
@@ -149,8 +153,9 @@ inline bool Fase<Parts...>::addUnivFunc(
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
     std::vector<std::type_index> types = {typeid(Args)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
-    return pcm->addUnivFunc(func, f_name, std::move(default_args),
-                            {arg_names, types, is_input_args, description});
+    return pcm->addUnivFunc(
+            func, f_name, std::move(default_args),
+            {arg_names, types, is_input_args, pure, description});
 }
 
 template <class... Parts>
@@ -226,23 +231,24 @@ template <typename... Args>
 struct AddingUnivFuncHelper<void(Args...)> {
     template <class FaseClass, class Callable>
     static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, Callable&& f,
-                    FaseClass& app, std::string description = "") {
+                    const std::vector<std::string>& arg_names, bool pure,
+                    Callable&& f, FaseClass& app,
+                    std::string description = "") {
         auto unived =
                 UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
-        app.template addUnivFunc<Args...>(unived, f_name, arg_names,
+        app.template addUnivFunc<Args...>(unived, f_name, arg_names, pure,
                                           description);
     }
 
     template <class FaseClass, class Callable>
     static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, Callable&& f,
-                    FaseClass& app, std::string description,
+                    const std::vector<std::string>& arg_names, bool pure,
+                    Callable&& f, FaseClass& app, std::string description,
                     std::tuple<std::decay_t<Args>...>&& default_args) {
         auto unived =
                 UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
         app.template addUnivFunc<Args...>(
-                unived, f_name, arg_names, description,
+                unived, f_name, arg_names, pure, description,
                 toVariables(std::move(default_args),
                             std::index_sequence_for<Args...>()));
     }

@@ -35,6 +35,7 @@ struct FunctionUtils {
     std::vector<std::string>     arg_names;
     std::vector<std::type_index> arg_types;
     std::vector<bool>            is_input_args;
+    bool                         pure;
     std::string                  description;
 };
 
