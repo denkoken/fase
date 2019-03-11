@@ -345,21 +345,21 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
             selected_node_name = n_name;
             ImGui::Text("%s", n_name.c_str());
             ImGui::Separator();
-            if (ImGui::Selectable("delete")) {
-                issues->emplace_back(
-                        [p_name = pipe_name, n_name = n_name](auto pcm) {
-                            (*pcm)[p_name].delNode(n_name);
-                        });
-            }
-            if (ImGui::Selectable("rename")) {
-                rename_open_f = true;
-            }
-            ImGui::Separator();
             if (IsSpecialNodeName(n_name)) {
                 if (ImGui::Selectable(label("edit input/output"))) {
                     edit_input_output_f = true;
                 }
             } else {
+                if (ImGui::Selectable("delete")) {
+                    issues->emplace_back(
+                            [p_name = pipe_name, n_name = n_name](auto pcm) {
+                                (*pcm)[p_name].delNode(n_name);
+                            });
+                }
+                if (ImGui::Selectable("rename")) {
+                    rename_open_f = true;
+                }
+                ImGui::Separator();
                 if (ImGui::Selectable(label("alocate function"))) {
                     allocate_function_f = true;
                 }
