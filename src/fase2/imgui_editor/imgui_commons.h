@@ -14,52 +14,6 @@
 
 namespace fase {
 
-using Issues = std::deque<std::function<void(CoreManager*)>>;
-
-// Extend ImGui's operator
-inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
-    return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
-}
-inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
-    return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
-}
-inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
-    return ImVec2(lhs.x * rhs, lhs.y * rhs);
-}
-inline float Length(const ImVec2& v) {
-    return std::sqrt(v.x * v.x + v.y * v.y);
-}
-
-ImU32 GenNodeColor(const std::size_t& idx);
-
-inline bool GetIsKeyPressed(char key, bool ctrl = false, bool shift = false,
-                            bool alt = false, bool super = false) {
-    auto& io = ImGui::GetIO();
-
-    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
-    s_keys &= !shift || (shift && io.KeyShift);
-    s_keys &= !alt || (alt && io.KeyAlt);
-    s_keys &= !super || (super && io.KeySuper);
-
-    return ImGui::IsWindowFocused() &&
-           ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
-           s_keys;
-}
-
-inline bool GetIsKeyDown(char key, bool ctrl = false, bool shift = false,
-                         bool alt = false, bool super = false) {
-    auto& io = ImGui::GetIO();
-
-    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
-    s_keys &= !shift || (shift && io.KeyShift);
-    s_keys &= !alt || (alt && io.KeyAlt);
-    s_keys &= !super || (super && io.KeySuper);
-
-    return ImGui::IsWindowFocused() &&
-           ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
-           s_keys;
-}
-
 struct GuiNode {
     ImVec2 pos;
     ImVec2 size;
@@ -217,9 +171,11 @@ public:
     }
 
     std::string text() {
+        if (choice_texts.empty()) return {};
         return choice_texts[std::size_t(curr_idx)];
     }
     int id() {
+        if (choice_texts.empty()) return -1;
         return curr_idx;
     }
 
@@ -245,6 +201,66 @@ private:
     std::string suffix;
     std::string last_label;  // temporary storage to return char*
 };
+
+using Issues = std::deque<std::function<void(CoreManager*)>>;
+
+// Extend ImGui's operator
+inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
+    return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
+}
+inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
+    return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+}
+inline ImVec2 operator*(const ImVec2& lhs, const float& rhs) {
+    return ImVec2(lhs.x * rhs, lhs.y * rhs);
+}
+inline float Length(const ImVec2& v) {
+    return std::sqrt(v.x * v.x + v.y * v.y);
+}
+
+ImU32 GenNodeColor(const std::size_t& idx);
+
+inline bool GetIsKeyPressed(char key, bool ctrl = false, bool shift = false,
+                            bool alt = false, bool super = false) {
+    auto& io = ImGui::GetIO();
+
+    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
+    s_keys &= !shift || (shift && io.KeyShift);
+    s_keys &= !alt || (alt && io.KeyAlt);
+    s_keys &= !super || (super && io.KeySuper);
+
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
+           s_keys;
+}
+
+inline bool GetIsKeyDown(char key, bool ctrl = false, bool shift = false,
+                         bool alt = false, bool super = false) {
+    auto& io = ImGui::GetIO();
+
+    bool s_keys = !ctrl || (ctrl && io.KeyCtrl);
+    s_keys &= !shift || (shift && io.KeyShift);
+    s_keys &= !alt || (alt && io.KeyAlt);
+    s_keys &= !super || (super && io.KeySuper);
+
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
+           s_keys;
+}
+
+inline PopupRAII BeginPopupContext(const char* str, bool condition,
+                                   int button) {
+    if (condition && ImGui::IsWindowHovered() && ImGui::IsMouseReleased(button))
+        ImGui::OpenPopup(str);
+    return {str};
+}
+
+inline PopupModalRAII BeginPopupModal(
+        const char* str, bool condition, bool closable = true,
+        ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize) {
+    if (condition) ImGui::OpenPopup(str);
+    return {str, closable, flags};
+}
 
 }  // namespace fase
 

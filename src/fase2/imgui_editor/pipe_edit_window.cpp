@@ -12,19 +12,6 @@ using size_t = std::size_t;
 
 namespace {
 
-PopupRAII BeginPopupContext(const char* str, bool condition, int button) {
-    if (condition && ImGui::IsWindowHovered() && ImGui::IsMouseReleased(button))
-        ImGui::OpenPopup(str);
-    return {str};
-}
-
-PopupModalRAII BeginPopupModal(
-        const char* str, bool condition, bool closable = true,
-        ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize) {
-    if (condition) ImGui::OpenPopup(str);
-    return {str, closable, flags};
-}
-
 bool IsSpecialNodeName(const string& name) {
     return name == InputNodeName() || name == OutputNodeName();
 }
