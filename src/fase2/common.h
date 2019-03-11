@@ -36,6 +36,10 @@ struct Link {
     std::size_t dst_arg;
 };
 
+class Core;
+
+class CoreManager;
+
 class PipelineAPI {
 public:
     virtual ~PipelineAPI() {}
@@ -81,9 +85,28 @@ struct TypeStringConverters {
     std::string name;
 };
 
+using TSCMap = std::map<std::type_index, TypeStringConverters>;
+
 std::vector<std::vector<std::string>> GetRunOrder(
         const std::map<std::string, Node>& nodes,
         const std::vector<Link>&           links);
+
+std::string GenNativeCode(const std::string& pipeline_name,
+                          const CoreManager& cm, const TSCMap& utils,
+                          const std::string& entry_name = "",
+                          const std::string& indent = "    ");
+
+std::string PipelineToString(const std::string& pipeline_name,
+                             const CoreManager& cm, const TSCMap& utils);
+
+bool LoadPipelineFromString(const std::string& str, CoreManager* pcm,
+                            const TSCMap& utils);
+
+bool SavePipeline(const std::string& pipeline_name, const CoreManager& cm,
+                  const std::string& filename, const TSCMap& utils);
+
+bool LoadPipelineFromFile(const std::string& filename, CoreManager* pcm,
+                          const TSCMap& utils);
 
 }  // namespace fase
 
