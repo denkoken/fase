@@ -60,7 +60,7 @@ private:
     std::shared_ptr<CoreManager> pcm;
     std::shared_timed_mutex      cm_mutex;
 
-    std::map<std::type_index, TypeStringConverters> converter_map;
+    TSCMap converter_map;
 
     std::tuple<std::shared_lock<std::shared_timed_mutex>,
                std::shared_ptr<const CoreManager>>
@@ -70,6 +70,8 @@ private:
                std::shared_ptr<CoreManager>>
     getWriter(const std::chrono::nanoseconds& wait_time =
                       std::chrono::nanoseconds{-1}) override;
+
+    const TSCMap& getConverterMap() override;
 };
 
 #define FaseAddFunctionBuilder(func, arg_types, arg_names, ...) \
@@ -202,6 +204,11 @@ Fase<Parts...>::getWriter(const std::chrono::nanoseconds& wait_time) {
         return {std::move(lock), pcm};
     }
     return {};
+}
+
+template <class... Parts>
+inline const TSCMap& Fase<Parts...>::getConverterMap() {
+    return converter_map;
 }
 
 #define FaseExpandListHelper(...)            \
