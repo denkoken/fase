@@ -69,6 +69,10 @@ private:
     // Control Window's variables
     vector<OptionalButton> optional_buttons;
     InputText new_core_name_it{64, ImGuiInputTextFlags_EnterReturnsTrue};
+    Combo pipeline_names_combo;
+    // for save pipeline
+    InputText filename_it{256, ImGuiInputTextFlags_EnterReturnsTrue |
+                                       ImGuiInputTextFlags_AutoSelectAll};
 
     // Pipeline Edit Window
     map<string, EditWindow> edit_windows;
@@ -125,6 +129,49 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
                 new_core_name_it.set("");
             }
         }
+        ImGui::Spacing();
+
+        auto [lock, pcm] = pparent->getReader(16ms);
+        if (lock) {
+            pipeline_names_combo.set(pcm->getPipelineNames());
+            pipeline_names_combo.draw(label("pipeline"));
+            if (!pipeline_names_combo.text().empty()) {
+                bool save_f = ImGui::Button(label("Save..."));
+                ImGui::SameLine();
+                if (ImGui::Button(label("Open")) &&
+                    !exists(pipeline_names_combo.text(), opened_pipelines)) {
+                    opened_pipelines.emplace_back(pipeline_names_combo.text());
+                }
+                if (save_f) {
+                    filename_it.set(pipeline_names_combo.text() + ".txt");
+                }
+                if (auto p_raii =
+                            BeginPopupModal(label("save popup"), save_f)) {
+                    filename_it.draw(label("filename"));
+                    if (ImGui::Button(label("OK"))) {
+                        SavePipeline(pipeline_names_combo.text(), *pcm,
+                                     filename_it.text(),
+                                     pparent->getConverterMap());
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+
+            bool load_f = ImGui::Button(label("Load Pipeline..."));
+            if (auto p_raii = BeginPopupModal(label("load popup"), load_f)) {
+                filename_it.draw(label("filename"));
+                if (ImGui::Button(label("OK"))) {
+                    issues.emplace_back([filename = filename_it.text(),
+                                         this](auto pcm) {
+                        LoadPipelineFromFile(filename, pcm,
+                                             pparent->getConverterMap());
+                    });
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+        }
+        ImGui::Spacing();
+
         ImGui::Separator();
         ImGui::Spacing();
         DrawOptionalButtons(optional_buttons, label);
