@@ -207,7 +207,9 @@ bool StringToPipeline(const string& p_name, LineIterator& linep,
 
 string GenNativeCode(const string& p_name, const CoreManager& cm,
                      const TSCMap& tsc_map, const string& entry_name,
-                     const string& indent) { return ""; }
+                     const string& indent) {
+    return "";
+}
 
 string PipelineToString(const string& p_name, const CoreManager& cm,
                         const TSCMap& tsc_map) {

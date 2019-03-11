@@ -35,7 +35,6 @@ int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::ImGuiEditor> app;
 
-#if 1
     // Register functions
     FaseAddFunctionBuilder(Add, (const int&, const int&, int&),
                            ("in1", "in2", "out"), app);
@@ -45,9 +44,13 @@ int main() {
                            "wait for \"seconds\".");
     FaseAddFunctionBuilder(Assert, (const int&, const int&), ("a", "b"), app,
                            "assert(a == b)", {1, 1});
-#endif
-    FaseAddFunctionBuilder([](int, int) {}, (int, int), ("a", "b"), app,
-                           "empty lambda", {1, 1});
+    struct A {
+        int count = 0;
+        void operator()(int& dst) {
+            dst = count++;
+        }
+    } counter;
+    FaseAddFunctionBuilder(counter, (int&), ("count"), app);
 
     auto bg_col = std::make_shared<std::vector<float>>(3);
 

@@ -23,8 +23,8 @@ private:
         using Callable_N = std::decay_t<Callable>;
         if constexpr (std::is_copy_constructible_v<Callable_N>) {
             struct Dst {
-                Callable f;
-                void     operator()(std::vector<Variable>& args) {
+                Callable_N f;
+                void       operator()(std::vector<Variable>& args) {
                     f(static_cast<Args>(
                             *args[Seq].getWriter<std::decay_t<Args>>())...);
                 }
