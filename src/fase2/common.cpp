@@ -1,6 +1,7 @@
 
 #include "common.h"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
