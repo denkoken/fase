@@ -149,6 +149,9 @@ public:
 
     vector<string> getPipelineNames() const;
     map<string, FunctionUtils> getFunctionUtils(const string& p_name) const;
+    const DependenceTree& getDependingTree() const {
+        return dependence_tree;
+    }
 
 private:
     class WrapedCore;
@@ -406,7 +409,9 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
 
 PipelineAPI& CoreManager::Impl::operator[](const string& c_name) {
     if (!wrapeds.count(c_name)) {
-        if (!newPipeline(c_name)) {
+        if (!CheckGoodVarName(c_name)) {
+            return dum;
+        } else if (!newPipeline(c_name)) {
             return dum;
         }
     }
@@ -527,6 +532,10 @@ vector<string> CoreManager::getPipelineNames() const {
 map<string, FunctionUtils> CoreManager::getFunctionUtils(
         const string& p_name) const {
     return pimpl->getFunctionUtils(p_name);
+}
+
+const DependenceTree& CoreManager::getDependingTree() const {
+    return pimpl->getDependingTree();
 }
 
 }  // namespace fase

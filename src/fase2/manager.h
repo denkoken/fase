@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "core.h"
+#include "utils.h"
 #include "variable.h"
 
 namespace fase {
@@ -62,6 +63,7 @@ public:
     std::vector<std::string>             getPipelineNames() const;
     std::map<std::string, FunctionUtils> getFunctionUtils(
             const std::string& p_name) const;
+    const DependenceTree& getDependingTree() const;
 
 private:
     class Impl;
