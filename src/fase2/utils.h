@@ -12,7 +12,7 @@
 namespace fase {
 
 template <typename T, typename C>
-inline bool exists(T&& t, C& c) {
+inline bool exists(T&& t, C&& c) {
     return std::end(c) != std::find(std::begin(c), std::end(c), t);
 }
 
@@ -31,6 +31,21 @@ template <typename Container, class V>
 inline void erase_all(Container& c, V&& v) {
     auto end = std::remove(c.begin(), c.end(), v);
     c.erase(end, c.end());
+}
+
+inline std::vector<std::string> split(const std::string& str, const char& sp) {
+    std::size_t              start = 0;
+    std::size_t              end;
+    std::vector<std::string> dst;
+    while (true) {
+        end = str.find_first_of(sp, start);
+        dst.emplace_back(std::string(str, start, end - start));
+        start = end + 1;
+        if (end >= str.size()) {
+            break;
+        }
+    }
+    return dst;
 }
 
 template <typename T>
@@ -71,6 +86,16 @@ inline void replace(const std::string& fr, const std::string& to,
     for (size_t p = str->find(fr); p != std::string::npos; p = str->find(fr)) {
         *str = str->replace(p, len, to);
     }
+}
+
+inline std::string replace(std::string str, const std::string& fr,
+                           const std::string& to) {
+    const size_t len = fr.length();
+    for (size_t p = str.find(fr); p != std::string::npos; p = str.find(fr)) {
+        str = str.replace(p, len, to);
+    }
+
+    return str;
 }
 
 template <class HeadContainer, class... TailContainers>
