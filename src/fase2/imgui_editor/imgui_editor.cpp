@@ -73,6 +73,8 @@ private:
     // for save pipeline
     InputText filename_it{256, ImGuiInputTextFlags_EnterReturnsTrue |
                                        ImGuiInputTextFlags_AutoSelectAll};
+    // for store native code
+    std::string native_code;
 
     // Pipeline Edit Window
     map<string, EditWindow> edit_windows;
@@ -135,25 +137,39 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
         if (lock) {
             pipeline_names_combo.set(pcm->getPipelineNames());
             pipeline_names_combo.draw(label("pipeline"));
-            if (!pipeline_names_combo.text().empty()) {
+            if (auto p_name = pipeline_names_combo.text(); !p_name.empty()) {
                 bool save_f = ImGui::Button(label("Save..."));
                 ImGui::SameLine();
                 if (ImGui::Button(label("Open")) &&
-                    !exists(pipeline_names_combo.text(), opened_pipelines)) {
-                    opened_pipelines.emplace_back(pipeline_names_combo.text());
+                    !exists(p_name, opened_pipelines)) {
+                    opened_pipelines.emplace_back(p_name);
                 }
                 if (save_f) {
-                    filename_it.set(pipeline_names_combo.text() + ".txt");
+                    filename_it.set(p_name + ".txt");
                 }
                 if (auto p_raii =
                             BeginPopupModal(label("save popup"), save_f)) {
                     filename_it.draw(label("filename"));
                     if (ImGui::Button(label("OK"))) {
-                        SavePipeline(pipeline_names_combo.text(), *pcm,
-                                     filename_it.text(),
+                        SavePipeline(p_name, *pcm, filename_it.text(),
                                      pparent->getConverterMap());
                         ImGui::CloseCurrentPopup();
                     }
+                }
+
+                ImGui::SameLine();
+
+                // show native code.
+                bool code_f = ImGui::Button(label("Show code..."));
+                if (code_f) {
+                    native_code = GenNativeCode(
+                            p_name, *pcm, pparent->getConverterMap(), p_name);
+                }
+                if (auto p_raii = BeginPopupModal(label("Native Code"), code_f,
+                                                  true)) {
+                    ImGui::InputTextMultiline(
+                            label("code"), &native_code[0], native_code.size(),
+                            ImVec2(800, 600), ImGuiInputTextFlags_ReadOnly);
                 }
             }
 
