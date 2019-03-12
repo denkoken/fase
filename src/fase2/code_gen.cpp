@@ -343,9 +343,9 @@ void GenFunctionArrays(MyStream& native_code,
                        const map<string, vector<N_ID>>& non_pure_node_map,
                        const map<string, FunctionUtils>& f_utils) {
     for (auto& [f_name, vs] : non_pure_node_map) {
-        native_code << "std::function<void"
+        native_code << "std::array<std::function<void"
                     << f_utils.at(f_name).arg_types_repr;
-        native_code << "> " << f_name + "s[" << vs.size() << "];" << endl;
+        native_code << ">, " << vs.size() << "> " << f_name + "s;" << endl;
 
         for (size_t i = 0; i < vs.size(); i++) {
             native_code << "constexpr static int "
