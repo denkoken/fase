@@ -52,6 +52,14 @@ bool CheckGoodVarName(const string& name) {
     return true;
 }
 
+vector<std::type_index> getTypes(const vector<Variable>& vars) {
+    vector<std::type_index> a;
+    for (auto& var : vars) {
+        a.emplace_back(var.getType());
+    }
+    return a;
+}
+
 }  // namespace
 
 class FaildDummy : public PipelineAPI {
@@ -101,6 +109,9 @@ class FaildDummy : public PipelineAPI {
 
     const std::vector<Link>& getLinks() const noexcept override {
         return dum_l;
+    }
+    map<string, FunctionUtils> getFunctionUtils() const override {
+        return {};
     }
 
 private:
@@ -273,6 +284,9 @@ public:
     const vector<Link>& getLinks() const noexcept override {
         return core.getLinks();
     }
+    map<string, FunctionUtils> getFunctionUtils() const override {
+        return cm_ref.get().getFunctionUtils(myname());
+    }
 
     Core core;
     std::reference_wrapper<Impl> cm_ref;
@@ -282,7 +296,7 @@ public:
     vector<string> input_var_names;
     vector<string> output_var_names;
 
-    const string& myname() {
+    const string& myname() const {
         for (auto& [c_name, wrapeds] : cm_ref.get().wrapeds) {
             if (&wrapeds == this) return c_name;
         }
@@ -483,18 +497,12 @@ map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
     }
     map<string, FunctionUtils> dst;
     dst[""];
-    dst[kInputFuncName] = {
-            wrapeds.at(p_name).input_var_names, {}, {}, true, ""};
-    for (auto& input : wrapeds.at(p_name).inputs) {
-        dst[kInputFuncName].arg_types.emplace_back(input.getType());
-        dst[kInputFuncName].is_input_args.emplace_back(false);
-    }
-    dst[kOutputFuncName] = {
-            wrapeds.at(p_name).output_var_names, {}, {}, true, ""};
-    for (auto& output : wrapeds.at(p_name).outputs) {
-        dst[kOutputFuncName].arg_types.emplace_back(output.getType());
-        dst[kOutputFuncName].is_input_args.emplace_back(true);
-    }
+    auto& i_names = wrapeds.at(p_name).input_var_names;
+    dst[kInputFuncName] = {i_names, getTypes(wrapeds.at(p_name).inputs),
+                           vector<bool>(i_names.size(), false), true, ""};
+    auto& o_names = wrapeds.at(p_name).output_var_names;
+    dst[kOutputFuncName] = {o_names, getTypes(wrapeds.at(p_name).outputs),
+                            vector<bool>(o_names.size(), true), true, ""};
 
     for (auto& [f_name, func] : functions) {
         dst[f_name] = func.utils;

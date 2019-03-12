@@ -36,6 +36,14 @@ struct Link {
     std::size_t dst_arg;
 };
 
+struct FunctionUtils {
+    std::vector<std::string>     arg_names;
+    std::vector<std::type_index> arg_types;
+    std::vector<bool>            is_input_args;
+    bool                         pure;
+    std::string                  description;
+};
+
 class Core;
 
 class CoreManager;
@@ -67,8 +75,9 @@ public:
 
     virtual bool run(Report* preport = nullptr) = 0;
 
-    virtual const std::map<std::string, Node>& getNodes() const noexcept = 0;
-    virtual const std::vector<Link>&           getLinks() const noexcept = 0;
+    virtual const std::map<std::string, Node>&   getNodes() const noexcept = 0;
+    virtual const std::vector<Link>&             getLinks() const noexcept = 0;
+    virtual std::map<std::string, FunctionUtils> getFunctionUtils() const = 0;
 };
 
 struct TypeStringConverters {
