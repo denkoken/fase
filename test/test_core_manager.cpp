@@ -34,6 +34,7 @@ TEST_CASE("Core Manager test") {
                                 {typeid(int), typeid(int), typeid(int)},
                                 {true, true, false},
                                 true,
+                                "",
                                 "dst := a + b"}));
     }
 
@@ -50,6 +51,7 @@ TEST_CASE("Core Manager test") {
                                 {typeid(int), typeid(int)},
                                 {true, false},
                                 true,
+                                "",
                                 "dst := in * in"}));
     }
 
@@ -67,6 +69,7 @@ TEST_CASE("Core Manager test") {
                                 {typeid(int), typeid(int)},
                                 {true, false},
                                 false,
+                                "",
                                 "dst := in * in"}));
     }
     const std::string kINPUT = fase::InputNodeName();
@@ -112,7 +115,7 @@ TEST_CASE("Core Manager test") {
 
     REQUIRE(cm.addUnivFunc(
             univ_counter, "counter", {std::make_shared<int>(0)},
-            {{"count"}, {typeid(int)}, {false}, false, "counter."}));
+            {{"count"}, {typeid(int)}, {false}, false, "", "counter."}));
     REQUIRE(cm["Pipe1"].newNode("c"));
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
     REQUIRE(cm["Pipe1"].supposeInput({"in1"}));

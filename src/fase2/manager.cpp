@@ -363,7 +363,8 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 bool CoreManager::Impl::newPipeline(const string& c_name) {
     if (wrapeds.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc(UnivFunc{}, c_name, {}, {{}, {}, {}, true, "Another pipeline"});
+    addUnivFunc(UnivFunc{}, c_name, {},
+                {{}, {}, {}, true, "", "Another pipeline"});
 
     wrapeds.emplace(c_name, *this);  // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
@@ -400,11 +401,11 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
     func.utils.is_input_args.clear();
     for (auto& var : wrapeds.at(c_name).inputs) {
         func.utils.arg_types.emplace_back(var.getType());
-        func.utils.is_input_args.emplace_back(false);
+        func.utils.is_input_args.emplace_back(true);
     }
     for (auto& var : wrapeds.at(c_name).outputs) {
         func.utils.arg_types.emplace_back(var.getType());
-        func.utils.is_input_args.emplace_back(true);
+        func.utils.is_input_args.emplace_back(false);
     }
 
     // Add updated function to other pipelines.
@@ -498,11 +499,19 @@ map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
     map<string, FunctionUtils> dst;
     dst[""];
     auto& i_names = wrapeds.at(p_name).input_var_names;
-    dst[kInputFuncName] = {i_names, getTypes(wrapeds.at(p_name).inputs),
-                           vector<bool>(i_names.size(), false), true, ""};
+    dst[kInputFuncName] = {i_names,
+                           getTypes(wrapeds.at(p_name).inputs),
+                           vector<bool>(i_names.size(), false),
+                           true,
+                           "",
+                           ""};
     auto& o_names = wrapeds.at(p_name).output_var_names;
-    dst[kOutputFuncName] = {o_names, getTypes(wrapeds.at(p_name).outputs),
-                            vector<bool>(o_names.size(), true), true, ""};
+    dst[kOutputFuncName] = {o_names,
+                            getTypes(wrapeds.at(p_name).outputs),
+                            vector<bool>(o_names.size(), true),
+                            true,
+                            "",
+                            ""};
 
     for (auto& [f_name, func] : functions) {
         dst[f_name] = func.utils;
