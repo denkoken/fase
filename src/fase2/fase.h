@@ -132,7 +132,7 @@ inline bool Fase<Parts...>::addUnivFunc(
         const UnivFunc& func, const std::string& f_name,
         const std::vector<std::string>& arg_names, bool pure,
         const std::string& description, std::vector<Variable>&& default_args) {
-    std::vector<std::type_index> types = {typeid(Args)...};
+    std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
     return pcm->addUnivFunc(
             func, f_name, std::move(default_args),
@@ -151,7 +151,7 @@ inline bool Fase<Parts...>::addUnivFunc(
             "If not all Args have default constructor,"
             "do not call me WITHOUT default_args!");
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
-    std::vector<std::type_index> types = {typeid(Args)...};
+    std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
     return pcm->addUnivFunc(
             func, f_name, std::move(default_args),
