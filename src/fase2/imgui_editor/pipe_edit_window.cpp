@@ -383,6 +383,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
         ImGui::BeginGroup();
         int size = input_arg_name_its.size();
         if (ImGui::InputInt(label("input size"), &size)) {
+            size = std::max(size, 0);
             input_arg_name_its.resize(size_t(size));
         }
         int i = 0;
@@ -406,6 +407,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
         ImGui::BeginGroup();
         size = output_arg_name_its.size();
         if (ImGui::InputInt(label("output size"), &size)) {
+            size = std::max(size, 0);
             output_arg_name_its.resize(size_t(size));
         }
         i = 0;
@@ -434,7 +436,9 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     if (auto raii = BeginPopupContext(label("canvas"), hovered.empty(), 1)) {
         ImGui::MenuItem(label("new node"), "Ctrl-a", &modal_f);
         ImGui::TextDisabled("Press to Ctrl-e to open \"easy node generater\"");
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
         ImGui::MenuItem(label("run"), "Ctrl-r", &run_f);
     }
 
