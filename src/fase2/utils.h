@@ -52,6 +52,10 @@ template <typename T>
 inline void Extend(T&& a, T* b) {
     b->insert(std::end(*b), std::begin(a), std::end(a));
 }
+template <typename T>
+inline void Extend(const T& a, T* b) {
+    b->insert(std::end(*b), std::begin(a), std::end(a));
+}
 
 template <typename Key, typename Val>
 inline std::vector<Key> getKeys(const std::map<Key, Val>& map) {

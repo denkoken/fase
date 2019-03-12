@@ -327,7 +327,7 @@ bool Core::Impl::run(Report* preport) {
 Core::Core() : pimpl(std::make_unique<Impl>()) {}
 Core::Core(Core& o) : pimpl(std::make_unique<Impl>(*o.pimpl)) {}
 Core::Core(const Core& o) : pimpl(std::make_unique<Impl>(*o.pimpl)) {}
-Core::Core(Core&& o) : pimpl(std::make_unique<Impl>(std::move(*o.pimpl))) {}
+Core::Core(Core&& o) : pimpl(std::move(o.pimpl)) {}
 Core& Core::operator=(Core& o) {
     pimpl = std::make_unique<Impl>(*o.pimpl);
     return *this;
@@ -337,7 +337,7 @@ Core& Core::operator=(const Core& o) {
     return *this;
 }
 Core& Core::operator=(Core&& o) {
-    pimpl = std::make_unique<Impl>(std::move(*o.pimpl));
+    pimpl = std::move(o.pimpl);
     return *this;
 }
 Core::~Core() = default;

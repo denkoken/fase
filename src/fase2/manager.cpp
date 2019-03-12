@@ -379,8 +379,7 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
 
     // Update Function::utils::arg_names.
     func.utils.arg_names = wrapeds.at(c_name).input_var_names;
-    Extend(vector<string>{wrapeds.at(c_name).output_var_names},
-           &func.utils.arg_names);
+    Extend(wrapeds.at(c_name).output_var_names, &func.utils.arg_names);
 
     // Update Function::utils::arg_types and is_input_args
     func.utils.arg_types.clear();
@@ -439,8 +438,7 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
         for (auto& c_name : cs) {
             cores.emplace(c_name, wrapeds.at(c_name).core);
             vector<Variable> default_args = wrapeds.at(c_name).inputs;
-            Extend(std::vector<Variable>{wrapeds.at(c_name).outputs},
-                   &default_args);
+            Extend(wrapeds.at(c_name).outputs, &default_args);
             default_args_map.emplace(c_name, std::move(default_args));
         }
     }
