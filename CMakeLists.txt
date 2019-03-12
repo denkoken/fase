@@ -174,6 +174,7 @@ add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/type_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/common.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/code_gen.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/imgui_editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/pipe_edit_window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/setup_var_editors.cpp
