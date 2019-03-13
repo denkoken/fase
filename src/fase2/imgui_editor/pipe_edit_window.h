@@ -31,6 +31,7 @@ private:
     LinksView links_view;
 
     Report report;
+    std::string err_message;
 
     // for allocate function popup
     Combo function_combo;

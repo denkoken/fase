@@ -38,6 +38,22 @@ string GetEasyName(const string& func_name, const map<string, Node>& nodes) {
     return node_name;
 }
 
+template <class Task>
+void WrapError(Task&& task, string* str) {
+    try {
+        task();
+    } catch (ErrorThrownByNode& e) {
+        *str = e.what();
+        try {
+            e.rethrow_nested();
+        } catch (std::exception& e) {
+            *str += " : ";
+            *str += e.what();
+        } catch (...) {
+        }
+    }
+}
+
 float GetVolume(const size_t& idx) {
     if (idx == 0)
         return 0.f;
@@ -449,8 +465,9 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
 
     // run this pipeline.
     if (run_f || GetIsKeyPressed('r', true)) {
-        issues->emplace_back(
-                [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
+        issues->emplace_back([this](auto pcm) {
+            WrapError([&] { (*pcm)[pipe_name].run(&report); }, &err_message);
+        });
     }
 
     // new node maker popup.
@@ -626,8 +643,9 @@ void EditWindow::drawReportPannel(const PipelineAPI& core_api,
 
     // run this pipeline.
     if (GetIsKeyPressed('r', true)) {
-        issues->emplace_back(
-                [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
+        issues->emplace_back([this](auto pcm) {
+            WrapError([&] { (*pcm)[pipe_name].run(&report); }, &err_message);
+        });
     }
 }
 
@@ -650,6 +668,14 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
+        }
+        if (auto p_raii =
+                    BeginPopupModal(label("Error"), !err_message.empty())) {
+            ImGui::Text("%s", err_message.c_str());
+            if (ImGui::Button(label("OK"))) {
+                ImGui::CloseCurrentPopup();
+                err_message = "";
+            }
         }
     }
 
