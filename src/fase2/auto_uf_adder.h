@@ -2,6 +2,7 @@
 #define CONSTEXPR_STRING_H_20180926
 
 #include <array>
+#include <cassert>
 #include <iostream>
 #include <sstream>
 #include <string>
