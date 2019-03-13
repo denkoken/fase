@@ -49,6 +49,18 @@ float GetVolume(const size_t& idx) {
     }
 }
 
+ImVec4 VolumeColor(float v) {
+    // clang-format off
+    float r = (v <= 0.25f) ? 1.f :
+              (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
+    float g = (v <= 0.25f) ? v / 0.25f :
+              (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
+    float b = (v <= 0.50f) ? 0.f :
+              (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
+    // clang-format on
+    return {r, g, b, 1};
+}
+
 constexpr float NODE_COL_SCALE = 155.f;
 constexpr float NODE_COL_OFFSET = 100.f;
 
@@ -264,17 +276,10 @@ size_t SearchUnusedID(const map<string, GuiNode>& node_gui_utils) {
 
 ImU32 GenNodeColor(const size_t& idx) {
     const float v = GetVolume(idx);
-    // clang-format off
-    float r = (v <= 0.25f) ? 1.f :
-              (v <= 0.50f) ? 1.f - (v - 0.25f) / 0.25f : 0.f;
-    float g = (v <= 0.25f) ? v / 0.25f :
-              (v <= 0.75f) ? 1.f : 1.f - (v - 0.75f) / 0.25f;
-    float b = (v <= 0.50f) ? 0.f :
-              (v <= 0.75f) ? (v - 0.5f) / 0.25f : 1.f;
-    // clang-format on
-    r = r * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
-    g = g * NODE_COL_SCALE * 0.5f + NODE_COL_OFFSET;
-    b = b * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    ImVec4 col = VolumeColor(v);
+    float r = col.x * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
+    float g = col.y * NODE_COL_SCALE * 0.5f + NODE_COL_OFFSET;
+    float b = col.z * NODE_COL_SCALE * 1.0f + NODE_COL_OFFSET;
     return IM_COL32(int(r), int(g), int(b), 200);
 }
 
@@ -493,9 +498,8 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     }
 }
 
-void EditWindow::drawCanvasPannel(const PipelineAPI& core_api,
-                                  LabelWrapper label, Issues* issues,
-                                  VarEditors* var_editors) {
+void EditWindow::drawEditPannel(const PipelineAPI& core_api, LabelWrapper label,
+                                Issues* issues, VarEditors* var_editors) {
     label.addSuffix("##Canvas");
     ChildRAII raii(label(""));
 
@@ -582,6 +586,51 @@ void EditWindow::updateMembers(const CoreManager& cm, const string& p_name) {
     pipe_name = p_name;
 }
 
+void EditWindow::drawReportPannel(const PipelineAPI& core_api,
+                                  LabelWrapper label, Issues* issues) {
+    DrawCanvas(ImVec2(0, 0), 100);
+    const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
+    for (auto& [n_name, node] : core_api.getNodes()) {
+        GuiNode& gui_node = node_gui_utils[n_name];
+        // Draw node box
+        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
+        drawNodeBox(canvas_offset + gui_node.pos, gui_node.size,
+                    selected_node_name == n_name, gui_node.id, label);
+        Report& repo = report.child_reports[n_name];
+        float wait = std::min(1.f, repo.getSec() / report.getSec());
+        wait = std::min(1.f, repo.getSec() / report.getSec());
+        if (report.getSec() == 0.f) {
+            wait = 0.f;
+            continue;
+        }
+        if (wait != 0.f) {
+        }
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        auto start = canvas_offset + gui_node.pos;
+        auto end =
+                canvas_offset + gui_node.pos + gui_node.size * ImVec2(wait, 1);
+        draw_list->AddRectFilled(start, end,
+                                 ImGui::GetColorU32(VolumeColor(1.f - wait) *
+                                                    ImVec4(1, 1, 1, 0.4)),
+                                 4.f);
+
+        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
+                                  NODE_WINDOW_PADDING);
+        ImGui::BeginGroup();
+        ImGui::Text("%s", n_name.c_str());
+        ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
+        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.3f mili sec (%.3f %%)",
+                           repo.getSec() * 1000.0, wait * 100.0);
+        ImGui::EndGroup();
+    }
+
+    // run this pipeline.
+    if (GetIsKeyPressed('r', true)) {
+        issues->emplace_back(
+                [this](auto pcm) { (*pcm)[pipe_name].run(&report); });
+    }
+}
+
 bool EditWindow::draw(const string& p_name, const string& win_title,
                       const CoreManager& cm, LabelWrapper label, Issues* issues,
                       VarEditors* var_editors) {
@@ -591,7 +640,17 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
     bool opened = true;
     if (auto raii = WindowRAII(label(win_title + " : Pipe Edit - " + p_name),
                                &opened)) {
-        drawCanvasPannel(cm[p_name], label, issues, var_editors);
+        if (ImGui::BeginTabBar(label("TabBar"))) {
+            if (ImGui::BeginTabItem(label("Edit"))) {
+                drawEditPannel(cm[p_name], label, issues, var_editors);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(label("Report"))) {
+                drawReportPannel(cm[p_name], label, issues);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
     }
 
     return opened;

@@ -53,8 +53,10 @@ private:
                              Issues* issues);
     void drawCanvasContextMenu(const std::string& hovered, LabelWrapper label,
                                Issues* issues);
-    void drawCanvasPannel(const PipelineAPI& core_api, LabelWrapper label,
-                          Issues* issues, VarEditors* var_editors);
+    void drawEditPannel(const PipelineAPI& core_api, LabelWrapper label,
+                        Issues* issues, VarEditors* var_editors);
+    void drawReportPannel(const PipelineAPI& core_api, LabelWrapper label,
+                          Issues* issues);
 };
 
 }  // namespace fase

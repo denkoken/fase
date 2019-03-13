@@ -15,7 +15,13 @@ namespace fase {
 struct Report {
     using TimeType = decltype(std::chrono::system_clock::now() -
                               std::chrono::system_clock::now());
-    TimeType execution_time;  // sec
+    TimeType execution_time;
+    float    getSec() const {
+        return std::chrono::duration_cast<std::chrono::microseconds>(
+                       execution_time)
+                       .count() *
+               1e-6f;
+    }
 
     std::map<std::string, Report> child_reports;
 };
