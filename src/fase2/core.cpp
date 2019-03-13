@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+#include <future>
+
 #include "constants.h"
 #include "utils.h"
 
@@ -15,6 +17,34 @@ using std::map, std::string, std::vector;
 using size_t = std::size_t;
 
 using Vars = vector<Variable>;
+
+namespace {
+
+template <typename Task>
+bool WrapError(const std::string& n_name, Task&& task) {
+    try {
+        task();
+    } catch (WrongTypeCast&) {
+        std::cerr << "Core::run() : something went wrong at " << n_name
+                  << ". fix bug of Fase." << std::endl;
+        return false;
+    } catch (TryToGetEmptyVariable&) {
+        std::cerr << "Core::run() : something went wrong at " << n_name
+                  << ". fix bug of Fase." << std::endl;
+        return false;
+    } catch (ErrorThrownByNode& e) {
+        try {
+            e.rethrow_nested();
+        } catch (...) {
+            throw(ErrorThrownByNode(n_name + " :: " + e.node_name));
+        }
+    } catch (...) {
+        throw(ErrorThrownByNode(n_name));
+    }
+    return true;
+}
+
+}  // namespace
 
 vector<vector<string>> GetRunOrder(const map<string, Node>& nodes,
                                    const vector<Link>& links) {
@@ -290,7 +320,11 @@ bool Core::Impl::run(Report* preport) {
             if (preport != nullptr) {
                 p = &preport->child_reports[n_name];
             }
-            nodes[n_name].func(nodes[n_name].args, p);
+            if (!WrapError(n_name, [&]() {
+                    nodes[n_name].func(nodes[n_name].args, p);
+                })) {
+                return false;
+            }
         }
     }
 #else
@@ -308,7 +342,9 @@ bool Core::Impl::run(Report* preport) {
             });
         }
         for (auto& n_name : node_names) {
-            futures[n_name].wait();
+            if (!WrapError(n_name, [&]() { futures[n_name].wait(); })) {
+                return false;
+            }
         }
     }
 #endif
