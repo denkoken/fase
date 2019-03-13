@@ -4,6 +4,7 @@
 
 #include <shared_mutex>
 
+#include "auto_uf_adder.h"
 #include "common.h"
 #include "manager.h"
 #include "univ_functions.h"
@@ -76,7 +77,7 @@ private:
     const TSCMap& getConverterMap() override;
 };
 
-#define FaseAddFunctionBuilder(func, arg_types, arg_names, ...)        \
+#define FaseAddUnivFunction(func, arg_types, arg_names, ...)           \
     [&](auto& f, bool pure) {                                          \
         fase::AddingUnivFuncHelper<void arg_types>::Gen(               \
                 #func, FaseExpandList(arg_names), pure, #arg_types, f, \
@@ -126,6 +127,10 @@ inline Fase<Parts...>::Fase()
         }
     }
     SetupTypeConverters(&converter_map);
+
+    for (auto& adder : for_macro::FuncNodeStorer::func_builder_adders) {
+        adder(pcm.get());
+    }
 }
 
 template <class... Parts>
