@@ -42,25 +42,35 @@ public:
         set(std::move(p));
     }
 
+    Variable(const std::type_index& type_) : type(type_) {}
+
     Variable(Variable&&) = default;
     Variable& operator=(Variable&&) = default;
 
     Variable& operator=(Variable& v) {
-        v.cloner(*this, v);
+        if (v.cloner != nullptr) {
+            v.cloner(*this, v);
+        }
         return *this;
     }
 
     Variable(const Variable& v) {
-        v.cloner(*this, v);
+        if (v.cloner != nullptr) {
+            v.cloner(*this, v);
+        }
     }
 
     Variable& operator=(const Variable& v) {
-        v.cloner(*this, v);
+        if (v.cloner != nullptr) {
+            v.cloner(*this, v);
+        }
         return *this;
     }
 
     Variable(Variable& v) {
-        v.cloner(*this, v);
+        if (v.cloner != nullptr) {
+            v.cloner(*this, v);
+        }
     }
 
     ~Variable() = default;
@@ -95,26 +105,30 @@ public:
     std::shared_ptr<T> getWriter() {
         if (!isSameType<T>()) {
             throw(WrongTypeCast(typeid(T), type));
+        } else if (!*this) {
+            throw(std::logic_error("this Variable is empty"));
         }
         return std::static_pointer_cast<T>(data);
     }
 
     template <typename T>
     std::shared_ptr<const T> getReader() const {
-        if (!isSameType<T>()) {
+        if (!isSameType<T>() || !*this) {
             throw(WrongTypeCast(typeid(T), type));
+        } else if (!*this) {
+            throw(std::logic_error("this Variable is empty"));
         }
         return std::static_pointer_cast<const T>(data);
     }
 
     void copyTo(Variable& v) const {
-        copyer(v, *this);
+        if (v.copyer != nullptr) {
+            copyer(v, *this);
+        }
     }
 
     Variable clone() const {
-        Variable v;
-        cloner(v, *this);
-        return v;
+        return *this;
     }
 
     Variable ref() {
@@ -127,7 +141,7 @@ public:
     }
 
     explicit operator bool() const noexcept {
-        return type != typeid(void);
+        return bool(data);
     }
 
     const std::type_index& getType() const {
@@ -139,8 +153,8 @@ private:
 
     std::shared_ptr<void> data;
     std::type_index       type = typeid(void);
-    VFunc                 cloner;
-    VFunc                 copyer;
+    VFunc                 cloner = nullptr;
+    VFunc                 copyer = nullptr;
 };
 
 }  // namespace fase
