@@ -476,9 +476,10 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
     }
 
     Core core = std::move(cores.at(e_c_name));
+    Core core2 = core;
 
-    return ExportedPipe{Core{core},
-                        [default_core = std::move(core)](Core* pcore) {
+    return ExportedPipe{std::move(core),
+                        [default_core = std::move(core2)](Core* pcore) {
                             *pcore = default_core;
                         }};
 }
