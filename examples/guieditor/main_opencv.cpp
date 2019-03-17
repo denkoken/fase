@@ -1,5 +1,6 @@
-#include <fase/editor.h>
-#include <fase/fase.h>
+
+#include <fase2/fase.h>
+#include <fase2/imgui_editor/imgui_editor.h>
 
 #include "fase_gl_utils.h"
 
@@ -36,15 +37,17 @@ void Random(int& v, const int& min_v, const int& max_v) {
 
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::GUIEditor> app;
+    fase::Fase<fase::ImGuiEditor> app;
 
     // Register functions
-    FaseAddFunctionBuilder(app, LoadImage, (const std::string&, cv::Mat&),
-                           ("filename", "img"));
-    FaseAddFunctionBuilder(app, BlurImage, (const cv::Mat&, cv::Mat&, int),
-                           ("in", "out", "ksize"), cv::Mat(), cv::Mat(), 3);
-    FaseAddFunctionBuilder(app, Random, (int&, const int&, const int&),
-                           ("out", "min", "max"), 0, 0, 256);
+    FaseAddUnivFunction(LoadImage, (const std::string&, cv::Mat&),
+                        ("filename", "img"), app);
+    FaseAddUnivFunction(BlurImage, (const cv::Mat&, cv::Mat&, int),
+                        ("in", "out", "ksize"), app, "blur image",
+                        {cv::Mat(), cv::Mat(), 3});
+    FaseAddUnivFunction(Random, (int&, const int&, const int&),
+                        ("out", "min", "max"), app, "output random integer.",
+                        {0, 0, 256});
 
     //   <cv::Mat>
     std::map<std::string, std::tuple<GLuint, int, int>> tex_ids;
