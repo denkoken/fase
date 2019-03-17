@@ -389,6 +389,11 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
     if (auto raii = BeginPopupModal(label("allocate function modal"),
                                     allocate_function_f)) {
         function_combo.draw(label("func_combo"));
+        if (funcs.count(function_combo.text())) {
+            ImGui::Separator();
+            ImGui::Text("%s", funcs[function_combo.text()].description.c_str());
+            ImGui::Separator();
+        }
         if (ImGui::Button(label("OK"))) {
             issues->emplace_back([p_name = pipe_name,
                                   f_name = function_combo.text(),
@@ -486,6 +491,7 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     if (auto raii = BeginPopupModal(label("easy node generater"),
                                     GetIsKeyDown('e', true), false)) {
         auto count = 0;
+        std::string hovered_f_name;
         ImGui::BeginGroup();
         for (auto& [f_name, f_utils] : funcs) {
             if (f_name.empty() || IsSpecialFuncName(f_name)) {
@@ -501,6 +507,9 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
                 });
             }
             count++;
+            if (ImGui::IsItemHovered()) {
+                hovered_f_name = f_name;
+            }
         }
         ImGui::EndGroup();
         ImGui::SameLine();
@@ -511,6 +520,10 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
         ImGui::EndGroup();
         if (!GetIsKeyDown('e', true)) {
             ImGui::CloseCurrentPopup();
+        }
+        if (!hovered_f_name.empty()) {
+            ImGui::Separator();
+            ImGui::Text("%s", funcs[hovered].description.c_str());
         }
     }
 }
