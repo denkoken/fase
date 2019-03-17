@@ -63,18 +63,16 @@ constexpr auto FromTuple(std::tuple<Types...>) {
 }
 
 template <typename... TypeSequences>
-constexpr auto joint() {
+constexpr auto joint0() {
+    if constexpr (sizeof...(TypeSequences) == 0) {
+        return TypeSequence<>();
+    }
     return FromTuple(std::tuple_cat(typename TypeSequences::tuple{}...));
 }
 
 template <typename... TypeSequences>
 constexpr auto joint(TypeSequences...) {
-    return joint<TypeSequences...>();
-}
-
-template <>
-constexpr auto joint<>() {
-    return TypeSequence<>();
+    return joint0<TypeSequences...>();
 }
 
 // constexpr Array
