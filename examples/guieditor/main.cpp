@@ -163,7 +163,9 @@ void VecAdd(const std::vector<double>& a,
 int main() {
     // clang-format on
     // Create Fase instance with GUI editor
-    fase::Fase<fase::ImGuiEditor, fase::HardCallableParts<int>> app;
+    fase::Fase<fase::ImGuiEditor, fase::HardCallableParts<int>,
+               fase::ExportableParts>
+            app;
 
     // Register functions
     FaseAddUnivFunction(Add, (const int&, const int&, int&),
@@ -197,6 +199,56 @@ int main() {
                          "Change a background color at random.\n"
                          "The mood will change too.");
 
+    app.addOptinalButton(
+            "Export pipe test",
+            [&] {
+                try {
+                    auto exported = app.exportPipe();
+                    std::vector<fase::Variable> vs(3, std::make_unique<int>());
+                    *vs[0].getWriter<int>() = 2;
+                    *vs[1].getWriter<int>() = 6;
+                    if (!exported(vs)) {
+                        throw std::runtime_error("invalid input/output form!");
+                    }
+                    std::cout << "1st result : " << *vs[2].getReader<int>()
+                              << std::endl;
+                    exported(vs);
+                    std::cout << "2nd result : " << *vs[2].getReader<int>()
+                              << std::endl;
+                    exported(vs);
+                    std::cout << "3rd result : " << *vs[2].getReader<int>()
+                              << std::endl;
+                    exported(vs);
+                } catch (std::exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
+            },
+            "Export fucused pipeline as int(int, int), \n"
+            "and call exported(2, 6) three times.");
+
+    app.addOptinalButton(
+            "Export pipe test (Hard Wraped)",
+            [&] {
+                try {
+                    auto exported = fase::ToHard<int>::Pipe<int, int>::Gen(
+                            app.exportPipe());
+                    auto [res1] = exported(2, 6);
+                    std::cout << "1st result : " << res1 << std::endl;
+                    auto [res2] = exported(2, 6);
+                    std::cout << "2nd result : " << res2 << std::endl;
+                    auto [res3] = exported(2, 6);
+                    std::cout << "3rd result : " << res3 << std::endl;
+                    exported.reset();
+                    auto [res4] = exported(2, 6);
+                    std::cout << "4th result : " << res4 << std::endl;
+                } catch (std::exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
+            },
+            "Export fucused pipeline as int(int, int), \n"
+            "and call exported(2, 6) three times,\n"
+            "and reset, and call one more");
+
     // add serializer/deserializer
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },
@@ -220,10 +272,10 @@ int main() {
         std::cout << dst << std::endl;
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
-        std::cout
-                << " : It almost print \"HardCallableParts : input/output type "
-                   "isn't match!\"."
-                << std::endl;
+        std::cout << " : It almost print \"HardCallableParts : "
+                     "input/output type "
+                     "isn't match!\"."
+                  << std::endl;
     }
 
     return 0;
