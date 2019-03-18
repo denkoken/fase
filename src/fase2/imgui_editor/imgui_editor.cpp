@@ -76,6 +76,8 @@ private:
     // for store native code
     std::string native_code;
 
+    Combo focused_pipeline_names_combo;
+
     // Pipeline Edit Window
     map<string, EditWindow> edit_windows;
 
@@ -171,6 +173,16 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
                             label("code"), &native_code[0], native_code.size(),
                             ImVec2(800, 600), ImGuiInputTextFlags_ReadOnly);
                 }
+                ImGui::Separator();
+            }
+
+            focused_pipeline_names_combo.set(pcm->getPipelineNames());
+            focused_pipeline_names_combo.draw(label("focused pipeline"));
+            if (auto p_name = focused_pipeline_names_combo.text();
+                !p_name.empty()) {
+                issues.emplace_back([p_name](auto pcm) {
+                    pcm->setFocusedPipeline(p_name);
+                });
             }
 
             bool load_f = ImGui::Button(label("Load Pipeline..."));
