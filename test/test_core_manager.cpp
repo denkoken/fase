@@ -61,8 +61,8 @@ TEST_CASE("Core Manager test") {
         };
         auto univ_lambda = UnivFuncGenerator<int, int&>::Gen(std::move(lambda));
 
-        std::vector<Variable> default_args = {std::make_shared<int>(3),
-                                              std::make_shared<int>()};
+        std::vector<Variable> default_args = {std::make_unique<int>(3),
+                                              std::make_unique<int>()};
 
         REQUIRE(cm.addUnivFunc(univ_lambda, "lambda", std::move(default_args),
                                {{"in", "dst"},
@@ -93,8 +93,8 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe2"].allocateFunc("lambda", "l"));
     REQUIRE(cm["Pipe2"].smartLink("One", 2, "l", 0));
 
-    Variable v = std::make_shared<int>(5);
-    Variable v_ = std::make_shared<int>(6);
+    Variable v = std::make_unique<int>(5);
+    Variable v_ = std::make_unique<int>(6);
 
     REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
     REQUIRE(cm["Pipe2"].setArgument("One", 1, v_));
@@ -114,7 +114,7 @@ TEST_CASE("Core Manager test") {
     auto univ_counter = UnivFuncGenerator<int&>::Gen(std::move(counter));
 
     REQUIRE(cm.addUnivFunc(
-            univ_counter, "counter", {std::make_shared<int>(0)},
+            univ_counter, "counter", {std::make_unique<int>(0)},
             {{"count"}, {typeid(int)}, {false}, false, "", "counter."}));
     REQUIRE(cm["Pipe1"].newNode("c"));
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
@@ -130,7 +130,7 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe1"].getNodes().at("b").args[1].getReader<int>() == 4);
 
     REQUIRE(cm["Pipe2"].smartLink("One", 1, "l", 0));
-    v = std::make_shared<int>(3);
+    v = std::make_unique<int>(3);
     REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
     REQUIRE(cm["Pipe2"].run());
 
@@ -150,8 +150,8 @@ TEST_CASE("Core Manager test") {
 
     {  // exportPipe test.
         auto exported = cm.exportPipe("Pipe1");
-        std::vector<Variable> vs = {std::make_shared<int>(3),
-                                    std::make_shared<int>()};
+        std::vector<Variable> vs = {std::make_unique<int>(3),
+                                    std::make_unique<int>()};
         exported(vs);
         REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
         exported(vs);
@@ -174,8 +174,8 @@ TEST_CASE("Core Manager test") {
         REQUIRE(cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
         REQUIRE(cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
         auto exported = cm.exportPipe("Pipe2");
-        std::vector<Variable> vs = {std::make_shared<int>(1),
-                                    std::make_shared<int>()};
+        std::vector<Variable> vs = {std::make_unique<int>(1),
+                                    std::make_unique<int>()};
         exported(vs);
         REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
         exported(vs);

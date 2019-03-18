@@ -80,7 +80,7 @@ void AddListViewer(std::map<std::type_index, VarEditorWraped>& var_editors) {
         for (auto& v : *a.getReader<List>()) {
             v_editor((std::string("[") + std::to_string(i) + "]" + label)
                              .c_str(),
-                     std::make_shared<V_Type>(v));
+                     std::make_unique<V_Type>(v));
             i++;
         }
         ImGui::EndGroup();
@@ -93,7 +93,7 @@ void EditorMaker_(std::map<std::type_index, VarEditorWraped>& var_editors) {
     var_editors[typeid(T)] = [](const char* label, const Variable& a) {
         T copy = *a.getReader<T>();
         if (ImGuiInputValue(label, &copy)) {
-            return Variable(std::make_shared<T>(std::move(copy)));
+            return Variable(std::make_unique<T>(std::move(copy)));
         }
         return Variable();
     };

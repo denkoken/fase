@@ -107,7 +107,7 @@ std::vector<Variable> GetDefaultValueVariables() {
     if constexpr (sizeof...(Args) == 0) {
         return {};
     } else {
-        return {std::make_shared<std::decay_t<Args>>()...};
+        return {std::make_unique<std::decay_t<Args>>()...};
     }
 }
 
@@ -270,7 +270,7 @@ struct AddingUnivFuncHelper<void(Args...)> {
     static std::vector<Variable> toVariables(
             std::tuple<std::decay_t<Args>...>&& a,
             std::index_sequence<Seq...>) {
-        return {std::make_shared<std::decay_t<Args>>(
+        return {std::make_unique<std::decay_t<Args>>(
                 std::move(std::get<Seq>(a)))...};
     }
 };

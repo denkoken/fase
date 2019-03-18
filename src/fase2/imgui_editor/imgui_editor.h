@@ -85,7 +85,7 @@ template <typename T>
 bool ImGuiEditor::addVarEditor(VarEditor<T>&& var_editor) {
     return addVarEditor(
             typeid(T), [var_editor](auto c, const Variable& var) -> Variable {
-                return std::shared_ptr<T>(var_editor(c, *var.getReader<T>()));
+                return var_editor(c, *var.getReader<T>());
             });
 }
 

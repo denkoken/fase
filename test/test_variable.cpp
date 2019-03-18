@@ -112,6 +112,40 @@ TEST_CASE("Variable test") {
         REQUIRE(b.getReader<TestClass>()->isCopied());
     }
 
+    SECTION("Empry Ref : Asign") {
+        Variable a(typeid(TestClass));
+        Variable b = a.ref();
+        Variable c;
+        c.create<TestClass>();
+        c.getWriter<TestClass>()->clear();
+        b = c;
+        REQUIRE(a.getReader<TestClass>()->isCopied());
+        REQUIRE(b.getReader<TestClass>()->isCopied());
+        REQUIRE(c.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("Empry Ref : Copy") {
+        Variable a(typeid(TestClass));
+        Variable b = a.ref();
+        Variable c;
+        c.create<TestClass>();
+        c.getWriter<TestClass>()->clear();
+        c.copyTo(b);
+        REQUIRE(a.getReader<TestClass>()->isCopied());
+        REQUIRE(b.getReader<TestClass>()->isCopied());
+        REQUIRE(c.getReader<TestClass>()->isNone());
+    }
+
+    SECTION("void Type Empry Ref") {
+        Variable a;
+        Variable b = a.ref();
+        Variable c;
+        c.create<TestClass>();
+        c.copyTo(b);
+        REQUIRE(!a);
+        REQUIRE(!b);
+    }
+
     SECTION("WrongTypeCast") {
         Variable test_class;
         test_class.create<TestClass>();

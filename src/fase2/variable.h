@@ -13,42 +13,42 @@ namespace fase {
 
 class Variable {
 public:
-    Variable() : cloner([](auto&, auto&) {}), copyer([](auto&, auto&) {}) {}
+    Variable() : member(std::make_shared<Substance>()) {}
 
     template <typename T>
-    Variable(std::shared_ptr<T>&& p) {
-        set(std::move(p));
+    Variable(std::unique_ptr<T>&& p) : member(std::make_shared<Substance>()) {
+        set<T>(std::move(p));
     }
 
-    Variable(const std::type_index& type_) : type(type_) {}
+    Variable(const std::type_index& type)
+        : member(std::make_shared<Substance>()) {
+        member->type = type;
+        member->copyer = [](Variable& d, const Variable& s) {
+            if (d.getType() == s.getType()) {
+                s.member->cloner(d, s);
+            }
+        };
+    }
 
     Variable(Variable&&) = default;
     Variable& operator=(Variable&&) = default;
 
     Variable& operator=(Variable& v) {
-        if (v.cloner != nullptr) {
-            v.cloner(*this, v);
-        }
+        v.member->cloner(*this, v);
         return *this;
     }
 
-    Variable(const Variable& v) {
-        if (v.cloner != nullptr) {
-            v.cloner(*this, v);
-        }
+    Variable(const Variable& v) : member(std::make_shared<Substance>()) {
+        v.member->cloner(*this, v);
     }
 
     Variable& operator=(const Variable& v) {
-        if (v.cloner != nullptr) {
-            v.cloner(*this, v);
-        }
+        v.member->cloner(*this, v);
         return *this;
     }
 
-    Variable(Variable& v) {
-        if (v.cloner != nullptr) {
-            v.cloner(*this, v);
-        }
+    Variable(Variable& v) : member(std::make_shared<Substance>()) {
+        v.member->cloner(*this, v);
     }
 
     ~Variable() = default;
@@ -60,49 +60,47 @@ public:
 
     template <typename T>
     void set(std::shared_ptr<T>&& v) {
-        data = std::move(v);
-        type = typeid(T);
-        cloner = [](Variable& d, const Variable& s) {
+        member->data = std::move(v);
+        member->type = typeid(T);
+        member->cloner = [](Variable& d, const Variable& s) {
             d.create<T>(*s.getReader<T>());
         };
-        copyer = [](Variable& d, const Variable& s) {
+        member->copyer = [](Variable& d, const Variable& s) {
             *d.getWriter<T>() = *s.getReader<T>();
         };
     }
 
     template <typename T>
     bool isSameType() const {
-        return type == typeid(T);
+        return member->type == typeid(T);
     }
 
     bool isSameType(const Variable& v) const {
-        return type == v.type;
+        return member->type == v.member->type;
     }
 
     template <typename T>
     std::shared_ptr<T> getWriter() {
         if (!isSameType<T>()) {
-            throw(WrongTypeCast(typeid(T), type));
+            throw(WrongTypeCast(typeid(T), member->type));
         } else if (!*this) {
             throw(TryToGetEmptyVariable{});
         }
-        return std::static_pointer_cast<T>(data);
+        return std::static_pointer_cast<T>(member->data);
     }
 
     template <typename T>
     std::shared_ptr<const T> getReader() const {
         if (!isSameType<T>() || !*this) {
-            throw(WrongTypeCast(typeid(T), type));
+            throw(WrongTypeCast(typeid(T), member->type));
         } else if (!*this) {
             throw(TryToGetEmptyVariable{});
         }
-        return std::static_pointer_cast<const T>(data);
+        return std::static_pointer_cast<const T>(member->data);
     }
 
     void copyTo(Variable& v) const {
-        if (v.copyer != nullptr) {
-            copyer(v, *this);
-        }
+        v.member->copyer(v, *this);
     }
 
     Variable clone() const {
@@ -110,29 +108,29 @@ public:
     }
 
     Variable ref() {
-        Variable v;
-        v.data = data;
-        v.type = type;
-        v.cloner = cloner;
-        v.copyer = copyer;
-        return v;
+        return Variable(member);
     }
 
     explicit operator bool() const noexcept {
-        return bool(data);
+        return bool(member->data);
     }
 
     const std::type_index& getType() const {
-        return type;
+        return member->type;
     }
 
 private:
     using VFunc = void (*)(Variable&, const Variable&);
+    struct Substance {
+        std::shared_ptr<void> data;
+        std::type_index       type = typeid(void);
+        VFunc                 cloner = [](auto&, auto&) {};
+        VFunc                 copyer = [](auto&, auto&) {};
+    };
 
-    std::shared_ptr<void> data;
-    std::type_index       type = typeid(void);
-    VFunc                 cloner = nullptr;
-    VFunc                 copyer = nullptr;
+    explicit Variable(std::shared_ptr<Substance>& m) : member(m) {}
+
+    std::shared_ptr<Substance> member;
 };
 
 }  // namespace fase

@@ -413,13 +413,13 @@ inline bool Delete(char* ch_a) {
 
 template <typename Type, typename... Args>
 inline void CBracketMake(Variable* v, Args... args) {
-    *v = std::make_shared<std::decay_t<Type>>(std::decay_t<Type>(args...));
+    *v = std::make_unique<std::decay_t<Type>>(std::decay_t<Type>(args...));
     std::vector<bool> dummy = {Delete(args)...};
 }
 
 template <typename Type, typename... Args>
 inline void BraceMake(Variable* v, Args... args) {
-    *v = std::make_shared<std::decay_t<Type>>(std::decay_t<Type>{args...});
+    *v = std::make_unique<std::decay_t<Type>>(std::decay_t<Type>{args...});
     std::vector<bool> dummy = {Delete(args)...};
 }
 
