@@ -1,6 +1,7 @@
 
 #include <fase2/fase.h>
 #include <fase2/imgui_editor/imgui_editor.h>
+#include <fase2/stdparts.h>
 
 #include <random>
 #include <stdexcept>
@@ -162,7 +163,7 @@ void VecAdd(const std::vector<double>& a,
 int main() {
     // clang-format on
     // Create Fase instance with GUI editor
-    fase::Fase<fase::ImGuiEditor> app;
+    fase::Fase<fase::ImGuiEditor, fase::HardCallableParts<int>> app;
 
     // Register functions
     FaseAddUnivFunction(Add, (const int&, const int&, int&),
@@ -213,6 +214,17 @@ int main() {
 
     // Start main loop
     RunRenderingLoop(window, app, bg_col);
+
+    try {
+        auto [dst] = app.callHard(3, 4);
+        std::cout << dst << std::endl;
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+        std::cout
+                << " : It almost print \"HardCallableParts : input/output type "
+                   "isn't match!\"."
+                << std::endl;
+    }
 
     return 0;
 }
