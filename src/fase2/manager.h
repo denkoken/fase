@@ -51,6 +51,9 @@ public:
     PipelineAPI&       operator[](const std::string& name);
     const PipelineAPI& operator[](const std::string& name) const;
 
+    void        setFocusedPipeline(const std::string& pipeline_name);
+    std::string getFocusedPipeline() const;
+
     ExportedPipe exportPipe(const std::string& name) const;
 
     std::vector<std::string>             getPipelineNames() const;

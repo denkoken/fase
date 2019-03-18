@@ -156,6 +156,13 @@ public:
     PipelineAPI& operator[](const string& c_name);
     const PipelineAPI& operator[](const string& c_name) const;
 
+    void setFocusedPipeline(const std::string& p_name) {
+        focused_pipeline_name = p_name;
+    }
+    std::string getFocusedPipeline() const {
+        return focused_pipeline_name;
+    }
+
     ExportedPipe exportPipe(const std::string& name) const;
 
     vector<string> getPipelineNames() const;
@@ -171,6 +178,8 @@ private:
     map<string, Function> functions;
 
     DependenceTree dependence_tree;
+
+    string focused_pipeline_name;
 
     FaildDummy dum;
 
@@ -537,6 +546,13 @@ PipelineAPI& CoreManager::operator[](const string& c_name) {
 }
 const PipelineAPI& CoreManager::operator[](const string& c_name) const {
     return std::as_const(*pimpl)[c_name];
+}
+
+void CoreManager::setFocusedPipeline(const string& p_name) {
+    return pimpl->setFocusedPipeline(p_name);
+}
+string CoreManager::getFocusedPipeline() const {
+    return pimpl->getFocusedPipeline();
 }
 
 ExportedPipe CoreManager::exportPipe(const std::string& name) const {
