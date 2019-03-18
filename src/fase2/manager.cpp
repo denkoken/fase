@@ -99,6 +99,10 @@ class FaildDummy : public PipelineAPI {
         return false;
     }
 
+    bool call(vector<Variable>&) override {
+        return false;
+    }
+
     bool run(Report* = nullptr) override {
         return false;
     }
@@ -285,6 +289,7 @@ public:
         return false;
     }
 
+    bool call(vector<Variable>& args) override;
     bool run(Report* preport = nullptr) override;
 
     const map<string, Node>& getNodes() const noexcept override {
@@ -338,6 +343,25 @@ bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
         return core.linkNode(src_node, src_arg, dst_node, dst_arg);
     }
     return false;
+}
+
+bool CoreManager::Impl::WrapedCore::call(vector<Variable>& args) {
+    if (args.size() != inputs.size() + outputs.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < inputs.size(); i++) {
+        if (args[i].getType() != inputs[i].getType()) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < outputs.size(); i++) {
+        if (args[i + inputs.size()].getType() != outputs[i].getType()) {
+            return false;
+        }
+    }
+
+    CallCore(&core, myname(), args, nullptr);
+    return true;
 }
 
 bool CoreManager::Impl::WrapedCore::run(Report* preport) {

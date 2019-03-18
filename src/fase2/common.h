@@ -48,7 +48,7 @@ struct FunctionUtils {
     std::vector<bool>            is_input_args;
     bool                         pure;
     std::string                  arg_types_repr;
-    std::string                  description;
+    std::string                  description = "no discription";
 };
 
 class Core;
@@ -79,6 +79,8 @@ public:
 
     virtual bool supposeInput(const std::vector<std::string>& arg_names) = 0;
     virtual bool supposeOutput(const std::vector<std::string>& arg_names) = 0;
+
+    virtual bool call(std::vector<Variable>& args) = 0;
 
     virtual bool run(Report* preport = nullptr) = 0;
 
