@@ -523,7 +523,7 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
         }
         if (!hovered_f_name.empty()) {
             ImGui::Separator();
-            ImGui::Text("%s", funcs[hovered].description.c_str());
+            ImGui::Text("%s", funcs[hovered_f_name].description.c_str());
         }
     }
 }
