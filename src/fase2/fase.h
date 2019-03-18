@@ -60,15 +60,15 @@ public:
                         std::function<std::string(const T&)>&& def_maker);
 
 private:
-    std::shared_ptr<CoreManager> pcm;
-    std::shared_timed_mutex      cm_mutex;
+    std::shared_ptr<CoreManager>    pcm;
+    mutable std::shared_timed_mutex cm_mutex;
 
     TSCMap converter_map;
 
     std::tuple<std::shared_lock<std::shared_timed_mutex>,
                std::shared_ptr<const CoreManager>>
     getReader(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) override;
+                      std::chrono::nanoseconds{-1}) const override;
     std::tuple<std::unique_lock<std::shared_timed_mutex>,
                std::shared_ptr<CoreManager>>
     getWriter(const std::chrono::nanoseconds& wait_time =
@@ -205,7 +205,7 @@ inline bool Fase<Parts...>::registerTextIO(
 template <class... Parts>
 inline std::tuple<std::shared_lock<std::shared_timed_mutex>,
                   std::shared_ptr<const CoreManager>>
-Fase<Parts...>::getReader(const std::chrono::nanoseconds& wait_time) {
+Fase<Parts...>::getReader(const std::chrono::nanoseconds& wait_time) const {
     std::shared_lock<std::shared_timed_mutex> lock(cm_mutex, wait_time);
     if (lock)
         return {std::move(lock),

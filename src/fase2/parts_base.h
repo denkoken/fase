@@ -17,7 +17,7 @@ protected:
     virtual std::tuple<std::shared_lock<std::shared_timed_mutex>,
                        std::shared_ptr<const CoreManager>>
     getReader(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) = 0;
+                      std::chrono::nanoseconds{-1}) const = 0;
     virtual std::tuple<std::unique_lock<std::shared_timed_mutex>,
                        std::shared_ptr<CoreManager>>
     getWriter(const std::chrono::nanoseconds& wait_time =
