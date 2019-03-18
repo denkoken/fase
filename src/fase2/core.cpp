@@ -25,11 +25,11 @@ bool WrapError(const std::string& n_name, Task&& task) {
     try {
         task();
     } catch (WrongTypeCast&) {
-        std::cerr << "Core::run() : something went wrong at " << n_name
+        std::cerr << "Core::run() : something went wrong (type) at " << n_name
                   << ". fix bug of Fase." << std::endl;
         return false;
     } catch (TryToGetEmptyVariable&) {
-        std::cerr << "Core::run() : something went wrong at " << n_name
+        std::cerr << "Core::run() : something went wrong (empty) at " << n_name
                   << ". fix bug of Fase." << std::endl;
         return false;
     } catch (ErrorThrownByNode& e) {
