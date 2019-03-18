@@ -121,7 +121,7 @@ inline bool CheckRepetition(HeadContainer&& head, TailContainers&&... tail) {
 class DependenceTree {
 public:
     bool add(const std::string& depending, const std::string& depended) {
-        if (checkLoop(depended, depending)) {
+        if (depending == depended || checkLoop(depended, depending)) {
             return false;
         }
         trees[depending][depended]++;

@@ -233,6 +233,9 @@ public:
     }
 
     bool allocateFunc(const string& f_name, const string& n_name) override {
+        if (!core.getNodes().count(n_name)) {
+            return false;
+        }
         auto& d_tree = cm_ref.get().dependence_tree;
         if (cm_ref.get().wrapeds.count(core.getNodes().at(n_name).func_name)) {
             d_tree.del(myname(), core.getNodes().at(n_name).func_name);
@@ -472,8 +475,18 @@ const PipelineAPI& CoreManager::Impl::operator[](const string& c_name) const {
     return wrapeds.at(c_name);
 }
 
-void ExportedPipe::operator()(std::vector<Variable>& vs) {
+bool ExportedPipe::operator()(std::vector<Variable>& vs) {
+    if (vs.size() != types.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < vs.size(); i++) {
+        if (vs[i].getType() != types[i]) {
+            return false;
+        }
+    }
+
     CallCore(&core, "ExportedPipe", vs, nullptr);
+    return true;
 }
 
 ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
@@ -507,6 +520,13 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
             }
         }
     }
+    vector<std::type_index> types;
+    for (auto& v : wrapeds.at(e_c_name).inputs) {
+        types.emplace_back(v.getType());
+    }
+    for (auto& v : wrapeds.at(e_c_name).outputs) {
+        types.emplace_back(v.getType());
+    }
 
     Core core = std::move(cores.at(e_c_name));
     Core core2 = core;
@@ -514,7 +534,8 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
     return ExportedPipe{std::move(core),
                         [default_core = std::move(core2)](Core* pcore) {
                             *pcore = default_core;
-                        }};
+                        },
+                        std::move(types)};
 }
 
 vector<string> CoreManager::Impl::getPipelineNames() const {
@@ -548,7 +569,9 @@ map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
                             ""};
 
     for (auto& [f_name, func] : functions) {
-        dst[f_name] = func.utils;
+        if (f_name != p_name) {
+            dst[f_name] = func.utils;
+        }
     }
     return dst;
 }

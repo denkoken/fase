@@ -18,17 +18,21 @@ class CoreManager;
 
 class ExportedPipe {
 public:
-    ExportedPipe(Core&& core_, std::function<void(Core*)>&& reseter_)
-        : core(std::move(core_)), reseter(std::move(reseter_)) {}
+    ExportedPipe(Core&& core_, std::function<void(Core*)>&& reseter_,
+                 std::vector<std::type_index>&& types_)
+        : core(std::move(core_)),
+          reseter(std::move(reseter_)),
+          types(std::move(types_)) {}
 
-    void operator()(std::vector<Variable>& vs);
+    bool operator()(std::vector<Variable>& vs);
     void reset() {
         reseter(&core);
     }
 
 private:
-    Core                       core;
-    std::function<void(Core*)> reseter;
+    Core                         core;
+    std::function<void(Core*)>   reseter;
+    std::vector<std::type_index> types;
 };
 
 class CoreManager {
