@@ -16,6 +16,52 @@ public:
     }
 };
 
+template <typename... RetTypes>
+class ToHard {
+public:
+    template <typename... Args>
+    class Pipe {
+    public:
+        template <class Exported>
+        static auto Gen(Exported&& exported) {
+            class Dst {
+            public:
+                std::tuple<RetTypes...> operator()(Args... args) {
+                    std::vector<Variable> arg_vs = {
+                            std::make_unique<std::decay_t<Args>>(
+                                    std::forward<Args>(args))...};
+                    [[maybe_unused]] auto _ = {
+                            arg_vs.emplace_back(typeid(RetTypes))...};
+                    if (!soft(arg_vs)) {
+                        throw std::runtime_error(
+                                "HardExportPipe : input/output type isn't "
+                                "match!");
+                    }
+                    std::vector<Variable*> ret_ps;
+                    for (std::size_t i = arg_vs.size() - sizeof...(RetTypes);
+                         i < arg_vs.size(); i++) {
+                        ret_ps.emplace_back(&arg_vs[i]);
+                    }
+                    return Wrap(ret_ps, std::index_sequence_for<RetTypes...>());
+                }
+                void reset() {
+                    soft.reset();
+                }
+                std::decay_t<Exported> soft;
+            };
+            return Dst{std::forward<Exported>(exported)};
+        }
+    };
+
+private:
+    template <std::size_t... Seq>
+    static std::tuple<RetTypes...> Wrap(std::vector<Variable*>& ret_ps,
+                                        std::index_sequence<Seq...>) {
+        return std::make_tuple(
+                std::move(*ret_ps[Seq]->getWriter<RetTypes>())...);
+    }
+};
+
 class CallableParts : public PartsBase {
 public:
     bool call(std::vector<Variable>& args) {
@@ -29,36 +75,21 @@ public:
     }
 };
 
-template <typename... ReturmTypes>
+template <typename... ReturnTypes>
 class HardCallableParts : public PartsBase {
 public:
     template <typename... Args>
-    std::tuple<ReturmTypes...> callHard(Args&&... args) {
-        std::vector<Variable> arg_vs = {std::make_unique<std::decay_t<Args>>(
-                std::forward<Args>(args))...};
-        [[maybe_unused]] auto _ = {arg_vs.emplace_back(typeid(ReturmTypes))...};
-
-        {
-            auto [guard, pcm] = getWriter();
-            if (!(*pcm)[pcm->getFocusedPipeline()].call(arg_vs)) {
-                throw std::runtime_error(
-                        "HardCallableParts : input/output type isn't match!");
+    std::tuple<ReturnTypes...> callHard(Args&&... args) {
+        struct Dum {
+            HardCallableParts<ReturnTypes...>* that;
+            void                               reset() {}
+            bool operator()(std::vector<Variable>& vs) {
+                auto [guard, pcm] = that->getWriter();
+                return (*pcm)[pcm->getFocusedPipeline()].call(vs);
             }
-        }
-        std::vector<Variable*> ret_ps;
-        for (std::size_t i = arg_vs.size() - sizeof...(ReturmTypes);
-             i < arg_vs.size(); i++) {
-            ret_ps.emplace_back(&arg_vs[i]);
-        }
-        return wrap(ret_ps, std::index_sequence_for<ReturmTypes...>());
-    }
-
-private:
-    template <std::size_t... Seq>
-    std::tuple<ReturmTypes...> wrap(std::vector<Variable*>& ret_ps,
-                                    std::index_sequence<Seq...>) {
-        return std::make_tuple(
-                std::move(*ret_ps[Seq]->getWriter<ReturmTypes>())...);
+        };
+        return ToHard<ReturnTypes...>::template Pipe<Args...>::Gen(Dum{this})(
+                std::forward<Args>(args)...);
     }
 };
 

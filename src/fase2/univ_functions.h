@@ -62,15 +62,6 @@ private:
     }
 };
 
-template <typename Callable, typename... Args>
-class HardFunc : public Callable {
-    void operator()(Args&&... args) {
-        std::vector<Variable> vs = {
-                std::shared_ptr<Args>(std::forward<Args>(args))...};
-        this->operator()(vs);
-    }
-};
-
 }  // namespace fase
 
 #endif  // UNIV_FUNCTIONS_H_20190219
