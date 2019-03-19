@@ -119,7 +119,7 @@ TEST_CASE("Variable test") {
         c.create<TestClass>();
         c.getWriter<TestClass>()->clear();
         b = c;
-        REQUIRE(a.getReader<TestClass>()->isCopied());
+        REQUIRE(!a);
         REQUIRE(b.getReader<TestClass>()->isCopied());
         REQUIRE(c.getReader<TestClass>()->isNone());
     }

@@ -26,6 +26,8 @@ public:
         member->copyer = [](Variable& d, const Variable& s) {
             if (d.getType() == s.getType()) {
                 s.member->cloner(d, s);
+            } else {
+                throw(WrongTypeCast(d.member->type, s.member->type));
             }
         };
     }
@@ -34,6 +36,7 @@ public:
     Variable& operator=(Variable&&) = default;
 
     Variable& operator=(Variable& v) {
+        member = std::make_shared<Substance>();
         v.member->cloner(*this, v);
         return *this;
     }
@@ -43,6 +46,7 @@ public:
     }
 
     Variable& operator=(const Variable& v) {
+        member = std::make_shared<Substance>();
         v.member->cloner(*this, v);
         return *this;
     }
@@ -91,7 +95,7 @@ public:
 
     template <typename T>
     std::shared_ptr<const T> getReader() const {
-        if (!isSameType<T>() || !*this) {
+        if (!isSameType<T>()) {
             throw(WrongTypeCast(typeid(T), member->type));
         } else if (!*this) {
             throw(TryToGetEmptyVariable{});
