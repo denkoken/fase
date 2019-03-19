@@ -25,10 +25,16 @@ Extensionとして選べるものは`fase::PartsBase`クラスを継承したク
 
 ### a. 動的に登録する方法
 
-動的に関数を登録するには`FaseAddFunctionBuilder`マクロを使います.  
+動的に関数を登録するには`FaseAddUnivFunction`マクロを使います.  
 
 ```cpp
-FaseAddFunctionBuilder([faseのインスタンス], [関数名], ([型1, 型2, ...]), ("[引数名1]", "[引数名1]", ...));
+FaseAddUnivFunction([関数名], ([型1, 型2, ...]), ("[引数名1]", "[引数名2]", ...),
+                    [faseのインスタンス]);
+FaseAddUnivFunction([関数名], ([型1, 型2, ...]), ("[引数名1]", "[引数名2]", ...),
+                    [faseのインスタンス], "[関数の説明]");
+FaseAddUnivFunction([関数名], ([型1, 型2, ...]), ("[引数名1]", "[引数名2]", ...)
+                    [faseのインスタンス], "[関数の説明]",
+                    {[デフォルト引数1], [デフォルト引数2], ...});
 ```
 
 #### 例)
@@ -46,23 +52,28 @@ void g(const float& a, std::string b, int& dst) {
 fase::Fase< ... > app;
 
 // 関数fの登録
-FaseAddFunctionBuilder(app, f, (int), ("i"));
+FaseAddUnivFunction(app, f, (int), ("i"));
 // 関数gの登録
-FaseAddFunctionBuilder(app, g, (const float&, std::string, int&),
-                       ("a", "b", "dst"));
+FaseAddUnivFunction(app, g, (const float&, std::string, int&),
+                    ("a", "b", "dst"));
+
+// 関数gの登録 (説明付き)
+FaseAddUnivFunction(app, g, (const float&, std::string, int&),
+                    ("a", "b", "dst"), "do something like g.");
+
+// 関数gの登録 (説明, デフォルト引数付き)
+FaseAddUnivFunction(app, g, (const float&, std::string, int&),
+                    ("a", "b", "dst"), "do something like g.",
+                    {0, "default"s, 0);
 ```
 
 ### b. 静的に登録する方法
 
-静的に関数を登録するには`FaseAutoAddingFunctionBuilder`マクロを使います.  
-`FaseAutoAddingFunctionBuilder`マクロは関数の宣言時に使用します.  
-
-これを使う場合にはc++17でコンパイルする必要があります.  
-又, `fase.h`をインクルードする前に`FASE_USE_ADD_FUNCTION_BUILDER_MACRO`を
-定義する必要があります.  
+静的に関数を登録するには`FaseAutoAddingUnivFunction`マクロを使います.  
+`FaseAutoAddingUnivFunction`マクロは関数の宣言時に使用します.  
 
 ```cpp
-FaseAutoAddingFunctionBuilder([関数名],
+FaseAutoAddingUnivFunction([関数名],
 [関数の宣言(および定義)]
 )
 ```
@@ -74,13 +85,13 @@ FaseAutoAddingFunctionBuilder([関数名],
 #define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
 #include "fase.h"
 
-FaseAutoAddingFunctionBuilder(f,
+FaseAutoAddingUnivFunction(f,
 void f(int i) {
     ...
 }
 )
 
-FaseAutoAddingFunctionBuilder(g,
+FaseAutoAddingUnivFunction(g,
 void g(const float& a, std::string b, int& dst) {
     ...
 }
@@ -99,8 +110,8 @@ fase::Fase< ... > app;
 
 [FaseParts](@ref FaseParts)グループの各クラスを見ましょう.  
 
-ここでは例として, `GUIEditor`をあげると  
-ImGuiを使ったレンダリングループの中で`GUIEditor::runEditting`を呼び出すことで,
+ここでは例として, `ImGuiEditor`をあげると  
+ImGuiを使ったレンダリングループの中で`ImGuiEditor::runEditting`を呼び出すことで,
 ImGuiによるグラフィカルなパイプラインエディターを扱えます.  
 
 具体的な例は`example/guieditor`に書いてありますので, 見てください.  
