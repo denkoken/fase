@@ -40,7 +40,7 @@ class CallableParts : public PartsBase {
 public:
     inline bool call(std::vector<Variable>& args);
 
-    inline bool call(const std::string& pipeline_name,
+    inline bool call(const std::string&     pipeline_name,
                      std::vector<Variable>& args);
 };
 
@@ -69,7 +69,7 @@ inline bool CallableParts::call(std::vector<Variable>& args) {
     return (*pcm)[pcm->getFocusedPipeline()].call(args);
 }
 
-inline bool CallableParts::call(const std::string& pipeline_name,
+inline bool CallableParts::call(const std::string&     pipeline_name,
                                 std::vector<Variable>& args) {
     auto [guard, pcm] = getWriter();
     return (*pcm)[pipeline_name].call(args);
@@ -113,7 +113,7 @@ inline std::tuple<ReturnTypes...> HardCallableParts<ReturnTypes...>::callHard(
         Args&&... args) {
     struct Dum {
         HardCallableParts<ReturnTypes...>* that;
-        void reset() {}
+        void                               reset() {}
         bool operator()(std::vector<Variable>& vs) {
             auto [guard, pcm] = that->getWriter();
             return (*pcm)[pcm->getFocusedPipeline()].call(vs);
