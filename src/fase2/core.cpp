@@ -141,7 +141,9 @@ private:
     vector<Variable>& defaultArgs(const std::string& n_name) {
         return funcs[nodes[n_name].func_name].default_args;
     }
+    void unlinkSrc(const string& src_n_name, std::size_t src_arg);
     void unlinkAll(const string& n_name);
+    void sortLink(const vector<vector<string>>& order);
 };
 
 // ============================= Member Functions ==============================
@@ -159,16 +161,53 @@ Core::Impl::Impl() {
                                {},
                                std::numeric_limits<int>::min()};
 }
+void Core::Impl::unlinkSrc(const string& src_n_name, std::size_t src_arg) {
+    for (auto& link : links) {
+        if (link.src_node == src_n_name && link.src_arg == src_arg) {
+            unlinkNode(link.dst_node, link.dst_arg);
+            return unlinkSrc(src_n_name, src_arg);
+        }
+    }
+    return;
+}
 
 void Core::Impl::unlinkAll(const string& n_name) {
     for (size_t i = 0; i < nodes[n_name].args.size(); i++) {
         unlinkNode(n_name, i);
+        unlinkSrc(n_name, i);
     }
-    for (auto& link : links) {
-        if (link.src_node == n_name) {
-            unlinkNode(link.dst_node, link.dst_arg);
+}
+
+void Core::Impl::sortLink(const vector<vector<string>>& order) {
+    // sort link objects.
+    auto compare_node = [&](auto& a, auto& b) -> int {
+        if (a == b) return 0;
+        for (auto& layer : order) {
+            for (auto& n_name : layer) {
+                if (n_name == a) {
+                    return 1;
+                } else if (n_name == b) {
+                    return -1;
+                }
+            }
         }
-    }
+        return 0;
+    };
+    auto compare = [&](const Link& l1, const Link& l2) -> bool {
+        int ret = compare_node(l1.src_node, l2.src_node);
+        assert(-1);
+        if (ret) return ret > 0;
+        if (l1.src_arg != l2.src_arg) {
+            return l1.src_arg < l2.src_arg;
+        }
+        ret = compare_node(l1.dst_node, l2.dst_node);
+        if (ret) return ret > 0;
+        if (l1.dst_arg != l2.dst_arg) {
+            return l1.dst_arg < l2.dst_arg;
+        }
+        assert(false);
+    };
+    std::sort(links.begin(), links.end(), compare);
 }
 
 bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
@@ -285,16 +324,34 @@ bool Core::Impl::unlinkNode(const std::string& dst_n_name,
 }
 
 bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
+    auto link_bufs = get_all_if(links, [n = InputNodeName()](auto& l) {
+        return l.src_node == n || l.dst_node == n;
+    });
+    unlinkAll(InputNodeName());
+
     RefCopy(vars, &inputs);
     nodes[InputNodeName()].args = inputs;
     defaultArgs(InputNodeName()) = vars;
+
+    for (auto& s : link_bufs) {
+        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+    }
     return true;
 }
 
 bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
+    auto link_bufs = get_all_if(links, [n = OutputNodeName()](auto& l) {
+        return l.src_node == n || l.dst_node == n;
+    });
+    unlinkAll(OutputNodeName());
+
     RefCopy(vars, &outputs);
     RefCopy(vars, &nodes[OutputNodeName()].args);
     defaultArgs(OutputNodeName()) = vars;
+
+    for (auto& s : link_bufs) {
+        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+    }
     return true;
 }
 
@@ -307,20 +364,7 @@ bool Core::Impl::run(Report* preport) {
     RefCopy(inputs, &nodes[InputNodeName()].args);
     nodes[OutputNodeName()].args.resize(outputs.size());
 
-    // sort link objects.
-    auto compare = [&](Link& l1, Link& l2) -> int {
-        for (size_t i = 0; i < order.size(); i++) {
-            if (exists(l1.src_node, order[i])) {
-                return -1;
-            } else if (exists(l2.src_node, order[i])) {
-                return 1;
-            }
-        }
-        return 0;
-    };
-    std::sort(links.begin(), links.end(), compare);
-
-    // link node args.
+    sortLink(order);
     for (auto& link : links) {
         nodes[link.dst_node].args[link.dst_arg] =
                 nodes[link.src_node].args[link.src_arg].ref();
