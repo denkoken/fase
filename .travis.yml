@@ -14,6 +14,7 @@ matrix:
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-7
+            - g++-7
             - cmake
             - libx11-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libgtk2.0-dev xorg-dev
       compiler: clang++-7
