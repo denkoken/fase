@@ -308,17 +308,32 @@ bool Core::Impl::run(Report* preport) {
     nodes[InputNodeName()].args = inputs;
     nodes[OutputNodeName()].args.resize(outputs.size());
 
+    auto compare_node = [&](auto& a, auto& b) -> int {
+        if (a == b) return 0;
+        for (auto& layer : order) {
+            for (auto& n_name : layer) {
+                if (n_name == a) {
+                    return 1;
+                } else if (n_name == b) {
+                    return -1;
+                }
+            }
+        }
+        assert(false);
+    };
+
     // sort link objects.
     auto compare = [&](const Link& l1, const Link& l2) -> bool {
-        for (size_t i = 0; i < order.size(); i++) {
-            if (exists(l1.src_node, order[i])) {
-                if (exists(l2.src_node, order[i])) {
-                    return l1.src_node < l2.src_node;
-                }
-                return true;
-            } else if (exists(l2.src_node, order[i])) {
-                return false;
-            }
+        int ret = compare_node(l1.src_node, l2.src_node);
+        assert(-1);
+        if (ret) return ret > 0;
+        if (l1.src_arg != l2.src_arg) {
+            return l1.src_arg < l2.src_arg;
+        }
+        ret = compare_node(l1.dst_node, l2.dst_node);
+        if (ret) return ret > 0;
+        if (l1.dst_arg != l2.dst_arg) {
+            return l1.dst_arg < l2.dst_arg;
         }
         assert(false);
     };

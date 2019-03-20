@@ -121,9 +121,11 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe1"].supposeInput({"in1"}));
     REQUIRE(cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
     REQUIRE(cm["Pipe1"].smartLink("c", 0, "a", 1));
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe1"].run());
 
     REQUIRE(*cm["Pipe1"].getNodes().at("c").args[0].getReader<int>() == 0);
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe1"].run());
     REQUIRE(*cm["Pipe1"].getNodes().at("c").args[0].getReader<int>() == 1);
     REQUIRE(*cm["Pipe1"].getNodes().at("a").args[0].getReader<int>() == 1);
@@ -132,18 +134,22 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe2"].smartLink("One", 1, "l", 0));
     v = std::make_unique<int>(3);
     REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe2"].run());
 
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 2) * (3 + 2))));
 
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe2"].run());
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 0) * (3 + 0))));
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe2"].run());
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 1) * (3 + 1))));
+    std::clog << __LINE__ << std::endl;
     REQUIRE(cm["Pipe2"].run());
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 2) * (3 + 2))));
@@ -152,19 +158,29 @@ TEST_CASE("Core Manager test") {
         auto exported = cm.exportPipe("Pipe1");
         std::vector<Variable> vs = {std::make_unique<int>(3),
                                     std::make_unique<int>()};
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         REQUIRE(*vs[1].getReader<int>() == (3 + 4) * (3 + 4));
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         exported(vs);
         exported.reset();
+        std::clog << __LINE__ << std::endl;
         exported(vs);
         REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         exported(vs);
     }
 
