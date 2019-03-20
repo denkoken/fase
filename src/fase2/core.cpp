@@ -143,6 +143,7 @@ private:
         return funcs[nodes[n_name].func_name].default_args;
     }
     void unlinkAll(const string& n_name);
+    void unlinkSrc(const string& src_n_name, std::size_t src_arg);
 };
 
 // ============================= Member Functions ==============================
@@ -161,14 +162,20 @@ Core::Impl::Impl() {
                                std::numeric_limits<int>::min()};
 }
 
+void Core::Impl::unlinkSrc(const string& src_n_name, std::size_t src_arg) {
+    for (auto& link : links) {
+        if (link.src_node == src_n_name && link.src_arg == src_arg) {
+            unlinkNode(link.dst_node, link.dst_arg);
+            return unlinkSrc(src_n_name, src_arg);
+        }
+    }
+    return;
+}
+
 void Core::Impl::unlinkAll(const string& n_name) {
     for (size_t i = 0; i < nodes[n_name].args.size(); i++) {
         unlinkNode(n_name, i);
-    }
-    for (auto& link : links) {
-        if (link.src_node == n_name) {
-            unlinkNode(link.dst_node, link.dst_arg);
-        }
+        unlinkSrc(n_name, i);
     }
 }
 
@@ -288,16 +295,30 @@ bool Core::Impl::unlinkNode(const std::string& dst_n_name,
 }
 
 bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
+    auto link_bufs = get_all_if(links, [n = InputNodeName()](auto& l) {
+        return l.src_node == n || l.dst_node == n;
+    });
+    unlinkAll(InputNodeName());
     RefCopy(vars, &inputs);
     nodes[InputNodeName()].args = inputs;
     defaultArgs(InputNodeName()) = vars;
+    for (auto& s : link_bufs) {
+        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+    }
     return true;
 }
 
 bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
+    auto link_bufs = get_all_if(links, [n = OutputNodeName()](auto& l) {
+        return l.src_node == n || l.dst_node == n;
+    });
+    unlinkAll(OutputNodeName());
     RefCopy(vars, &outputs);
     RefCopy(vars, &nodes[OutputNodeName()].args);
     defaultArgs(OutputNodeName()) = vars;
+    for (auto& s : link_bufs) {
+        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+    }
     return true;
 }
 
@@ -339,11 +360,7 @@ bool Core::Impl::run(Report* preport) {
         }
         assert(false);
     };
-    size_t a = links.size();
-    printf("before num of links: %lu \n", links.size());
     std::sort(links.begin(), links.end(), compare);
-    printf("after num of links: %lu \n", links.size());
-    assert(a == links.size());
 
     // link node args.
     for (auto& link : links) {
