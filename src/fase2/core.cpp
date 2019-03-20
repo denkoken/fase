@@ -266,16 +266,18 @@ bool Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
         return false;
     }
     unlinkNode(d_n_name, d_idx);
-    links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
-    if (GetRunOrder(nodes, links).empty()) {
-        links.pop_back();
+    auto links_buf = links;
+    links_buf.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
+    if (GetRunOrder(nodes, links_buf).empty()) {
         return false;
     }
+    links = std::move(links_buf);
     return true;
 }
 
 bool Core::Impl::unlinkNode(const std::string& dst_n_name,
                             std::size_t dst_arg) {
+    std::clog << "unlink : " << dst_n_name << ":" << dst_arg << std::endl;
     for (size_t i = 0; i < links.size(); i++) {
         if (links[i].dst_node == dst_n_name && links[i].dst_arg == dst_arg) {
             links.erase(links.begin() + long(i));
