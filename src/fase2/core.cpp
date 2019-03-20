@@ -309,7 +309,7 @@ bool Core::Impl::run(Report* preport) {
     nodes[OutputNodeName()].args.resize(outputs.size());
 
     // sort link objects.
-    auto compare = [&](Link& l1, Link& l2) -> bool {
+    auto compare = [&](const Link& l1, const Link& l2) -> bool {
         for (size_t i = 0; i < order.size(); i++) {
             if (exists(l1.src_node, order[i])) {
                 if (exists(l2.src_node, order[i])) {
@@ -322,7 +322,11 @@ bool Core::Impl::run(Report* preport) {
         }
         assert(false);
     };
+    size_t a = links.size();
+    printf("before num of links: %lu \n", links.size());
     std::sort(links.begin(), links.end(), compare);
+    printf("after num of links: %lu \n", links.size());
+    assert(a == links.size());
 
     // link node args.
     for (auto& link : links) {
