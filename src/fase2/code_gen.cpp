@@ -132,6 +132,35 @@ string getValStr(const Variable& v, const TSCMap& tsc_map) {
     return tsc_map.at(v.getType()).def_maker(v);
 }
 
+/// return [name, is_nessessary_of_genVarDeclaration]
+std::tuple<std::string, bool> searchArgName(
+        const PipelineAPI& pipe_api, const string& node_name,
+        const size_t arg_idx, const std::string& arg_repr,
+        const map<string, FunctionUtils>& functions) {
+    const Node& node = pipe_api.getNodes().at(node_name);
+    const FunctionUtils& function = functions.at(node.func_name);
+
+    auto [src, s_idx] = GetSrcName(node_name, arg_idx, pipe_api.getLinks());
+
+    if (src.empty() && function.is_input_args[arg_idx]) {
+        // Case 0: Write solid value.
+        return {arg_repr, false};
+    } else if (src.empty()) {
+        // Case 1: Create default argument
+        return {genVarName(node_name, arg_idx), true};
+    } else {
+        // Case 2: Use output variable
+        if (src == InputNodeName()) {
+            const FunctionUtils& in_f = functions.at(kInputFuncName);
+            return {in_f.arg_names.at(s_idx), false};
+        } else {
+            return {std::get<0>(searchArgName(pipe_api, src, s_idx, arg_repr,
+                                              functions)),
+                    false};
+        }
+    }
+}
+
 vector<string> genLocalVariableDef(MyStream& native_code,
                                    const PipelineAPI& pipe_api,
                                    const string& node_name,
@@ -158,26 +187,15 @@ vector<string> genLocalVariableDef(MyStream& native_code,
     assert(arg_reprs.size() == n_args);
     vector<string> var_names;
     for (size_t arg_idx = 0; arg_idx < n_args; arg_idx++) {
-        auto [src, s_idx] = GetSrcName(node_name, arg_idx, pipe_api.getLinks());
-        if (src.empty() && function.is_input_args[arg_idx]) {
-            var_names.push_back(arg_reprs[arg_idx]);
-        } else if (src.empty()) {
-            // Case 1: Create default argument
-            var_names.push_back(genVarName(node_name, arg_idx));
+        auto [var_name, dec_f] = searchArgName(pipe_api, node_name, arg_idx,
+                                               arg_reprs[arg_idx], functions);
+        if (dec_f) {
             // Add declaration code
             native_code << genVarDeclaration(arg_type_reprs[arg_idx],
-                                             arg_reprs[arg_idx],
-                                             var_names.back())
+                                             arg_reprs[arg_idx], var_name)
                         << endl;
-        } else {
-            // Case 2: Use output variable
-            if (src == InputNodeName()) {
-                const FunctionUtils& in_f = functions.at(kInputFuncName);
-                var_names.push_back(in_f.arg_names.at(s_idx));
-            } else {
-                var_names.push_back(genVarName(src, s_idx));
-            }
         }
+        var_names.push_back(var_name);
     }
     return var_names;
 }
@@ -247,10 +265,10 @@ void genFunctionCall(MyStream& ss, const string& func_name,
     ss << ");" << endl;
 }
 
-void genOutputAssignment(MyStream& native_code, const map<string, Node>& nodes,
+void genOutputAssignment(MyStream& native_code, const PipelineAPI& pipe_api,
                          const map<string, FunctionUtils>& functions,
                          const vector<Link>& links) {
-    const Node& out_n = nodes.at(OutputNodeName());
+    const Node& out_n = pipe_api.getNodes().at(OutputNodeName());
     const FunctionUtils& out_f = functions.at(out_n.func_name);
 
     if (!out_f.arg_names.empty()) {
@@ -262,14 +280,8 @@ void genOutputAssignment(MyStream& native_code, const map<string, Node>& nodes,
                 continue;
             }
             native_code << endl;
-            string val_name;
-            if (src == InputNodeName()) {
-                const Node& in_n = nodes.at(InputNodeName());
-                const FunctionUtils& in_f = functions.at(in_n.func_name);
-                val_name = in_f.arg_names[s_idx];
-            } else {
-                val_name = genVarName(src, s_idx);
-            }
+            auto [val_name, _] = searchArgName(pipe_api, OutputNodeName(),
+                                               arg_idx, "", functions);
             native_code << out_f.arg_names[arg_idx] << " = " << val_name << ";";
         }
     }
@@ -316,7 +328,8 @@ bool genFunctionCode(MyStream& native_code, const string& p_name,
     }
     assert(node_order.empty());
 
-    genOutputAssignment(native_code, nodes, functions, cm[p_name].getLinks());
+    genOutputAssignment(native_code, cm[p_name], functions,
+                        cm[p_name].getLinks());
 
     native_code << dil << endl << "}";
 
