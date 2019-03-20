@@ -308,17 +308,17 @@ bool Core::Impl::run(Report* preport) {
     nodes[OutputNodeName()].args.resize(outputs.size());
 
     // sort link objects.
-    auto compare = [&](Link& l1, Link& l2) -> int {
-        for (size_t i = 0; i < order.size(); i++) {
-            if (exists(l1.src_node, order[i])) {
-                return -1;
-            } else if (exists(l2.src_node, order[i])) {
-                return 1;
-            }
-        }
-        return 0;
-    };
-    std::sort(links.begin(), links.end(), compare);
+    // auto compare = [&](Link& l1, Link& l2) -> int {
+    //     for (size_t i = 0; i < order.size(); i++) {
+    //         if (exists(l1.src_node, order[i])) {
+    //             return -1;
+    //         } else if (exists(l2.src_node, order[i])) {
+    //             return 1;
+    //         }
+    //     }
+    //     return 0;
+    // };
+    // std::sort(links.begin(), links.end(), compare);
 
     // link node args.
     for (auto& link : links) {
