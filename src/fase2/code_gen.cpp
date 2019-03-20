@@ -16,8 +16,12 @@ using std::string, std::vector, std::map, std::type_index;
 using size_t = size_t;
 
 class ENDL {};
+class UIL {};
+class DIL {};
 
-static ENDL endl;
+static constexpr ENDL endl;
+static constexpr UIL uil;
+static constexpr DIL dil;
 
 class MyStream {
 public:
@@ -27,6 +31,10 @@ public:
     MyStream& operator<<(T&& v) {
         if constexpr (std::is_same_v<ENDL, std::decay_t<T>>) {
             newLine();
+        } else if constexpr (std::is_same_v<UIL, std::decay_t<T>>) {
+            upIndentLevel();
+        } else if constexpr (std::is_same_v<DIL, std::decay_t<T>>) {
+            downIndentLevel();
         } else {
             ss << std::forward<T>(v);
         }
@@ -282,9 +290,7 @@ bool genFunctionCode(MyStream& native_code, const string& p_name,
     }
 
     genFuncDeclaration(native_code, pipe_func_name, nodes, functions, tsc_map);
-    native_code << "{";
-    native_code.upIndentLevel();
-    native_code << endl;
+    native_code << "{" << uil << endl;
 
     while (true) {
         // Find runnable node
@@ -296,9 +302,6 @@ bool genFunctionCode(MyStream& native_code, const string& p_name,
         if (n_name == InputNodeName() || n_name == OutputNodeName()) {
             continue;
         }
-        // if (n_name.find(ReportHeaderStr()) != string::npos) {
-        //     continue;
-        // }
         const string& func_name = nodes.at(n_name).func_name;
 
         // Add comment
@@ -315,8 +318,7 @@ bool genFunctionCode(MyStream& native_code, const string& p_name,
 
     genOutputAssignment(native_code, nodes, functions, cm[p_name].getLinks());
 
-    native_code.downIndentLevel();
-    native_code << endl << "}";
+    native_code << dil << endl << "}";
 
     return true;
 }
@@ -359,17 +361,13 @@ void GenSetters(MyStream& native_code,
                 const map<string, vector<N_ID>>& non_pure_node_map) {
     for (auto& [f_name, vs] : non_pure_node_map) {
         native_code << "template <class Callable>" << endl;
-        native_code.upIndentLevel();
         native_code << "void set_" << f_name << "(Callable&& " << f_name
-                    << ") {" << endl;
-        native_code.upIndentLevel();
-        native_code << "for (int i = 0; i < " << vs.size() << "; i++) {"
+                    << ") {" << uil << endl;
+        native_code << "for (int i = 0; i < " << vs.size() << "; i++) {" << uil
                     << endl;
         native_code << f_name << "s[i] = " << f_name << ";";
-        native_code.downIndentLevel();
-        native_code << endl << "}";
-        native_code.downIndentLevel();
-        native_code << endl << "}" << endl << endl;
+        native_code << dil << endl << "}";
+        native_code << dil << endl << "}" << endl << endl;
     }
 }
 
@@ -382,8 +380,7 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
         MyStream native_code{indent};
 
         native_code << "class " << entry_name << " {" << endl;
-        native_code.upIndentLevel();
-        native_code << "private:" << endl;
+        native_code << "private:" << uil << endl;
 
         auto sub_pipes = cm.getDependingTree().getDependenceLayer(p_name);
         vector<string> pipes = {p_name};
@@ -404,19 +401,14 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
                 native_code << endl << endl;
             }
         }
-        native_code.downIndentLevel();
-        native_code << endl << "public:";
-        native_code.upIndentLevel();
-        native_code << endl;
+        native_code << dil << endl << "public:" << uil << endl;
 
         GenSetters(native_code, non_pure_node_map);
 
         // write main pipeline function Definitions.
         genFunctionCode(native_code, p_name, cm, tsc_map, "operator()");
 
-        native_code.downIndentLevel();
-
-        native_code << endl << "};";
+        native_code << dil << endl << "};";
 
         return native_code.str();
 
