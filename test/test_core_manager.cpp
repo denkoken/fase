@@ -176,7 +176,9 @@ TEST_CASE("Core Manager test") {
         auto exported = cm.exportPipe("Pipe2");
         std::vector<Variable> vs = {std::make_unique<int>(1),
                                     std::make_unique<int>()};
+        std::clog << __LINE__ << std::endl;
         exported(vs);
+        std::clog << __LINE__ << std::endl;
         REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
         exported(vs);
         REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 4) * (1 + 4)));

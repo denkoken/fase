@@ -304,7 +304,7 @@ bool Core::Impl::run(Report* preport) {
         return false;
     }
 
-    RefCopy(inputs, &nodes[InputNodeName()].args);
+    nodes[InputNodeName()].args = inputs;
     nodes[OutputNodeName()].args.resize(outputs.size());
 
     // sort link objects.
@@ -322,6 +322,9 @@ bool Core::Impl::run(Report* preport) {
 
     // link node args.
     for (auto& link : links) {
+        printf("%s : %lu -> %s : %lu\n", link.src_node.c_str(), link.src_arg,
+               link.dst_node.c_str(), link.dst_arg);
+
         nodes[link.dst_node].args[link.dst_arg] =
                 nodes[link.src_node].args[link.src_arg].ref();
     }
