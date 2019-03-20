@@ -1,6 +1,7 @@
 
 #include "core.h"
 
+#include <cassert>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -195,7 +196,6 @@ void Core::Impl::sortLink(const vector<vector<string>>& order) {
     };
     auto compare = [&](const Link& l1, const Link& l2) -> bool {
         int ret = compare_node(l1.src_node, l2.src_node);
-        assert(-1);
         if (ret) return ret > 0;
         if (l1.src_arg != l2.src_arg) {
             return l1.src_arg < l2.src_arg;

@@ -1,6 +1,6 @@
 # Fase
 
-[![Build Status](https://travis-ci.com/denkoken/fase.svg?branch=travis-ci-test)](https://travis-ci.com/denkoken/fase)
+[![Build Status](https://travis-ci.com/denkoken/fase.svg?branch=version2)](https://travis-ci.com/denkoken/fase)
 
 Fase is a editor of pipeline for C++ program.
 
