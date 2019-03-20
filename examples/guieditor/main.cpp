@@ -269,7 +269,7 @@ int main() {
 
     try {
         auto [dst] = app.callHard(3, 4);
-        std::cout << dst << std::endl;
+        std::cout << "app.callHard(3, 4) : " << dst << std::endl;
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
         std::cout << " : It almost print \"HardCallableParts : "
