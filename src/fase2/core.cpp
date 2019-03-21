@@ -145,6 +145,8 @@ private:
     void unlinkSrc(const string& src_n_name, std::size_t src_arg);
     void unlinkAll(const string& n_name);
     void sortLink(const vector<vector<string>>& order);
+    template <typename Task>
+    void tryDoTaskKeepingLinks(const std::string& n_name, Task&& task);
 };
 
 // ============================= Member Functions ==============================
@@ -208,6 +210,18 @@ void Core::Impl::sortLink(const vector<vector<string>>& order) {
         assert(false);
     };
     std::sort(links.begin(), links.end(), compare);
+}
+
+template <typename Task>
+void Core::Impl::tryDoTaskKeepingLinks(const std::string& n_name, Task&& task) {
+    auto link_bufs = get_all_if(links, [&](auto& l) {
+        return l.src_node == n_name || l.dst_node == n_name;
+    });
+    unlinkAll(n_name);
+    task();
+    for (auto& s : link_bufs) {
+        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
+    }
 }
 
 bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
@@ -361,7 +375,7 @@ bool Core::Impl::run(Report* preport) {
         return false;
     }
 
-    RefCopy(inputs, &nodes[InputNodeName()].args);
+    nodes[InputNodeName()].args = inputs;
     nodes[OutputNodeName()].args.resize(outputs.size());
 
     sortLink(order);
