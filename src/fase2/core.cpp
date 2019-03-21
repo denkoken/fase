@@ -290,18 +290,12 @@ bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
         return false;
     }
     if (funcs.count(func)) {
-        auto& node = nodes[node_name];
-        node.func_name = func;
-        node.args = funcs[func].default_args;
-        node.func = funcs[func].func;
-
-        auto link_bufs = get_all_if(links, [n = node_name](auto& l) {
-            return l.src_node == n || l.dst_node == n;
+        tryDoTaskKeepingLinks(node_name, [&]() {
+            auto& node = nodes[node_name];
+            node.func_name = func;
+            node.args = funcs[func].default_args;
+            node.func = funcs[func].func;
         });
-        unlinkAll(node_name);
-        for (auto& s : link_bufs) {
-            linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
-        }
         return true;
     }
     return false;
@@ -338,34 +332,20 @@ bool Core::Impl::unlinkNode(const std::string& dst_n_name,
 }
 
 bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
-    auto link_bufs = get_all_if(links, [n = InputNodeName()](auto& l) {
-        return l.src_node == n || l.dst_node == n;
+    tryDoTaskKeepingLinks(InputNodeName(), [&]() {
+        RefCopy(vars, &inputs);
+        nodes[InputNodeName()].args = inputs;
+        defaultArgs(InputNodeName()) = vars;
     });
-    unlinkAll(InputNodeName());
-
-    RefCopy(vars, &inputs);
-    nodes[InputNodeName()].args = inputs;
-    defaultArgs(InputNodeName()) = vars;
-
-    for (auto& s : link_bufs) {
-        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
-    }
     return true;
 }
 
 bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
-    auto link_bufs = get_all_if(links, [n = OutputNodeName()](auto& l) {
-        return l.src_node == n || l.dst_node == n;
+    tryDoTaskKeepingLinks(OutputNodeName(), [&]() {
+        RefCopy(vars, &outputs);
+        RefCopy(vars, &nodes[OutputNodeName()].args);
+        defaultArgs(OutputNodeName()) = vars;
     });
-    unlinkAll(OutputNodeName());
-
-    RefCopy(vars, &outputs);
-    RefCopy(vars, &nodes[OutputNodeName()].args);
-    defaultArgs(OutputNodeName()) = vars;
-
-    for (auto& s : link_bufs) {
-        linkNode(s.src_node, s.src_arg, s.dst_node, s.dst_arg);
-    }
     return true;
 }
 
