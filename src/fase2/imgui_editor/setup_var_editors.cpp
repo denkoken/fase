@@ -5,6 +5,8 @@
 
 #include <imgui.h>
 
+#include "../utils.h"
+
 namespace fase {
 
 using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
@@ -60,9 +62,13 @@ bool ImGuiInputValue(const char* label, std::string* v) {
     const size_t n_str = sizeof(str_buf);
     strncpy(str_buf, (*v).c_str(), n_str);
     // Show GUI
+    ImGui::PushItemWidth(200);
     const bool ret = ImGui::InputText(label, str_buf, n_str);
-    // Back to the value
-    (*v) = str_buf;
+    ImGui::PopItemWidth();
+    if (ret) {
+        // Back to the value
+        (*v) = str_buf;
+    }
     return ret;
 }
 
@@ -72,15 +78,17 @@ void AddListViewer(std::map<std::type_index, VarEditorWraped>& var_editors) {
     var_editors[typeid(List)] = [v_editor = var_editors[typeid(V_Type)]](
                                         const char* label, const Variable& a) {
         if (a.getReader<List>()->size() >= LIST_VIEW_MAX) {
-            ImGui::Text("Too long to show : %s", label);
+            ImGui::Text("Too long to show : %s", split(label, '#')[0].c_str());
+            return Variable();
+        } else if (a.getReader<List>()->empty()) {
+            ImGui::Text("Empty : %s", split(label, '#')[0].c_str());
             return Variable();
         }
         ImGui::BeginGroup();
         size_t i = 0;
         for (auto& v : *a.getReader<List>()) {
-            v_editor((std::string("[") + std::to_string(i) + "]" + label)
-                             .c_str(),
-                     std::make_unique<V_Type>(v));
+            auto&& label_ = std::string("[") + std::to_string(i) + "]" + label;
+            v_editor(label_.c_str(), std::make_unique<V_Type>(v));
             i++;
         }
         ImGui::EndGroup();

@@ -48,7 +48,7 @@ struct FunctionUtils {
     std::vector<bool>            is_input_args;
     bool                         pure;
     std::string                  arg_types_repr;
-    std::string                  description = "no discription";
+    std::string                  description;
 };
 
 class Core;

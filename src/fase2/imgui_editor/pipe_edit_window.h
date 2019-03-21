@@ -26,6 +26,7 @@ private:
     std::string selected_node_name;
     std::map<std::string, GuiNode> node_gui_utils;
     std::map<std::string, FunctionUtils> funcs;
+    std::vector<std::string> f_names;
     std::string pipe_name;
 
     LinksView links_view;
@@ -52,6 +53,7 @@ private:
     void drawNodeContextMenu(const std::string& hovered,
                              const PipelineAPI& core_api, LabelWrapper label,
                              Issues* issues);
+    void drawEasyNodeGenarater(LabelWrapper label, Issues* issues);
     void drawCanvasContextMenu(const std::string& hovered, LabelWrapper label,
                                Issues* issues);
     void drawEditPannel(const PipelineAPI& core_api, LabelWrapper label,

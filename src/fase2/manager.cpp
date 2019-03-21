@@ -25,9 +25,9 @@ bool CheckGoodVarName(const string& name) {
     }
 
     std::string invalid_strs[] = {
-            " ",  "__", ",", "@", ":", "&", "%", "+", "-",
-            "\\", "^",  "~", "=", "(", ")", "#", "$", "\"",
-            "!",  "<",  ">", "?", "{", "}", "[", "]", "`",
+            " ",  "__", ".", ",", "@", ":", "&", "%", "+",  "-",
+            "\\", "^",  "~", "=", "(", ")", "#", "$", "\"", "!",
+            "<",  ">",  "?", "{", "}", "[", "]", "`",
     };
 
     for (auto& str : invalid_strs) {
@@ -458,12 +458,9 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
 }
 
 PipelineAPI& CoreManager::Impl::operator[](const string& c_name) {
-    if (!wrapeds.count(c_name)) {
-        if (!CheckGoodVarName(c_name)) {
-            return dum;
-        } else if (!newPipeline(c_name)) {
-            return dum;
-        }
+    if (!wrapeds.count(c_name) &&
+        (!CheckGoodVarName(c_name) || !newPipeline(c_name))) {
+        return dum;
     }
     return wrapeds.at(c_name);
 }

@@ -13,7 +13,11 @@ using size_t = std::size_t;
 namespace {
 
 bool IsSpecialNodeName(const string& name) {
-    return name == InputNodeName() || name == OutputNodeName();
+    return name.empty() || name == InputNodeName() || name == OutputNodeName();
+}
+
+bool IsSpecialFuncName(const string& name) {
+    return name.empty() || name == kInputFuncName || name == kOutputFuncName;
 }
 
 string ToSnakeCase(const string& in) {
@@ -36,6 +40,14 @@ string GetEasyName(const string& func_name, const map<string, Node>& nodes) {
         node_name = ToSnakeCase(func_name) + std::to_string(++i);
     }
     return node_name;
+}
+
+const char* getDescription(const FunctionUtils& utils) {
+    const static char dum[] = "No Description.";
+    if (utils.description.empty()) {
+        return dum;
+    }
+    return utils.description.c_str();
 }
 
 template <class Task>
@@ -122,10 +134,6 @@ bool drawNodeBox(const ImVec2& node_rect_min, const ImVec2& node_size,
     draw_list->AddRect(node_rect_min, node_rect_max, border_col, 4.f,
                        ImDrawCornerFlags_All, thickness);
     return ret;
-}
-
-bool IsSpecialFuncName(const string& n_name) {
-    return n_name == kInputFuncName || n_name == kOutputFuncName;
 }
 
 void DrawColTextBox(const ImVec4& col, const char* text) {
@@ -391,7 +399,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
         function_combo.draw(label("func_combo"));
         if (funcs.count(function_combo.text())) {
             ImGui::Separator();
-            ImGui::Text("%s", funcs[function_combo.text()].description.c_str());
+            ImGui::Text("%s", getDescription(funcs[function_combo.text()]));
             ImGui::Separator();
         }
         if (ImGui::Button(label("OK"))) {
@@ -454,6 +462,44 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
     }
 }
 
+void EditWindow::drawEasyNodeGenarater(LabelWrapper label, Issues* issues) {
+    if (auto raii = BeginPopupModal(label("easy node generater"),
+                                    GetIsKeyDown('e', true), false)) {
+        auto count = 0;
+        std::string hovered_f_name;
+        ImGui::BeginGroup();
+        for (auto& f_name : f_names) {
+            if (ImGui::Selectable(label(f_name), false,
+                                  ImGuiSelectableFlags_DontClosePopups)) {
+                issues->emplace_back([p_name = pipe_name,
+                                      f_name = f_name](auto pcm) {
+                    auto name = GetEasyName(f_name, (*pcm)[p_name].getNodes());
+                    (*pcm)[p_name].newNode(name);
+                    (*pcm)[p_name].allocateFunc(f_name, name);
+                });
+            }
+            count++;
+            if (ImGui::IsItemHovered()) {
+                hovered_f_name = f_name;
+            }
+        }
+        ImGui::EndGroup();
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        for (int i = 0; i < count; i++) {
+            ImGui::TextDisabled("   (click me!)");
+        }
+        ImGui::EndGroup();
+        if (!GetIsKeyDown('e', true)) {
+            ImGui::CloseCurrentPopup();
+        }
+        if (!hovered_f_name.empty()) {
+            ImGui::Separator();
+            ImGui::Text("%s", getDescription(funcs[hovered_f_name]));
+        }
+    }
+}
+
 void EditWindow::drawCanvasContextMenu(const string& hovered,
                                        LabelWrapper label, Issues* issues) {
     label.addSuffix("##CContext");
@@ -488,44 +534,7 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
     }
 
     // Easy Node generater popup.
-    if (auto raii = BeginPopupModal(label("easy node generater"),
-                                    GetIsKeyDown('e', true), false)) {
-        auto count = 0;
-        std::string hovered_f_name;
-        ImGui::BeginGroup();
-        for (auto& [f_name, f_utils] : funcs) {
-            if (f_name.empty() || IsSpecialFuncName(f_name)) {
-                continue;
-            }
-            if (ImGui::Selectable(label(f_name), false,
-                                  ImGuiSelectableFlags_DontClosePopups)) {
-                issues->emplace_back([p_name = pipe_name,
-                                      f_name = f_name](auto pcm) {
-                    auto name = GetEasyName(f_name, (*pcm)[p_name].getNodes());
-                    (*pcm)[p_name].newNode(name);
-                    (*pcm)[p_name].allocateFunc(f_name, name);
-                });
-            }
-            count++;
-            if (ImGui::IsItemHovered()) {
-                hovered_f_name = f_name;
-            }
-        }
-        ImGui::EndGroup();
-        ImGui::SameLine();
-        ImGui::BeginGroup();
-        for (int i = 0; i < count; i++) {
-            ImGui::TextDisabled("   (click me!)");
-        }
-        ImGui::EndGroup();
-        if (!GetIsKeyDown('e', true)) {
-            ImGui::CloseCurrentPopup();
-        }
-        if (!hovered_f_name.empty()) {
-            ImGui::Separator();
-            ImGui::Text("%s", funcs[hovered_f_name].description.c_str());
-        }
-    }
+    drawEasyNodeGenarater(label, issues);
 }
 
 void EditWindow::drawEditPannel(const PipelineAPI& core_api, LabelWrapper label,
@@ -601,15 +610,15 @@ void EditWindow::updateGuiNodeUtils(const PipelineAPI& core_api) {
 }
 
 void EditWindow::updateMembers(const CoreManager& cm, const string& p_name) {
-    vector<string> f_names;
     funcs = cm.getFunctionUtils(p_name);
+    f_names.clear();
     f_names.reserve(funcs.size() + 1);
     for (auto& [f_name, f_util] : funcs) {
-        if (f_name != p_name) {
+        if (f_name != p_name && !IsSpecialFuncName(f_name)) {
             f_names.emplace_back(f_name);
         }
     }
-    function_combo.set(std::move(f_names));
+    function_combo.set(vector<string>(f_names));
 
     updateGuiNodeUtils(cm[p_name]);
 

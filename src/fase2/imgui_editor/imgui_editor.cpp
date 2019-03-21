@@ -122,81 +122,91 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
     label.addSuffix("##ControlWindow");
     if (auto raii = WindowRAII(label(win_title + " : Control Window"), nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Open Pipeline : ");
-        ImGui::SameLine();
+        auto [lock, pcm] = pparent->getReader(16ms);
+        if (!lock) {
+            return false;
+        }
+        ImGui::Text("Make a new pipeline : ");
         if (new_core_name_it.draw(label("##core_open_name"))) {
             if (!exists(new_core_name_it.text(), opened_pipelines)) {
-                opened_pipelines.emplace_back(new_core_name_it.text());
-                issues.emplace_back([name = new_core_name_it.text()](auto pcm) {
-                    (*pcm)[name];
-                });
+                issues.emplace_back(
+                        [name = new_core_name_it.text(), this](auto pcm) {
+                            if (!(*pcm)[name].getNodes().empty()) {
+                                opened_pipelines.emplace_back(name);
+                            }
+                        });
                 new_core_name_it.set("");
             }
         }
+
+        ImGui::Spacing();
+        ImGui::Separator();
         ImGui::Spacing();
 
-        auto [lock, pcm] = pparent->getReader(16ms);
-        if (lock) {
-            pipeline_names_combo.set(pcm->getPipelineNames());
-            pipeline_names_combo.draw(label("pipeline"));
-            if (auto p_name = pipeline_names_combo.text(); !p_name.empty()) {
-                bool save_f = ImGui::Button(label("Save..."));
-                ImGui::SameLine();
-                if (ImGui::Button(label("Open")) &&
-                    !exists(p_name, opened_pipelines)) {
-                    opened_pipelines.emplace_back(p_name);
-                }
-                if (save_f) {
-                    filename_it.set(p_name + ".txt");
-                }
-                if (auto p_raii =
-                            BeginPopupModal(label("save popup"), save_f)) {
-                    filename_it.draw(label("filename"));
-                    if (ImGui::Button(label("OK"))) {
-                        SavePipeline(p_name, *pcm, filename_it.text(),
-                                     pparent->getConverterMap());
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-
-                ImGui::SameLine();
-
-                // show native code.
-                bool code_f = ImGui::Button(label("Show code..."));
-                if (code_f) {
-                    native_code = GenNativeCode(
-                            p_name, *pcm, pparent->getConverterMap(), p_name);
-                }
-                if (auto p_raii = BeginPopupModal(label("Native Code"), code_f,
-                                                  true)) {
-                    ImGui::InputTextMultiline(
-                            label("code"), &native_code[0], native_code.size(),
-                            ImVec2(800, 600), ImGuiInputTextFlags_ReadOnly);
-                }
-                ImGui::Separator();
+        bool load_f = ImGui::Button(label("Load Pipeline..."));
+        if (auto p_raii = BeginPopupModal(label("load popup"), load_f)) {
+            filename_it.draw(label("filename"));
+            if (ImGui::Button(label("OK"))) {
+                issues.emplace_back(
+                        [filename = filename_it.text(), this](auto pcm) {
+                            LoadPipelineFromFile(filename, pcm,
+                                                 pparent->getConverterMap());
+                        });
+                ImGui::CloseCurrentPopup();
             }
+        }
 
-            focused_pipeline_names_combo.set(pcm->getPipelineNames());
-            focused_pipeline_names_combo.draw(label("focused pipeline"));
-            if (auto p_name = focused_pipeline_names_combo.text();
-                !p_name.empty()) {
-                issues.emplace_back([p_name](auto pcm) {
-                    pcm->setFocusedPipeline(p_name);
-                });
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        pipeline_names_combo.set(pcm->getPipelineNames());
+        pipeline_names_combo.draw(label("pipeline"));
+        if (auto p_name = pipeline_names_combo.text(); !p_name.empty()) {
+            bool save_f = ImGui::Button(label("Save..."));
+            ImGui::SameLine();
+            if (ImGui::Button(label("Open")) &&
+                !exists(p_name, opened_pipelines)) {
+                opened_pipelines.emplace_back(p_name);
             }
-
-            bool load_f = ImGui::Button(label("Load Pipeline..."));
-            if (auto p_raii = BeginPopupModal(label("load popup"), load_f)) {
+            if (save_f) {
+                filename_it.set(p_name + ".txt");
+            }
+            if (auto p_raii = BeginPopupModal(label("save popup"), save_f)) {
                 filename_it.draw(label("filename"));
                 if (ImGui::Button(label("OK"))) {
-                    issues.emplace_back([filename = filename_it.text(),
-                                         this](auto pcm) {
-                        LoadPipelineFromFile(filename, pcm,
-                                             pparent->getConverterMap());
-                    });
+                    SavePipeline(p_name, *pcm, filename_it.text(),
+                                 pparent->getConverterMap());
                     ImGui::CloseCurrentPopup();
                 }
             }
+
+            ImGui::SameLine();
+
+            // show native code.
+            bool code_f = ImGui::Button(label("Show code..."));
+            if (code_f) {
+                native_code = GenNativeCode(p_name, *pcm,
+                                            pparent->getConverterMap(), p_name);
+            }
+            if (auto p_raii =
+                        BeginPopupModal(label("Native Code"), code_f, true)) {
+                ImGui::InputTextMultiline(label("code"), &native_code[0],
+                                          native_code.size(), ImVec2(800, 600),
+                                          ImGuiInputTextFlags_ReadOnly);
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        focused_pipeline_names_combo.set(pcm->getPipelineNames());
+        focused_pipeline_names_combo.draw(label("focused pipeline"));
+        if (auto p_name = focused_pipeline_names_combo.text();
+            !p_name.empty()) {
+            issues.emplace_back(
+                    [p_name](auto pcm) { pcm->setFocusedPipeline(p_name); });
         }
         ImGui::Spacing();
 
