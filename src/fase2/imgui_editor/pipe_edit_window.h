@@ -44,9 +44,17 @@ private:
     std::vector<InputText> input_arg_name_its;
     std::vector<InputText> output_arg_name_its;
 
+    bool small_node_mode = false;
+
     void updateGuiNodeUtils(const PipelineAPI& cm);
     void updateMembers(const CoreManager& cm, const std::string& p_name);
 
+    bool drawSmallNode(const std::string& n_name, const Node& node,
+                       GuiNode& gui_node, const ImVec2& canvas_offset,
+                       int base_channel, LabelWrapper& label, Issues* Issues, VarEditors* var_editors);
+    bool drawNormalNode(const std::string& n_name, const Node& node,
+                        GuiNode& gui_node, const ImVec2& canvas_offset,
+                        int base_channel, LabelWrapper& label, Issues* Issues, VarEditors* var_editors);
     std::string drawNodes(const PipelineAPI& core_api, LabelWrapper label,
                           const int base_channel, Issues* issues,
                           VarEditors* var_editors);

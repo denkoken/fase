@@ -307,40 +307,104 @@ ImU32 GenNodeColor(const size_t& idx) {
     return IM_COL32(int(r), int(g), int(b), 200);
 }
 
+bool EditWindow::drawNormalNode(const string& n_name, const Node& node,
+                                GuiNode& gui_node, const ImVec2& canvas_offset,
+                                int base_channel, LabelWrapper& label,
+                                Issues* issues, VarEditors* var_editors) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    // Draw node contents first
+    draw_list->ChannelsSetCurrent(1 + base_channel);  // Foreground
+    ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
+                              NODE_WINDOW_PADDING);
+    drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name, gui_node,
+                    false, label, var_editors, issues);
+
+    // Fit to content size
+    gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
+
+    // Draw node box
+    draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
+    ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
+    if (drawNodeBox(canvas_offset + gui_node.pos, gui_node.size,
+                    selected_node_name == n_name, gui_node.id, label)) {
+        selected_node_name = n_name;
+    }
+
+    // Draw link slots
+    drawLinkSlots(gui_node);
+
+    return ImGui::IsItemHovered();
+}
+
+bool EditWindow::drawSmallNode(const string& n_name, const Node& node,
+                               GuiNode& gui_node, const ImVec2& canvas_offset,
+                               int base_channel, LabelWrapper& label,
+                               Issues* issues, VarEditors* var_editors) {
+    constexpr int LINK_POS_INTERVAL = 16;
+
+    // Fit to content size
+    gui_node.size = ImVec2(20, gui_node.arg_poses.size() * LINK_POS_INTERVAL) +
+                    NODE_WINDOW_PADDING * 2;
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // Draw node box
+    draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
+    ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
+
+    for (size_t i = 0; i < gui_node.arg_poses.size(); i++) {
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        gui_node.arg_poses[i] =
+                pos +
+                ImVec2(-NODE_WINDOW_PADDING.x, LINK_POS_INTERVAL * (i + 0.3f)) +
+                NODE_WINDOW_PADDING;
+    }
+
+    ImVec2 pos = canvas_offset + gui_node.pos;
+    draw_list->AddRectFilled(pos, pos + gui_node.size, BG_NML_COLOR, 4.f);
+    draw_list->AddRect(pos, pos + gui_node.size, GenNodeColor(gui_node.id), 4.f,
+                       ImDrawCornerFlags_All, 3);
+    if (ImGui::InvisibleButton(label(n_name + "node"), gui_node.size)) {
+        selected_node_name = n_name;
+        ImGui::OpenPopup(label(n_name));
+    }
+
+    // Draw link slots
+    drawLinkSlots(gui_node);
+
+    bool ret = ImGui::IsItemHovered();
+
+    if (auto raii = PopupRAII(label(n_name))) {
+        drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name,
+                        gui_node, false, label, var_editors, issues);
+        gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
+        // run this pipeline.
+        if (GetIsKeyPressed('r', true)) {
+            issues->emplace_back([this](auto pcm) {
+                WrapError([&] { (*pcm)[pipe_name].run(&report); },
+                          &err_message);
+            });
+        }
+    }
+    return ret;
+}
+
 string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
                              const int base_channel, Issues* issues,
                              VarEditors* var_editors) {
     const ImVec2 canvas_offset = ImGui::GetCursorScreenPos();
-    // Draw node box
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    // Draw node boxes
     string hovered = "";
     for (auto& [n_name, node] : core_api.getNodes()) {
         GuiNode& gui_node = node_gui_utils[n_name];
         ImGui::PushID(label(n_name));
-
-        // Draw node contents first
-        draw_list->ChannelsSetCurrent(1 + base_channel);  // Foreground
-        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
-                                  NODE_WINDOW_PADDING);
-        drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name,
-                        gui_node, false, label, var_editors, issues);
-
-        // Fit to content size
-        gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
-
-        // Draw node box
-        draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
-        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
-        if (drawNodeBox(canvas_offset + gui_node.pos, gui_node.size,
-                        selected_node_name == n_name, gui_node.id, label)) {
-            selected_node_name = n_name;
-        }
-
-        // Draw link slots
-        drawLinkSlots(gui_node);
-
-        if (ImGui::IsItemHovered()) {
-            hovered = n_name;
+        if (small_node_mode) {
+            if (drawSmallNode(n_name, node, gui_node, canvas_offset,
+                              base_channel, label, issues, var_editors))
+                hovered = n_name;
+        } else {
+            if (drawNormalNode(n_name, node, gui_node, canvas_offset,
+                               base_channel, label, issues, var_editors))
+                hovered = n_name;
         }
         ImGui::PopID();
     }
@@ -512,6 +576,10 @@ void EditWindow::drawCanvasContextMenu(const string& hovered,
         ImGui::Separator();
         ImGui::Spacing();
         ImGui::MenuItem(label("run"), "Ctrl-r", &run_f);
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::MenuItem(label("small node mode"), "", &small_node_mode);
     }
 
     // run this pipeline.
