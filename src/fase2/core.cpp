@@ -208,6 +208,7 @@ void Core::Impl::sortLink(const vector<vector<string>>& order) {
             return l1.dst_arg < l2.dst_arg;
         }
         assert(false);
+        return false;
     };
     std::sort(links.begin(), links.end(), compare);
 }
