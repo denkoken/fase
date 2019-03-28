@@ -105,7 +105,6 @@ endfunction(setup_target_simple)
 list(APPEND FASE_INCLUDE ${FASE_EXTERNAL_INCLUDE})
 list(APPEND FASE_LIBRARY ${FASE_EXTERNAL_LIBRARY})
 
-# For examples
 if (FASE_BUILD_THIRD_PARTY)
     # OpenGL
     find_package(OpenGL REQUIRED)
@@ -155,6 +154,15 @@ if (FASE_BUILD_THIRD_PARTY)
     setup_target_simple(imgui "${IMGUI_INCLUDE_DIRS}" "${IMGUI_LIBRARY}")
     list(APPEND FASE_INCLUDE ${IMGUI_INCLUDE_DIRS})
     list(APPEND FASE_LIBRARY imgui)
+
+    # Json11
+    add_library(json11 ${LINK_TYPE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json11/json11.cpp
+    )
+    list(APPEND JSON11_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json11)
+    setup_target_simple(json11 "${JSON11_INCLUDE_DIRS}" "")
+    list(APPEND FASE_INCLUDE ${JSON11_INCLUDE_DIRS})
+    list(APPEND FASE_LIBRARY json11)
 
     # OpenCV (not necessary)
     find_package(OpenCV)

@@ -1,6 +1,8 @@
 
 #include "common.h"
 
+#include <json11.hpp>
+
 #include <cassert>
 #include <fstream>
 #include <iostream>
