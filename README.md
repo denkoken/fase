@@ -19,15 +19,33 @@ After GUI editing, you can obtain native C++ source code for the deploy.
 * Requirement
   * cmake
   * glfw (only mac)
+  * [NativeFileDialog](https://github.com/mlabbe/nativefiledialog) (optional)
+
+### CMake Options
+
+* `FASE_BUILD_EXAMPLES`
+  build examples.
+
+* `FASE_USE_NFD_AT_EXAMPLE`
+  use NativeFileDialog, add optinal button.
+
+* `FASE_BUILD_GLFW`
+  build glfw, if you use MacOS and GLFW3 is installed, turn OFF.
 
 ### Mac
 
-You need glfw3 separately.  
-(for example, type `brew install glfw` to install glfw)  
+If you installed GLFW3, you need glfw3 separately:  
 
 	> mkdir build
 	> cd build
 	> cmake -DFASE_BUILD_GLFW=OFF ..
+	> make
+
+Else:  
+
+	> mkdir build
+	> cd build
+	> cmake ..
 	> make
 
 ### Linux
@@ -41,6 +59,7 @@ You need glfw3 separately.
 
 
 ## Screenshot ##
-<img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss1.jpg">
-<img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss2.jpg">
-<img src="https://raw.githubusercontent.com/denkoken/fase/master/docs/ss3.jpg">
+<img src="https://raw.githubusercontent.com/denkoken/fase/version2/docs/ss1.jpg">
+<img src="https://raw.githubusercontent.com/denkoken/fase/version2/docs/ss2.jpg">
+<img src="https://raw.githubusercontent.com/denkoken/fase/version2/docs/ss3.jpg">
+<img src="https://raw.githubusercontent.com/denkoken/fase/version2/docs/ss4.jpg">
