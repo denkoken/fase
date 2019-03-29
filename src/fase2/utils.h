@@ -66,6 +66,12 @@ inline std::vector<Key> getKeys(const std::map<Key, Val>& map) {
     return dst;
 }
 
+template <class Mutex, class Ptr>
+inline void release(Mutex& m, Ptr& p) {
+    p.reset();
+    m.unlock();
+}
+
 inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
     dst->clear();
     dst->resize(src.size());

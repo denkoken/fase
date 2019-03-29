@@ -14,13 +14,14 @@ endif()
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
 set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
+set(FASE_USE_NFD_AT_EXAMPLE OFF CACHE BOOL "Use Native File Dialog at building example/guieditor")
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
 set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
 set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
-message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, use native file dialog: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
@@ -83,11 +84,18 @@ else()
     message ("CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
+set(define_flags "")
+# Use Native File Dialog
+if (FASE_USE_NFD_AT_EXAMPLE)
+    set(define_flags "-DUSE_NFD")
+endif()
+
 # Utility function to setup a target (include, link, warning, sanitizer)
 function(setup_target target includes libs)
     target_include_directories(${target} PUBLIC ${includes})
     target_link_libraries(${target} ${libs})
-    set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${warning_options})
+    set(compile_flags "${warning_options} ${define_flags}")
+    set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${compile_flags})
     add_sanitizers(${target})
 endfunction(setup_target)
 
@@ -199,6 +207,19 @@ if (FASE_BUILD_EXAMPLES)
     add_executable(guieditor
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
     )
+    # use Native File Dialog
+    if (FASE_USE_NFD_AT_EXAMPLE)
+        list(APPEND FASE_LIBRARY nfd)
+
+        if (WIN32)
+            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -lole32 -luuid")
+        elseif (MSVC)
+            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -lole32 -luuid")
+        elseif (APPLE)
+            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -framework Foundation -framework AppKit")
+        endif()
+    endif()
+
     setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
 
     # GUI Editor with OpenCV

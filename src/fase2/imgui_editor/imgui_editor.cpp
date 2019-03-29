@@ -208,10 +208,13 @@ bool ImGuiEditor::Impl::drawControlWindows(const string& win_title,
             issues.emplace_back(
                     [p_name](auto pcm) { pcm->setFocusedPipeline(p_name); });
         }
-        ImGui::Spacing();
 
+        release(lock, pcm);
+
+        ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+
         DrawOptionalButtons(optional_buttons, label);
     }
     return true;

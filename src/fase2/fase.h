@@ -7,6 +7,7 @@
 #include "auto_uf_adder.h"
 #include "common.h"
 #include "manager.h"
+#include "parts_base.h"
 #include "univ_functions.h"
 #include "variable.h"
 

@@ -9,6 +9,10 @@
 #include <valarray>
 #include <vector>
 
+#ifdef USE_NFD
+#include "extra_parts.h"
+#endif
+
 #include "fase_gl_utils.h"
 
 void Add(const int& a, const int& b, int& dst) {
@@ -164,7 +168,12 @@ int main() {
     // clang-format on
     // Create Fase instance with GUI editor
     fase::Fase<fase::ImGuiEditor, fase::HardCallableParts<int>,
-               fase::ExportableParts>
+               fase::ExportableParts
+#ifdef USE_NFD
+               ,
+               NFDParts
+#endif
+               >
             app;
 
     // Register functions
@@ -248,6 +257,13 @@ int main() {
             "Export fucused pipeline as int(int, int), \n"
             "and call exported(2, 6) three times,\n"
             "and reset, and call one more");
+
+#ifdef USE_NFD
+    app.addOptinalButton("Load Pipeline", [&] { app.loadPipelineWithNFD(); },
+                         "Load a pipeline with NativeFileDialog.");
+    app.addOptinalButton("Save Pipeline", [&] { app.savePipelineWithNFD(); },
+                         "Save a focused pipeline with NativeFileDialog.");
+#endif
 
     // add serializer/deserializer
     app.registerTextIO<int>(
