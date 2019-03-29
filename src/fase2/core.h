@@ -34,10 +34,10 @@ public:
                     const std::string& new_n_name);
     bool delNode(const std::string& n_name);
 
-    bool setArgument(const std::string& node, std::size_t idx, Variable& var);
-    bool setPriority(const std::string& node, int priority);
+    bool setArgument(const std::string& n_name, std::size_t idx, Variable& var);
+    bool setPriority(const std::string& n_name, int priority);
 
-    bool allocateFunc(const std::string& work, const std::string& node);
+    bool allocateFunc(const std::string& f_name, const std::string& n_name);
     bool linkNode(const std::string& src_node, std::size_t src_arg,
                   const std::string& dst_node, std::size_t dst_arg);
     bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);

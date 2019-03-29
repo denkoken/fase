@@ -3,11 +3,18 @@
 
 `Variable` クラスはFaseにおけるローカル変数を扱うクラスです.
 
-`Variable` は中にあらゆる型を内包する `std::any` の性質,
-同じ実体を複数で共有する `std::shared_ptr` の性質,
-からの値を持つことができる `std::optional` の性質 を持ちます.
+`Variable` は中にあらゆる型を内包する
+[`std::any`](https://cpprefjp.github.io/reference/any/any.html)
+(`std::shared_ptr<void>`でも可) の性質, 同じ実体を複数で共有する
+[`std::shared_ptr`](https://cpprefjp.github.io/reference/memory/shared_ptr.html)
+の性質, 空の値を持つことができる
+[`std::optional`](https://cpprefjp.github.io/reference/optional/optional.html)
+の性質 を持ちます.
 
-ただし, 中に持つ値の型は
+気分としては `shared_ptr<any<optional<T>>>` に近いものがあります.  
+(当然 `any` は非テンプレートクラスなので, `optional<T>` は便宜上のものです.)
+
+ただし, 中に持つ値の型 (上で言う`T`) は
 コピーコンストラクタとコピー代入演算子を持っている必要があります.
 
 ## デフォルトコンストラクタ
