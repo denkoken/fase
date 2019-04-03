@@ -26,14 +26,22 @@ constexpr char LINK_FOOTER[] = "END_LINK";
 
 constexpr char SPACE_REPLACED_WORD[] = "@";
 
-namespace {
+constexpr char kLinksKey[] = "Links";
+constexpr char kNodesKey[] = "Nodes";
 
-string getTypeStr(const Variable& v, const TSCMap& tsc_map) {
-    if (!tsc_map.count(v.getType())) {
-        return "";
-    }
-    return tsc_map.at(v.getType()).name;
-}
+constexpr char kLinkSrcNNameKey[] = "src_node";
+constexpr char kLinkSrcArgKey[] = "src_arg";
+constexpr char kLinkDstNNameKey[] = "dst_node";
+constexpr char kLinkDstArgKey[] = "dst_arg";
+
+constexpr char kNodeFuncNameKey[] = "func_name";
+constexpr char kNodePriorityKey[] = "priority";
+constexpr char kNodeArgsKey[] = "args";
+
+constexpr char kNodeArgValueKey[] = "value";
+constexpr char kNodeArgTypeKey[] = "type";
+
+namespace {
 
 bool strToVar(const std::string& val, const std::string& type,
               const TSCMap& tsc_map, Variable* v) {
@@ -45,73 +53,6 @@ bool strToVar(const std::string& val, const std::string& type,
     }
 
     return false;
-}
-
-std::string toString(const Variable& v, const TSCMap& tsc_map) {
-    if (!tsc_map.count(v.getType())) {
-        return "";
-    }
-    return replace(tsc_map.at(v.getType()).serializer(v), " ",
-                   SPACE_REPLACED_WORD);
-}
-
-bool PipelineToString(std::stringstream& sstream, const string& p_name,
-                      const CoreManager& cm, const TSCMap& tsc_map) {
-    // Inputs and Outputs
-    sstream << std::string(INOUT_HEADER) << std::endl;
-
-    const PipelineAPI& pipe_api = cm[p_name];
-    const map<string, Node>& nodes = pipe_api.getNodes();
-
-    const auto function_utils = cm.getFunctionUtils(p_name);
-
-    const FunctionUtils& in_f = function_utils.at(kInputFuncName);
-    for (const std::string& name : in_f.arg_names) {
-        sstream << " " << name;
-    }
-    sstream << std::endl;
-
-    const FunctionUtils& out_f = function_utils.at(kOutputFuncName);
-    for (const std::string& name : out_f.arg_names) {
-        sstream << " " << name;
-    }
-    sstream << std::endl;
-
-    // Nodes
-    sstream << std::string(NODE_HEADER) << std::endl;
-
-    for (const auto& [n_name, node] : nodes) {
-        if (n_name == InputNodeName() || n_name == OutputNodeName()) {
-            continue;
-        }
-
-        sstream << node.func_name << " " << n_name << " ";
-        for (size_t i = 0; i < node.args.size(); i++) {
-            const Variable& var = node.args[i];
-            if (tsc_map.count(var.getType())) {
-                sstream << getTypeStr(var, tsc_map) << " "
-                        << toString(var, tsc_map) << " ";
-            } else {
-                sstream << "  ";
-            }
-        }
-
-        sstream << std::endl;
-    }
-
-    // Links
-    sstream << std::string(LINK_HEADER) << std::endl;
-
-    for (auto& [s_n_name, s_idx, d_n_name, d_idx] : pipe_api.getLinks()) {
-        sstream << d_n_name << " " << d_idx << " " << s_n_name << " " << s_idx
-                << std::endl;
-    }
-
-    sstream << std::string(LINK_FOOTER) << std::endl;
-
-    // TODO
-
-    return true;
 }
 
 template <class LineIterator>
@@ -205,27 +146,57 @@ bool StringToPipeline(const string& p_name, LineIterator& linep,
     return true;
 }
 
-}  // namespace
+json11::Json getLinksJson(const PipelineAPI& pipe) {
+    json11::Json::array link_json_array;
+    for (auto& link : pipe.getLinks()) {
+        link_json_array.emplace_back(json11::Json::object({
+                {kLinkSrcNNameKey, link.src_node},
+                {kLinkSrcArgKey, int(link.src_arg)},
+                {kLinkDstNNameKey, link.dst_node},
+                {kLinkDstArgKey, int(link.dst_arg)},
+        }));
+    }
+    return link_json_array;
+}
 
-string PipelineToString(const string& p_name, const CoreManager& cm,
-                        const TSCMap& tsc_map) {
-    std::stringstream sstream;
-
-    auto sub_pipes = cm.getDependingTree().getDependenceLayer(p_name);
-    for (auto iter = sub_pipes.rbegin(); iter != sub_pipes.rend(); iter++) {
-        for (auto& sub_pipe_name : *iter) {
-            sstream << SUB_PIPELINE_HEADER << std::endl;
-            sstream << sub_pipe_name << std::endl;
-            PipelineToString(sstream, sub_pipe_name, cm, tsc_map);
-            sstream << std::endl;
-        }
+json11::Json getNodeArgsJson(const Node& node, const TSCMap& utils) {
+    json11::Json::array arg_json_array;
+    for (auto& arg : node.args) {
+        arg_json_array.emplace_back(json11::Json::object{
+                {kNodeArgValueKey, utils.at(arg.getType()).serializer(arg)},
+                {kNodeArgTypeKey, utils.at(arg.getType()).name},
+        });
     }
 
-    sstream << MAIN_PIPELINE_HEADER << std::endl;
-    sstream << p_name << std::endl;
-    PipelineToString(sstream, p_name, cm, tsc_map);
+    return arg_json_array;
+}
 
-    return sstream.str();
+json11::Json getNodesJson(const PipelineAPI& pipe, const TSCMap& utils) {
+    json11::Json::object nodes_json_map;
+    for (auto& [n_name, node] : pipe.getNodes()) {
+        if (n_name == InputNodeName() || n_name == OutputNodeName()) {
+            continue;
+        }
+        json11::Json::object node_json{
+                {kNodeFuncNameKey, node.func_name},
+                {kNodePriorityKey, node.priority},
+                {kNodeArgsKey, getNodeArgsJson(node, utils)},
+        };
+        nodes_json_map[n_name] = node_json;
+    }
+    return nodes_json_map;
+}
+
+}  // namespace
+
+std::string PipelineToString(const string& p_name, const CoreManager& cm,
+                             const TSCMap& tsc_map) {
+    json11::Json json = json11::Json::object({
+            {kLinksKey, getLinksJson(cm[p_name])},
+            {kNodesKey, getNodesJson(cm[p_name], tsc_map)},
+    });
+
+    return json.dump();
 }
 
 bool LoadPipelineFromString(const string& str, CoreManager* pcm,
