@@ -71,7 +71,7 @@ private:
     };
 
     std::string getLoadPathWithNFD() {
-        return getPathWithNFDTmep(NFD_OpenDialog, "txt;pipelines.txt");
+        return getPathWithNFDTmep(NFD_OpenDialog, "txt,json");
     }
 
     std::string getSavePathWithNFD(const std::string &default_path = {}) {
