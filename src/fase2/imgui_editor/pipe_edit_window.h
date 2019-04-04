@@ -46,15 +46,19 @@ private:
 
     bool small_node_mode = false;
 
+    std::map<std::string, EditWindow> children;
+
     void updateGuiNodeUtils(const PipelineAPI& cm);
     void updateMembers(const CoreManager& cm, const std::string& p_name);
 
     bool drawSmallNode(const std::string& n_name, const Node& node,
                        GuiNode& gui_node, const ImVec2& canvas_offset,
-                       int base_channel, LabelWrapper& label, Issues* Issues, VarEditors* var_editors);
+                       int base_channel, LabelWrapper& label, Issues* Issues,
+                       VarEditors* var_editors);
     bool drawNormalNode(const std::string& n_name, const Node& node,
                         GuiNode& gui_node, const ImVec2& canvas_offset,
-                        int base_channel, LabelWrapper& label, Issues* Issues, VarEditors* var_editors);
+                        int base_channel, LabelWrapper& label, Issues* Issues,
+                        VarEditors* var_editors);
     std::string drawNodes(const PipelineAPI& core_api, LabelWrapper label,
                           const int base_channel, Issues* issues,
                           VarEditors* var_editors);
@@ -68,6 +72,13 @@ private:
                         Issues* issues, VarEditors* var_editors);
     void drawReportPannel(const PipelineAPI& core_api, LabelWrapper label,
                           Issues* issues);
+
+    void drawChild(const CoreManager& cm, const std::string& child_p_name,
+                   EditWindow&, LabelWrapper label, Issues* issues,
+                   VarEditors* var_editors);
+
+    void drawContent(const CoreManager& cm, LabelWrapper label, Issues* issues,
+                     VarEditors* var_editors);
 };
 
 }  // namespace fase

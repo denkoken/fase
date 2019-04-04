@@ -692,6 +692,12 @@ void EditWindow::updateMembers(const CoreManager& cm, const string& p_name) {
 
     updateGuiNodeUtils(cm[p_name]);
 
+    for (auto& layer : cm.getDependingTree().getDependenceLayer(p_name)) {
+        for (auto& sub_p_name : layer) {
+            children[sub_p_name];
+        }
+    }
+
     pipe_name = p_name;
 }
 
@@ -744,6 +750,37 @@ void EditWindow::drawReportPannel(const PipelineAPI& core_api,
     }
 }
 
+void EditWindow::drawContent(const CoreManager& cm, LabelWrapper label,
+                             Issues* issues, VarEditors* var_editors) {
+    if (ImGui::BeginTabBar(label("TabBar"))) {
+        if (ImGui::BeginTabItem(label("Edit"))) {
+            drawEditPannel(cm[pipe_name], label, issues, var_editors);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(label("Report"))) {
+            drawReportPannel(cm[pipe_name], label, issues);
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+    if (auto p_raii = BeginPopupModal(label("Error"), !err_message.empty())) {
+        ImGui::Text("%s", err_message.c_str());
+        if (ImGui::Button(label("OK"))) {
+            ImGui::CloseCurrentPopup();
+            err_message = "";
+        }
+    }
+}
+
+void EditWindow::drawChild(const CoreManager& cm, const string& child_p_name,
+                           EditWindow& child, LabelWrapper label,
+                           Issues* issues, VarEditors* var_editors) {
+    child.updateMembers(cm, child_p_name);
+    child.small_node_mode = small_node_mode;
+    child.drawContent(cm, label, issues, var_editors);
+    small_node_mode = child.small_node_mode;
+}
+
 bool EditWindow::draw(const string& p_name, const string& win_title,
                       const CoreManager& cm, LabelWrapper label, Issues* issues,
                       VarEditors* var_editors) {
@@ -754,24 +791,23 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
     if (auto raii = WindowRAII(label(win_title + " : Pipe Edit - " + p_name),
                                &opened)) {
-        if (ImGui::BeginTabBar(label("TabBar"))) {
-            if (ImGui::BeginTabItem(label("Edit"))) {
-                drawEditPannel(cm[p_name], label, issues, var_editors);
-                ImGui::EndTabItem();
+        if (!children.empty()) {
+            if (ImGui::BeginTabBar(label("pipe_tab"))) {
+                if (ImGui::BeginTabItem(label(p_name))) {
+                    drawContent(cm, label, issues, var_editors);
+                    ImGui::EndTabItem();
+                }
+                for (auto& [sub_p_name, child] : children) {
+                    if (ImGui::BeginTabItem(label(sub_p_name))) {
+                        drawChild(cm, sub_p_name, child, label, issues,
+                                  var_editors);
+                        ImGui::EndTabItem();
+                    }
+                }
+                ImGui::EndTabBar();
             }
-            if (ImGui::BeginTabItem(label("Report"))) {
-                drawReportPannel(cm[p_name], label, issues);
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-        if (auto p_raii =
-                    BeginPopupModal(label("Error"), !err_message.empty())) {
-            ImGui::Text("%s", err_message.c_str());
-            if (ImGui::Button(label("OK"))) {
-                ImGui::CloseCurrentPopup();
-                err_message = "";
-            }
+        } else {
+            drawContent(cm, label, issues, var_editors);
         }
     }
 

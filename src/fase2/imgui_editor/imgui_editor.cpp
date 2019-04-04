@@ -171,6 +171,8 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
         }
     }
 
+    // Draw PopupModals.
+
     if (auto p_raii = BeginPopupModal(label("save popup"), save_f)) {
         filename_it.draw(label("filename"));
         if (ImGui::Button(label("OK"))) {
@@ -197,6 +199,8 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
             ImGui::CloseCurrentPopup();
         }
     }
+
+    // Release pointer of CoreManager and mutex lock.
 
     release(lock, pcm);
 
