@@ -399,8 +399,7 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 bool CoreManager::Impl::newPipeline(const string& c_name) {
     if (wrapeds.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc(UnivFunc{}, c_name, {},
-                {{}, {}, {}, true, "", "Another pipeline"});
+    addUnivFunc({}, c_name, {}, {{}, {}, {}, true, "", "Another pipeline"});
 
     wrapeds.emplace(c_name, *this);  // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
@@ -408,6 +407,7 @@ bool CoreManager::Impl::newPipeline(const string& c_name) {
             addFunction(f_name, c_name);
         }
     }
+    updateBindedPipes(c_name);
     return true;
 }
 
