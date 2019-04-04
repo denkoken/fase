@@ -341,16 +341,15 @@ bool EditWindow::drawSmallNode(const string& n_name, const Node& node,
                                int base_channel, LabelWrapper& label,
                                Issues* issues, VarEditors* var_editors) {
     constexpr int LINK_POS_INTERVAL = 16;
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    draw_list->ChannelsSetCurrent(0 + base_channel);
 
-    // Fit to content size
+    // set node size
     gui_node.size = ImVec2(20, gui_node.arg_poses.size() * LINK_POS_INTERVAL) +
                     NODE_WINDOW_PADDING * 2;
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    // Draw node box
-    draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
+    // compute argument slot positions
     ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
-
     for (size_t i = 0; i < gui_node.arg_poses.size(); i++) {
         ImVec2 pos = ImGui::GetCursorScreenPos();
         gui_node.arg_poses[i] =
@@ -365,12 +364,8 @@ bool EditWindow::drawSmallNode(const string& n_name, const Node& node,
                        ImDrawCornerFlags_All, 3);
     if (ImGui::InvisibleButton(label(n_name + "node"), gui_node.size)) {
         selected_node_name = n_name;
-        ImGui::OpenPopup(label(n_name));
+        // ImGui::OpenPopup(label(n_name));
     }
-
-    // Draw link slots
-    drawLinkSlots(gui_node);
-
     bool ret = ImGui::IsItemHovered();
 
     if (auto raii = PopupRAII(label(n_name))) {
@@ -385,6 +380,9 @@ bool EditWindow::drawSmallNode(const string& n_name, const Node& node,
             });
         }
     }
+
+    // Draw link slots
+    drawLinkSlots(gui_node);
     return ret;
 }
 
@@ -397,7 +395,7 @@ string EditWindow::drawNodes(const PipelineAPI& core_api, LabelWrapper label,
     for (auto& [n_name, node] : core_api.getNodes()) {
         GuiNode& gui_node = node_gui_utils[n_name];
         ImGui::PushID(label(n_name));
-        if (small_node_mode) {
+        if (small_node_mode && selected_node_name != n_name) {
             if (drawSmallNode(n_name, node, gui_node, canvas_offset,
                               base_channel, label, issues, var_editors))
                 hovered = n_name;
@@ -418,6 +416,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
     bool rename_open_f = false;
     bool allocate_function_f = false;
     bool edit_input_output_f = false;
+    bool delete_f = false;
 
     for (auto& [n_name, node] : core_api.getNodes()) {
         if (auto p_raii = BeginPopupContext(label(n_name + "_context"),
@@ -430,21 +429,21 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
                     edit_input_output_f = true;
                 }
             } else {
-                if (ImGui::Selectable("delete")) {
-                    issues->emplace_back(
-                            [p_name = pipe_name, n_name = n_name](auto pcm) {
-                                (*pcm)[p_name].delNode(n_name);
-                            });
-                }
-                if (ImGui::Selectable("rename")) {
-                    rename_open_f = true;
-                }
+                delete_f = ImGui::Selectable("delete");
+                rename_open_f = ImGui::Selectable("rename");
                 ImGui::Separator();
-                if (ImGui::Selectable(label("alocate function"))) {
-                    allocate_function_f = true;
-                }
+                allocate_function_f =
+                        ImGui::Selectable(label("alocate function"));
             }
         }
+    }
+
+    if (delete_f ||
+        (GetIsKeyPressed(ImGuiKey_Backspace) && !selected_node_name.empty())) {
+        issues->emplace_back(
+                [p_name = pipe_name, n_name = selected_node_name](auto pcm) {
+                    (*pcm)[p_name].delNode(n_name);
+                });
     }
 
     if (auto raii = BeginPopupModal(label("rename_modal"), rename_open_f)) {
@@ -621,6 +620,10 @@ void EditWindow::drawEditPannel(const PipelineAPI& core_api, LabelWrapper label,
                     node_gui_utils, issues);
     draw_list->ChannelsMerge();
 
+    if (GetIsKeyPressed('q')) {
+        selected_node_name = "";
+    }
+
     drawNodeContextMenu(hovered, core_api, label, issues);
     drawCanvasContextMenu(hovered, label, issues);
 }
@@ -711,24 +714,27 @@ void EditWindow::drawReportPannel(const PipelineAPI& core_api,
             continue;
         }
         if (wait != 0.f) {
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            auto start = canvas_offset + gui_node.pos;
+            auto end = canvas_offset + gui_node.pos +
+                       gui_node.size * ImVec2(wait, 1);
+            draw_list->AddRectFilled(
+                    start, end,
+                    ImGui::GetColorU32(VolumeColor(1.f - wait) *
+                                       ImVec4(1, 1, 1, 0.4)),
+                    4.f);
         }
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        auto start = canvas_offset + gui_node.pos;
-        auto end =
-                canvas_offset + gui_node.pos + gui_node.size * ImVec2(wait, 1);
-        draw_list->AddRectFilled(start, end,
-                                 ImGui::GetColorU32(VolumeColor(1.f - wait) *
-                                                    ImVec4(1, 1, 1, 0.4)),
-                                 4.f);
 
-        ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
-                                  NODE_WINDOW_PADDING);
-        ImGui::BeginGroup();
-        ImGui::Text("%s", n_name.c_str());
-        ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
-        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.3f mili sec (%.3f %%)",
-                           repo.getSec() * 1000.0, wait * 100.0);
-        ImGui::EndGroup();
+        if (!small_node_mode || selected_node_name == n_name) {
+            ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
+                                      NODE_WINDOW_PADDING);
+            ImGui::BeginGroup();
+            ImGui::Text("%s", n_name.c_str());
+            ImGui::Dummy(ImVec2(0.f, NODE_WINDOW_PADDING.y));
+            ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.3f mili sec (%.3f %%)",
+                               repo.getSec() * 1000.0, wait * 100.0);
+            ImGui::EndGroup();
+        }
     }
 
     // run this pipeline.
@@ -746,6 +752,7 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
     updateMembers(cm, p_name);
 
     bool opened = true;
+    ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
     if (auto raii = WindowRAII(label(win_title + " : Pipe Edit - " + p_name),
                                &opened)) {
         if (ImGui::BeginTabBar(label("TabBar"))) {

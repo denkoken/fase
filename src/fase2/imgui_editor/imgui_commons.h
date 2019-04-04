@@ -226,6 +226,11 @@ inline ImVec4 operator*(const ImVec4& lhs, const ImVec4& rhs) {
 
 ImU32 GenNodeColor(const std::size_t& idx);
 
+inline bool GetIsKeyPressed(const ImGuiKey& key) {
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyPressed(ImGui::GetKeyIndex(key));
+}
+
 inline bool GetIsKeyPressed(char key, bool ctrl = false, bool shift = false,
                             bool alt = false, bool super = false) {
     auto& io = ImGui::GetIO();
@@ -238,6 +243,11 @@ inline bool GetIsKeyPressed(char key, bool ctrl = false, bool shift = false,
     return ImGui::IsWindowFocused() &&
            ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A) + key - 'a') &&
            s_keys;
+}
+
+inline bool GetIsKeyDown(const ImGuiKey& key) {
+    return ImGui::IsWindowFocused() &&
+           ImGui::IsKeyDown(ImGui::GetKeyIndex(key));
 }
 
 inline bool GetIsKeyDown(char key, bool ctrl = false, bool shift = false,
