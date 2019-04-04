@@ -111,7 +111,7 @@ TEST_CASE("Core Manager test") {
         }
     } counter;
 
-    auto univ_counter = UnivFuncGenerator<int&>::Gen(std::move(counter));
+    auto univ_counter = UnivFuncGenerator<int&>::Gen(counter);
 
     REQUIRE(cm.addUnivFunc(
             univ_counter, "counter", {std::make_unique<int>(0)},
