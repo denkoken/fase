@@ -425,9 +425,8 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
             ImGui::Text("%s", n_name.c_str());
             ImGui::Separator();
             if (IsSpecialNodeName(n_name)) {
-                if (ImGui::Selectable(label("edit input/output"))) {
-                    edit_input_output_f = true;
-                }
+                edit_input_output_f =
+                        ImGui::Selectable(label("edit input/output"));
             } else {
                 delete_f = ImGui::Selectable("delete");
                 rename_open_f = ImGui::Selectable("rename");
