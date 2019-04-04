@@ -163,21 +163,13 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
         code_f = ImGui::Button(label("Show code..."));
 
         if (save_f) {
-            filename_it.set(p_name + ".txt");
+            filename_it.set(p_name + ".json");
         }
         if (code_f) {
             native_code = GenNativeCode(p_name, *pcm,
                                         pparent->getConverterMap(), p_name);
         }
     }
-
-    release(lock, pcm);
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    DrawOptionalButtons(optional_buttons, label);
 
     if (auto p_raii = BeginPopupModal(label("save popup"), save_f)) {
         filename_it.draw(label("filename"));
@@ -205,6 +197,14 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
             ImGui::CloseCurrentPopup();
         }
     }
+
+    release(lock, pcm);
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    DrawOptionalButtons(optional_buttons, label);
 
     return true;
 }
