@@ -82,7 +82,7 @@ bool setArgument(const std::string& n_name, std::size_t idx, Variable& var);
 
 ## `setPriority`
 
-```
+```c++
 bool setPriority(const std::string& n_name, int priority);
 ```
 
@@ -93,7 +93,7 @@ bool setPriority(const std::string& n_name, int priority);
 
 ## `allocateFunc`
 
-```
+```c++
 bool allocateFunc(const std::string& f_name, const std::string& n_name);
 ```
 
@@ -105,9 +105,9 @@ bool allocateFunc(const std::string& f_name, const std::string& n_name);
 
 ## `linkNode`
 
-```
+```c++
 bool linkNode(const std::string& src_node, std::size_t src_arg,
-			  const std::string& dst_node, std::size_t dst_arg);
+              const std::string& dst_node, std::size_t dst_arg);
 ```
 
 `src_node` と言う名前のノードの `src_arg` 番目の引数を
@@ -124,7 +124,7 @@ bool linkNode(const std::string& src_node, std::size_t src_arg,
 
 ## `unlinkNode`
 
-```
+```c++
 bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 ```
 
@@ -134,7 +134,7 @@ bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 
 ## `supposeInput`
 
-```
+```c++
 bool supposeInput(std::vector<Variable>& vars);
 ```
 
@@ -146,7 +146,7 @@ bool supposeInput(std::vector<Variable>& vars);
 
 ## `supposeOutput`
 
-```
+```c++
 bool supposeOutput(std::vector<Variable>& vars);
 ```
 
@@ -160,7 +160,7 @@ bool supposeOutput(std::vector<Variable>& vars);
 
 ## `run`
 
-```
+```c++
 bool run(Report* preport = nullptr);
 ```
 
@@ -173,7 +173,7 @@ bool run(Report* preport = nullptr);
 
 ## `getNodes`
 
-```
+```c++
 const std::map<std::string, Node>& getNodes() const noexcept;
 ```
 
@@ -182,7 +182,7 @@ const std::map<std::string, Node>& getNodes() const noexcept;
 
 ## `getLinks`
 
-```
+```c++
 const std::vector<Link>& getLinks() const noexcept;
 ```
 
