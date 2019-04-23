@@ -41,15 +41,15 @@ FaseAddUnivFunction([関数名], ([型1, 型2, ...]), ("[引数名1]", "[引数�
 
 ```cpp
 void f(int i) {
-    ...
+    // ...
 }
 void g(const float& a, std::string b, int& dst) {
-    ...
+    // ...
 }
 
-...
+// ...
 
-fase::Fase< ... > app;
+fase::Fase< /* ... */ > app;
 
 // 関数fの登録
 FaseAddUnivFunction(app, f, (int), ("i"));
@@ -64,7 +64,7 @@ FaseAddUnivFunction(app, g, (const float&, std::string, int&),
 // 関数gの登録 (説明, デフォルト引数付き)
 FaseAddUnivFunction(app, g, (const float&, std::string, int&),
                     ("a", "b", "dst"), "do something like g.",
-                    {0, "default"s, 0);
+                    {0, "default"s, 0});
 ```
 
 ### b. 静的に登録する方法
@@ -81,27 +81,27 @@ FaseAutoAddingUnivFunction([関数名],
 #### 例)
 
 ```cpp
-
-#define FASE_USE_ADD_FUNCTION_BUILDER_MACRO
 #include "fase.h"
 
 FaseAutoAddingUnivFunction(f,
 void f(int i) {
-    ...
+    // ...
 }
 )
 
 FaseAutoAddingUnivFunction(g,
 void g(const float& a, std::string b, int& dst) {
-    ...
+    // ...
 }
 )
 
-...
+// ...
 
-fase::Fase< ... > app;
+fase::Fase< /* ... */ > app;
 // インスタンスを作成した時点ですでにf とg は登録されている.
 ```
+
+## 
 
 ## Step 3. 使う
 
