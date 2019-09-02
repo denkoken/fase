@@ -43,6 +43,7 @@ constexpr char kNodeFuncNameKey[] = "func_name";
 constexpr char kNodePriorityKey[] = "priority";
 constexpr char kNodeArgsKey[] = "args";
 
+constexpr char kNodeArgNameKey[] = "name";
 constexpr char kNodeArgValueKey[] = "value";
 constexpr char kNodeArgTypeKey[] = "type";
 
@@ -71,8 +72,8 @@ bool strToVar(const std::string& val, const std::string& type,
 
 const static TypeStringConverters::Deserializer dummy = [](auto&, auto&) {};
 
-const TypeStringConverters::Deserializer& getDeserializer(
-        const string& type_name, const TSCMap& tsc_map) {
+const TypeStringConverters::Deserializer&
+getDeserializer(const string& type_name, const TSCMap& tsc_map) {
     for (auto& [_, tsc] : tsc_map) {
         if (tsc.name == type_name) {
             return tsc.deserializer;
@@ -192,21 +193,27 @@ json11::Json getLinksJson(const PipelineAPI& pipe,
 json11::Json getNodeArgsJson(const Node& node,
                              const map<string, FunctionUtils>& f_util_map,
                              const TSCMap& utils) {
-    json11::Json::object arg_json_map;
+    std::vector<json11::Json::object> arg_jsons;
     for (size_t i = 0; i < node.args.size(); i++) {
         const Variable& arg = node.args[i];
         if (!utils.count(arg.getType())) {
             continue;
         }
-        arg_json_map[f_util_map.at(node.func_name).arg_names[i]] =
-                json11::Json::object{
-                        {kNodeArgValueKey,
-                         utils.at(arg.getType()).serializer(arg)},
-                        {kNodeArgTypeKey, utils.at(arg.getType()).name},
-                };
+        arg_jsons.push_back({
+                {kNodeArgNameKey, f_util_map.at(node.func_name).arg_names[i]},
+                {kNodeArgValueKey, utils.at(arg.getType()).serializer(arg)},
+                {kNodeArgTypeKey, utils.at(arg.getType()).name},
+        });
+
+        // arg_json_map[f_util_map.at(node.func_name).arg_names[i]] =
+        //         json11::Json::object{
+        //                 {kNodeArgValueKey,
+        //                  utils.at(arg.getType()).serializer(arg)},
+        //                 {kNodeArgTypeKey, utils.at(arg.getType()).name},
+        //         };
     }
 
-    return arg_json_map;
+    return arg_jsons;
 }
 
 json11::Json getNodesJson(const PipelineAPI& pipe,
@@ -230,14 +237,14 @@ json11::Json getNodesJson(const PipelineAPI& pipe,
 bool LoadInOutputFromJson(const json11::Json& pipe_json,
                           PipelineAPI& pipe_api) {
     vector<string> arg_names;
-    for (auto& [a_name, _] : pipe_json[kInputKey].object_items()) {
-        arg_names.emplace_back(a_name);
+    for (auto& arg_json : pipe_json[kInputKey].array_items()) {
+        arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
     }
     pipe_api.supposeInput(arg_names);
     arg_names.clear();
 
-    for (auto& [a_name, _] : pipe_json[kOutputKey].object_items()) {
-        arg_names.emplace_back(a_name);
+    for (auto& arg_json : pipe_json[kOutputKey].array_items()) {
+        arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
     }
     pipe_api.supposeOutput(arg_names);
     return true;
@@ -250,7 +257,9 @@ bool LoadNodeFromJson(const string& n_name, const json11::Json& node_json,
     auto f_name = node_json[kNodeFuncNameKey].string_value();
     pipe_api.allocateFunc(f_name, n_name);
     pipe_api.setPriority(n_name, node_json[kNodePriorityKey].int_value());
-    for (auto& [arg_name, arg_json] : node_json[kNodeArgsKey].object_items()) {
+    for (auto& arg_json : node_json[kNodeArgsKey].array_items()) {
+        std::string arg_name = arg_json[kNodeArgNameKey].string_value();
+
         size_t idx = ArgNameToIdx(arg_name, f_util_map.at(f_name));
         string arg_v_str = arg_json[kNodeArgTypeKey].string_value();
         auto& deserializer = getDeserializer(arg_v_str, tsc_map);
@@ -287,7 +296,7 @@ bool LoadPipelineFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
     return true;
 }
 
-}  // namespace
+} // namespace
 
 std::string PipelineToString(const string& p_name, const CoreManager& cm,
                              const TSCMap& tsc_map) {
@@ -431,4 +440,4 @@ bool LoadPipelineFromFile(const string& filename, CoreManager* pcm,
     }
 }
 
-}  // namespace fase
+} // namespace fase
