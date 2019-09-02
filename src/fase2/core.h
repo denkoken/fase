@@ -55,6 +55,6 @@ private:
     std::unique_ptr<Impl> pimpl;
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // CORE_H_20190205
+#endif // CORE_H_20190205

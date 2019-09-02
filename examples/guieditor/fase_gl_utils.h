@@ -44,7 +44,7 @@ static GLFWwindow* InitOpenGL(const std::string& window_title) {
         return nullptr;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);  // Enable vsync
+    glfwSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL context
     if (gl3wInit() != 0) {

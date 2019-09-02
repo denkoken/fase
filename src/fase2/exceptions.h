@@ -11,8 +11,7 @@ namespace fase {
 class WrongTypeCast : public std::logic_error {
 public:
     WrongTypeCast(std::type_index cast_type_, std::type_index casted_type_)
-        : std::logic_error("WrongTypeCast"),
-          cast_type(cast_type_),
+        : std::logic_error("WrongTypeCast"), cast_type(cast_type_),
           casted_type(casted_type_),
           err_message(std::string("fase::Variable : Invalid cast (") +
                       cast_type_.name() + std::string(" vs ") +
@@ -45,6 +44,6 @@ public:
     }
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // EXCEPTIONS_H_20190313
+#endif // EXCEPTIONS_H_20190313

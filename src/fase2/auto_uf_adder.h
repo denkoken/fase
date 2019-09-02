@@ -80,10 +80,10 @@ public:
 };
 
 template <class A, class B>
-constexpr TypeSequence<> joint(A &&, B &&);
+constexpr TypeSequence<> joint(A&&, B&&);
 
 template <class TypeSequenceA, typename... BTypes>
-constexpr auto joint(TypeSequenceA &&, TypeSequence<BTypes...> &&) {
+constexpr auto joint(TypeSequenceA&&, TypeSequence<BTypes...>&&) {
     return typename Cleaned<TypeSequenceA>::template Add<BTypes...>{};
 }
 
@@ -472,8 +472,8 @@ inline float FromString<float>(const std::string& str) {
 }
 
 template <>
-inline unsigned long long FromString<unsigned long long>(
-        const std::string& str) {
+inline unsigned long long
+FromString<unsigned long long>(const std::string& str) {
     if (std::string::npos != str.find("nullptr")) {
         return 0;
     }
@@ -552,7 +552,7 @@ inline char* FromString<char*>(const std::string& str) {
     }
 
     // check fase::for_macro::Delete.
-    char* ch_a = new char[str_.size() + 1];  // contain '\0'.
+    char* ch_a = new char[str_.size() + 1]; // contain '\0'.
 
     for (size_t i = 0; i <= str_.size(); i++) {
         ch_a[i] = str_[i];
@@ -719,17 +719,17 @@ std::vector<bool> GetIsInputArgs() {
                              std::decay_t<Args>>)...};
 }
 
-}  // namespace for_macro
+} // namespace for_macro
 
 class FuncNodeStorer {
 public:
     template <typename Ret, typename... Args>
     FuncNodeStorer(std::string func_name, const std::string& code,
                    Ret (*fp)(Args...)) {
-        f_buf = [fp, func_name, code](
-                        CoreManager* pcm, const std::string& arg_types_repr,
-                        const std::vector<std::string>& arg_names,
-                        const std::vector<Variable>&    default_args) {
+        f_buf = [fp, func_name,
+                 code](CoreManager* pcm, const std::string& arg_types_repr,
+                       const std::vector<std::string>& arg_names,
+                       const std::vector<Variable>&    default_args) {
             constexpr size_t N = sizeof...(Args);
 
             assert(arg_names.size() == N);
@@ -871,7 +871,7 @@ private:
             f_buf;
 };
 
-#define Fase_StrFound(code_str, start, end, var) \
+#define Fase_StrFound(code_str, start, end, var)                               \
     code_str.isFound(String<sizeof(var)>{var}, start, end)
 
 #define Fase_CE constexpr static inline
@@ -1037,20 +1037,20 @@ private:
     }     /* namespace fase */
 
 #ifdef __COUNTER__
-#define FaseAutoAddingUnivFunction_(func_name, code, c) \
+#define FaseAutoAddingUnivFunction_(func_name, code, c)                        \
     FaseAutoAddingUnivFunction_B(func_name, code, c)
-#define FaseAutoAddingUnivFunction(func_name, code) \
+#define FaseAutoAddingUnivFunction(func_name, code)                            \
     FaseAutoAddingUnivFunction_(func_name, code, __COUNTER__)
 
-#else  // ifdef __COUNTER__
+#else // ifdef __COUNTER__
 
-#define FaseAutoAddingUnivFunction(func_name, code) \
+#define FaseAutoAddingUnivFunction(func_name, code)                            \
     FaseAutoAddingUnivFunction_B(func_name, code, 0)
 
 #endif
 
-}  // namespace for_macro
+} // namespace for_macro
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // CONSTEXPR_STRING_H_20180926
+#endif // CONSTEXPR_STRING_H_20180926

@@ -16,6 +16,6 @@ static std::string InputNodeName() {
 static std::string OutputNodeName() {
     return "Output";
 }
-}  // namespace fase
+} // namespace fase
 
-#endif  // CONSTANTS_H_20190212
+#endif // CONSTANTS_H_20190212

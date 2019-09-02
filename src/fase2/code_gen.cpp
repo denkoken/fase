@@ -133,10 +133,10 @@ string getValStr(const Variable& v, const TSCMap& tsc_map) {
 }
 
 /// return [name, is_nessessary_of_genVarDeclaration]
-std::tuple<std::string, bool> searchArgName(
-        const PipelineAPI& pipe_api, const string& node_name,
-        const size_t arg_idx, const std::string& arg_repr,
-        const map<string, FunctionUtils>& functions) {
+std::tuple<std::string, bool>
+searchArgName(const PipelineAPI& pipe_api, const string& node_name,
+              const size_t arg_idx, const std::string& arg_repr,
+              const map<string, FunctionUtils>& functions) {
     const Node& node = pipe_api.getNodes().at(node_name);
     const FunctionUtils& function = functions.at(node.func_name);
 
@@ -384,7 +384,7 @@ void GenSetters(MyStream& native_code,
     }
 }
 
-}  // namespace
+} // namespace
 
 string GenNativeCode(const string& p_name, const CoreManager& cm,
                      const TSCMap& tsc_map, const string& entry_name,
@@ -435,4 +435,4 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
     }
 }
 
-}  // namespace fase
+} // namespace fase

@@ -60,7 +60,7 @@ vector<std::type_index> getTypes(const vector<Variable>& vars) {
     return a;
 }
 
-}  // namespace
+} // namespace
 
 class FaildDummy : public PipelineAPI {
     bool newNode(const std::string&) override {
@@ -401,7 +401,7 @@ bool CoreManager::Impl::newPipeline(const string& c_name) {
 
     addUnivFunc({}, c_name, {}, {{}, {}, {}, true, "", "Another pipeline"});
 
-    wrapeds.emplace(c_name, *this);  // create new WrapedCore.
+    wrapeds.emplace(c_name, *this); // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
         if (c_name != f_name) {
             addFunction(f_name, c_name);
@@ -543,8 +543,8 @@ vector<string> CoreManager::Impl::getPipelineNames() const {
     return dst;
 }
 
-map<string, FunctionUtils> CoreManager::Impl::getFunctionUtils(
-        const string& p_name) const {
+map<string, FunctionUtils>
+CoreManager::Impl::getFunctionUtils(const string& p_name) const {
     if (!wrapeds.count(p_name)) {
         return {};
     }
@@ -607,8 +607,8 @@ vector<string> CoreManager::getPipelineNames() const {
     return pimpl->getPipelineNames();
 }
 
-map<string, FunctionUtils> CoreManager::getFunctionUtils(
-        const string& p_name) const {
+map<string, FunctionUtils>
+CoreManager::getFunctionUtils(const string& p_name) const {
     return pimpl->getFunctionUtils(p_name);
 }
 
@@ -616,4 +616,4 @@ const DependenceTree& CoreManager::getDependingTree() const {
     return pimpl->getDependingTree();
 }
 
-}  // namespace fase
+} // namespace fase

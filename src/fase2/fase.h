@@ -78,17 +78,17 @@ private:
     const TSCMap& getConverterMap() override;
 };
 
-#define FaseAddUnivFunction(func, arg_types, arg_names, ...)           \
-    [&](auto& f, bool pure) {                                          \
-        fase::AddingUnivFuncHelper<void arg_types>::Gen(               \
-                #func, FaseExpandList(arg_names), pure, #arg_types, f, \
-                __VA_ARGS__);                                          \
+#define FaseAddUnivFunction(func, arg_types, arg_names, ...)                   \
+    [&](auto& f, bool pure) {                                                  \
+        fase::AddingUnivFuncHelper<void arg_types>::Gen(                       \
+                #func, FaseExpandList(arg_names), pure, #arg_types, f,         \
+                __VA_ARGS__);                                                  \
     }(func, std::is_function_v<decltype(func)>);
 
-#define FaseRegisterTestIO(app, type, serializer, deserializer, def_maker) \
-    [&] {                                                                  \
-        app.template registerTextIO<type>(#type, serializer, deserializer, \
-                                          def_maker);                      \
+#define FaseRegisterTestIO(app, type, serializer, deserializer, def_maker)     \
+    [&] {                                                                      \
+        app.template registerTextIO<type>(#type, serializer, deserializer,     \
+                                          def_maker);                          \
     }();
 
 // =============================================================================
@@ -142,11 +142,12 @@ inline Fase<Parts...>::Fase()
 
 template <class... Parts>
 template <typename... Args>
-inline bool Fase<Parts...>::addUnivFunc(
-        const UnivFunc& func, const std::string& f_name,
-        const std::vector<std::string>& arg_names, bool pure,
-        const std::string& arg_types_repr, const std::string& description,
-        std::vector<Variable>&& default_args) {
+inline bool
+Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
+                            const std::vector<std::string>& arg_names,
+                            bool pure, const std::string& arg_types_repr,
+                            const std::string&      description,
+                            std::vector<Variable>&& default_args) {
     std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
     return pcm->addUnivFunc(func, f_name, std::move(default_args),
@@ -156,10 +157,11 @@ inline bool Fase<Parts...>::addUnivFunc(
 
 template <class... Parts>
 template <typename... Args>
-inline bool Fase<Parts...>::addUnivFunc(
-        const UnivFunc& func, const std::string& f_name,
-        const std::vector<std::string>& arg_names, bool pure,
-        const std::string& arg_types_repr, const std::string& description) {
+inline bool
+Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
+                            const std::vector<std::string>& arg_names,
+                            bool pure, const std::string& arg_types_repr,
+                            const std::string& description) {
     static_assert(
             is_all_ok<std::is_default_constructible_v<std::decay_t<Args>>...>(),
             "Fase::addUnivFunc<Args...> : "
@@ -231,11 +233,11 @@ inline const TSCMap& Fase<Parts...>::getConverterMap() {
     return converter_map;
 }
 
-#define FaseExpandListHelper(...)            \
-    {                                        \
-        std::initializer_list<std::string> { \
-            __VA_ARGS__                      \
-        }                                    \
+#define FaseExpandListHelper(...)                                              \
+    {                                                                          \
+        std::initializer_list<std::string> {                                   \
+            __VA_ARGS__                                                        \
+        }                                                                      \
     }
 #define FaseExpandList(v) FaseExpandListHelper v
 
@@ -269,14 +271,14 @@ struct AddingUnivFuncHelper<void(Args...)> {
                             std::index_sequence_for<Args...>()));
     }
     template <size_t... Seq>
-    static std::vector<Variable> toVariables(
-            std::tuple<std::decay_t<Args>...>&& a,
-            std::index_sequence<Seq...>) {
+    static std::vector<Variable>
+    toVariables(std::tuple<std::decay_t<Args>...>&& a,
+                std::index_sequence<Seq...>) {
         return {std::make_unique<std::decay_t<Args>>(
                 std::move(std::get<Seq>(a)))...};
     }
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // FASE_H_20190215
+#endif // FASE_H_20190215

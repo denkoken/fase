@@ -105,9 +105,9 @@ struct TypeStringConverters {
 
 using TSCMap = std::map<std::type_index, TypeStringConverters>;
 
-std::vector<std::vector<std::string>> GetRunOrder(
-        const std::map<std::string, Node>& nodes,
-        const std::vector<Link>&           links);
+std::vector<std::vector<std::string>>
+GetRunOrder(const std::map<std::string, Node>& nodes,
+            const std::vector<Link>&           links);
 
 std::string GenNativeCode(const std::string& pipeline_name,
                           const CoreManager& cm, const TSCMap& utils,
@@ -126,6 +126,6 @@ bool SavePipeline(const std::string& pipeline_name, const CoreManager& cm,
 bool LoadPipelineFromFile(const std::string& filename, CoreManager* pcm,
                           const TSCMap& utils);
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // COMMON_H_20190217
+#endif // COMMON_H_20190217

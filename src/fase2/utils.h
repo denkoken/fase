@@ -140,8 +140,8 @@ public:
         }
     }
 
-    std::vector<std::vector<std::string>> getDependenceLayer(
-            const std::string& depending) const {
+    std::vector<std::vector<std::string>>
+    getDependenceLayer(const std::string& depending) const {
         if (isIndependent(depending)) return {};
 
         std::vector<std::vector<std::string>> dst;
@@ -178,6 +178,6 @@ private:
     }
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // UTILS_H_20190215
+#endif // UTILS_H_20190215

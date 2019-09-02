@@ -58,7 +58,7 @@ bool ImGuiInputValue(const char* label, std::string* v) {
 template <typename T>
 std::string GenerateExpr(const T& v) {
     std::stringstream ss;
-    ss << v;  // TODO: test for bool and char
+    ss << v; // TODO: test for bool and char
     return ss.str();
 }
 

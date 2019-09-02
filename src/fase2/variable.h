@@ -140,6 +140,6 @@ private:
     std::shared_ptr<Substance> member;
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // VARIABLE_H_20190206
+#endif // VARIABLE_H_20190206

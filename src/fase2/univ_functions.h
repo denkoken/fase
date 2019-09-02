@@ -56,6 +56,6 @@ private:
     }
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // UNIV_FUNCTIONS_H_20190219
+#endif // UNIV_FUNCTIONS_H_20190219

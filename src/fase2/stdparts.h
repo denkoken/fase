@@ -51,7 +51,7 @@ public:
     inline std::tuple<ReturnTypes...> callHard(Args&&... args);
 };
 
-}  // namespace fase
+} // namespace fase
 
 // =============================================================================
 // =========================== Non User Interface ==============================
@@ -109,8 +109,8 @@ inline auto ToHard<RetTypes...>::Pipe<Args...>::Gen(Exported&& exported) {
 
 template <typename... ReturnTypes>
 template <typename... Args>
-inline std::tuple<ReturnTypes...> HardCallableParts<ReturnTypes...>::callHard(
-        Args&&... args) {
+inline std::tuple<ReturnTypes...>
+HardCallableParts<ReturnTypes...>::callHard(Args&&... args) {
     struct Dum {
         HardCallableParts<ReturnTypes...>* that;
         void                               reset() {}
@@ -123,6 +123,6 @@ inline std::tuple<ReturnTypes...> HardCallableParts<ReturnTypes...>::callHard(
             std::forward<Args>(args)...);
 }
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // STDPARTS_H_20190318
+#endif // STDPARTS_H_20190318

@@ -1,2 +1,2 @@
-#define CATCH_CONFIG_MAIN  // Define main()
+#define CATCH_CONFIG_MAIN // Define main()
 #include "catch.hpp"

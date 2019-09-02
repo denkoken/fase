@@ -148,7 +148,7 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 2) * (3 + 2))));
 
-    {  // exportPipe test.
+    { // exportPipe test.
         auto exported = cm.exportPipe("Pipe1");
         std::vector<Variable> vs = {std::make_unique<int>(3),
                                     std::make_unique<int>()};
@@ -168,7 +168,7 @@ TEST_CASE("Core Manager test") {
         exported(vs);
     }
 
-    {  // exportPipe test, with pipe dependence.
+    { // exportPipe test, with pipe dependence.
         REQUIRE(cm["Pipe2"].supposeInput({"in1"}));
         REQUIRE(cm["Pipe2"].supposeOutput({"dst"}));
         REQUIRE(cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
@@ -193,7 +193,7 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((3 + 3) * (3 + 3))));
 
-    {  // check DependenceTree.
+    { // check DependenceTree.
         REQUIRE_FALSE(cm["Pipe1"].allocateFunc("Pipe2", "a"));
 
         REQUIRE(cm["Pipe3"].newNode("p2"));

@@ -30,6 +30,6 @@ protected:
     }
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // PARTS_BASE_H_20190223
+#endif // PARTS_BASE_H_20190223

@@ -15,4 +15,4 @@ PointerAlignment: Left
 AlignAfterOpenBracket: Align
 ColumnLimit: 80
 AllowShortFunctionsOnASingleLine: Empty
-BasedOnStyle: 'Google'
+AlwaysBreakTemplateDeclarations: Yes

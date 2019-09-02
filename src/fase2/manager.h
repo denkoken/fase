@@ -20,8 +20,7 @@ class ExportedPipe {
 public:
     ExportedPipe(Core&& core_, std::function<void(Core*)>&& reseter_,
                  std::vector<std::type_index>&& types_)
-        : core(std::move(core_)),
-          reseter(std::move(reseter_)),
+        : core(std::move(core_)), reseter(std::move(reseter_)),
           types(std::move(types_)) {}
 
     bool operator()(std::vector<Variable>& vs);
@@ -60,9 +59,9 @@ public:
 
     ExportedPipe exportPipe(const std::string& name) const;
 
-    std::vector<std::string>             getPipelineNames() const;
-    std::map<std::string, FunctionUtils> getFunctionUtils(
-            const std::string& p_name) const;
+    std::vector<std::string> getPipelineNames() const;
+    std::map<std::string, FunctionUtils>
+                          getFunctionUtils(const std::string& p_name) const;
     const DependenceTree& getDependingTree() const;
 
 private:
@@ -70,6 +69,6 @@ private:
     std::unique_ptr<Impl> pimpl;
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // MANAGER_H_20190217
+#endif // MANAGER_H_20190217

@@ -45,7 +45,7 @@ bool WrapError(const std::string& n_name, Task&& task) {
     return true;
 }
 
-}  // namespace
+} // namespace
 
 vector<vector<string>> GetRunOrder(const map<string, Node>& nodes,
                                    const vector<Link>& links) {
@@ -490,4 +490,4 @@ const std::vector<Link>& Core::getLinks() const noexcept {
     return pimpl->getLinks();
 }
 
-}  // namespace fase
+} // namespace fase

@@ -8,13 +8,13 @@ public:
     enum class Status { NONE, MAKED, COPIED, MOVED };
 
     TestClass() : status(Status::MAKED) {}
-    TestClass(const TestClass &) : status(Status::COPIED) {}
-    TestClass(TestClass &&) : status(Status::MOVED) {}
-    TestClass &operator=(const TestClass &) {
+    TestClass(const TestClass&) : status(Status::COPIED) {}
+    TestClass(TestClass&&) : status(Status::MOVED) {}
+    TestClass& operator=(const TestClass&) {
         status = Status::COPIED;
         return *this;
     }
-    TestClass &operator=(TestClass &&) {
+    TestClass& operator=(TestClass&&) {
         status = Status::MOVED;
         return *this;
     }
@@ -152,7 +152,7 @@ TEST_CASE("Variable test") {
         try {
             test_class.getReader<float>();
             REQUIRE(false);
-        } catch (WrongTypeCast &e) {
+        } catch (WrongTypeCast& e) {
             REQUIRE(e.casted_type == typeid(TestClass));
             REQUIRE(e.cast_type == typeid(float));
         }

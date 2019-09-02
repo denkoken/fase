@@ -50,9 +50,9 @@ public:
 private:
     template <typename NFD_DIALOG>
     std::string getPathWithNFDTmep(NFD_DIALOG nfd_dialog,
-                                   const nfdchar_t *filterList = NULL,
-                                   const nfdchar_t *defaultPath = NULL) {
-        nfdchar_t *outPath = NULL;
+                                   const nfdchar_t* filterList = NULL,
+                                   const nfdchar_t* defaultPath = NULL) {
+        nfdchar_t* outPath = NULL;
         nfdresult_t result = nfd_dialog(filterList, defaultPath, &outPath);
 
         if (result == NFD_CANCEL) {
@@ -74,9 +74,9 @@ private:
         return getPathWithNFDTmep(NFD_OpenDialog, "txt,json");
     }
 
-    std::string getSavePathWithNFD(const std::string &default_path = {}) {
+    std::string getSavePathWithNFD(const std::string& default_path = {}) {
         return getPathWithNFDTmep(NFD_SaveDialog, "json", default_path.c_str());
     }
 };
 
-#endif  // EXTRA_PARTS_H_20190329
+#endif // EXTRA_PARTS_H_20190329
