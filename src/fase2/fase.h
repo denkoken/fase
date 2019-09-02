@@ -85,9 +85,10 @@ private:
                 __VA_ARGS__);                                          \
     }(func, std::is_function_v<decltype(func)>);
 
-#define FaseRegisterTestIO(app, type, serializer, deserializer, def_maker)    \
-    [&] {                                                                     \
-        app.registerTextIO<type>(#type, serializer, deserializer, def_maker); \
+#define FaseRegisterTestIO(app, type, serializer, deserializer, def_maker) \
+    [&] {                                                                  \
+        app.template registerTextIO<type>(#type, serializer, deserializer, \
+                                          def_maker);                      \
     }();
 
 // =============================================================================

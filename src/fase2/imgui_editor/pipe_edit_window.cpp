@@ -791,7 +791,9 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
     if (auto raii = WindowRAII(label(win_title + " : Pipe Edit - " + p_name),
                                &opened)) {
-        if (!children.empty()) {
+        if (children.empty()) {
+            drawContent(cm, label, issues, var_editors);
+        } else {
             if (ImGui::BeginTabBar(label("pipe_tab"))) {
                 if (ImGui::BeginTabItem(label(p_name))) {
                     drawContent(cm, label, issues, var_editors);
@@ -806,8 +808,6 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
                 }
                 ImGui::EndTabBar();
             }
-        } else {
-            drawContent(cm, label, issues, var_editors);
         }
     }
 

@@ -196,17 +196,18 @@ int main() {
     auto bg_col = std::make_shared<std::vector<float>>(3);
 
     // add optional buttons.  [fase::GUIEditor]
-    app.addOptinalButton("Print",
-                         [] { std::cout << "hello world!" << std::endl; },
-                         "say \"hello world!\" in command line");
-    app.addOptinalButton("Reset BG",
-                         [bg_col] {
-                             (*bg_col)[0] = float(std::rand()) / RAND_MAX;
-                             (*bg_col)[1] = float(std::rand()) / RAND_MAX;
-                             (*bg_col)[2] = float(std::rand()) / RAND_MAX;
-                         },
-                         "Change a background color at random.\n"
-                         "The mood will change too.");
+    app.addOptinalButton(
+            "Print", [] { std::cout << "hello world!" << std::endl; },
+            "say \"hello world!\" in command line");
+    app.addOptinalButton(
+            "Reset BG",
+            [bg_col] {
+                (*bg_col)[0] = float(std::rand()) / RAND_MAX;
+                (*bg_col)[1] = float(std::rand()) / RAND_MAX;
+                (*bg_col)[2] = float(std::rand()) / RAND_MAX;
+            },
+            "Change a background color at random.\n"
+            "The mood will change too.");
 
     app.addOptinalButton(
             "Export pipe test",
@@ -259,10 +260,12 @@ int main() {
             "and reset, and call one more");
 
 #ifdef USE_NFD
-    app.addOptinalButton("Load Pipeline", [&] { app.loadPipelineWithNFD(); },
-                         "Load a pipeline with NativeFileDialog.");
-    app.addOptinalButton("Save Pipeline", [&] { app.savePipelineWithNFD(); },
-                         "Save a focused pipeline with NativeFileDialog.");
+    app.addOptinalButton(
+            "Load Pipeline", [&] { app.loadPipelineWithNFD(); },
+            "Load a pipeline with NativeFileDialog.");
+    app.addOptinalButton(
+            "Save Pipeline", [&] { app.savePipelineWithNFD(); },
+            "Save a focused pipeline with NativeFileDialog.");
 #endif
 
     // add serializer/deserializer

@@ -6,7 +6,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -18,8 +17,7 @@ namespace fase {
 namespace for_macro {
 
 template <typename Type>
-using Cleaned = typename std::remove_reference<
-        typename std::remove_const<Type>::type>::type;
+using Cleaned = std::decay_t<Type>;
 
 template <typename T, typename... Args>
 constexpr size_t ArgC(T (*)(Args...)) {
@@ -39,41 +37,58 @@ constexpr auto getTruthValue<false>() {
     return std::false_type{};
 }
 
-template <typename... Types>
-struct TypeSequence {
-    constexpr static size_t size = sizeof...(Types);
-    template <size_t N>
-    using at = Cleaned<decltype(
-            std::get<N>(std::declval<std::tuple<Types...>>()))>;
-    using tuple = std::tuple<Types...>;
-    constexpr TypeSequence() {}
-};
+template <typename... Ts>
+class TypeSequence;
 
 template <class TS, size_t Index>
-using Get = typename TS::template at<Index>;
+using Get = typename TS::template At<Index>;
 
 template <typename... Types>
 constexpr auto make_type_sequence(Types...) {
     return TypeSequence<Types...>{};
 }
 
-template <typename... Types>
-constexpr auto FromTuple(std::tuple<Types...>) {
-    return TypeSequence<Types...>{};
+template <int N, typename T>
+class RandomTypeGetter {};
+
+template <int N, typename Head, typename... Tails>
+class RandomTypeGetter<N, TypeSequence<Head, Tails...>> {
+public:
+    using T = typename RandomTypeGetter<N - 1, TypeSequence<Tails...>>::T;
+};
+
+template <typename Head, typename... Tails>
+class RandomTypeGetter<0, TypeSequence<Head, Tails...>> {
+public:
+    using T = Head;
+};
+
+template <int N>
+class RandomTypeGetter<N, TypeSequence<>> {
+public:
+    using T = void;
+};
+
+template <typename... Ts>
+class TypeSequence {
+public:
+    static constexpr int Size = sizeof...(Ts);
+    template <int N>
+    using At = typename RandomTypeGetter<N, TypeSequence>::T;
+    template <typename... Us>
+    using Add = TypeSequence<Ts..., Us...>;
+};
+
+template <class A, class B>
+constexpr TypeSequence<> joint(A &&, B &&);
+
+template <class TypeSequenceA, typename... BTypes>
+constexpr auto joint(TypeSequenceA &&, TypeSequence<BTypes...> &&) {
+    return typename Cleaned<TypeSequenceA>::template Add<BTypes...>{};
 }
 
-template <typename... TypeSequences>
-constexpr auto joint0() {
-    if constexpr (sizeof...(TypeSequences) == 0) {
-        return TypeSequence<>();
-    }
-    return FromTuple(std::tuple_cat(typename TypeSequences::tuple{}...));
-}
-
-template <typename... TypeSequences>
-constexpr auto joint(TypeSequences...) {
-    return joint0<TypeSequences...>();
-}
+template <class A, class B>
+using Joint = decltype(jointTypeSequences(A{}, B{}));
 
 // constexpr Array
 template <typename T, size_t N>
@@ -587,7 +602,7 @@ template <typename Type, class InfoType, class ExistingDefault, class IsBrace,
 inline bool GenVariableFromString(const std::string& code, Variable* v,
                                   std::index_sequence<Seq...>) {
     if constexpr (ExistingDefault::value) {
-        if constexpr (InfoType::size == 0) {
+        if constexpr (InfoType::Size == 0) {
             // Empty Init
             BraceMake<Type>(v);
             return true;
@@ -748,7 +763,7 @@ public:
         convert(arg_code, &arg_type_reprs, &default_arg_reprs, &arg_names);
 
         constexpr Array<size_t, N> default_v_arg_c = {
-                {Get<ArgInfoTuples, Seq>::size...}};
+                {Get<ArgInfoTuples, Seq>::Size...}};
 
 #ifndef NDEBUG
         std::clog << "== fb auto adder debug print begins ==" << std::endl;
