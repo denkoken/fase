@@ -90,7 +90,7 @@ inline auto ToHard<RetTypes...>::Pipe<Args...>::Gen(Exported&& exported) {
             if (!soft(arg_vs)) {
                 throw std::runtime_error(
                         "HardExportPipe : input/output type isn't "
-                        "match!");
+                        "match or empty pipeline was called!");
             }
             std::vector<Variable*> ret_ps;
             for (std::size_t i = arg_vs.size() - sizeof...(RetTypes);

@@ -473,6 +473,9 @@ const PipelineAPI& CoreManager::Impl::operator[](const string& c_name) const {
 }
 
 bool ExportedPipe::operator()(std::vector<Variable>& vs) {
+    if (!reseter) {
+        return false;
+    }
     if (vs.size() != types.size()) {
         return false;
     }
@@ -487,6 +490,9 @@ bool ExportedPipe::operator()(std::vector<Variable>& vs) {
 }
 
 ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
+    if (!wrapeds.count(e_c_name)) {
+        return {{}, {}, {}};
+    }
     auto d_layer = dependence_tree.getDependenceLayer(e_c_name);
     d_layer.emplace(d_layer.begin(), vector<string>{e_c_name});
 
