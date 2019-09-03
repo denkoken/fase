@@ -234,19 +234,33 @@ json11::Json getNodesJson(const PipelineAPI& pipe,
     return nodes_json_map;
 }
 
-bool LoadInOutputFromJson(const json11::Json& pipe_json,
-                          PipelineAPI& pipe_api) {
+bool LoadInOutputFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
+                          const TSCMap& tsc_map) {
     vector<string> arg_names;
     for (auto& arg_json : pipe_json[kInputKey].array_items()) {
         arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
     }
     pipe_api.supposeInput(arg_names);
+    for (size_t i = 0; i < arg_names.size(); i++) {
+        auto& arg_json = pipe_json[kInputKey].array_items()[i];
+        Variable v;
+        strToVar(arg_json[kNodeArgValueKey].string_value(),
+                 arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
+        pipe_api.setArgument(InputNodeName(), i, v);
+    }
     arg_names.clear();
 
     for (auto& arg_json : pipe_json[kOutputKey].array_items()) {
         arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
     }
     pipe_api.supposeOutput(arg_names);
+    for (size_t i = 0; i < arg_names.size(); i++) {
+        auto& arg_json = pipe_json[kOutputKey].array_items()[i];
+        Variable v;
+        strToVar(arg_json[kNodeArgValueKey].string_value(),
+                 arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
+        pipe_api.setArgument(OutputNodeName(), i, v);
+    }
     return true;
 }
 
@@ -272,7 +286,7 @@ bool LoadNodeFromJson(const string& n_name, const json11::Json& node_json,
 
 bool LoadPipelineFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
                           const TSCMap& tsc_map) {
-    LoadInOutputFromJson(pipe_json, pipe_api);
+    LoadInOutputFromJson(pipe_json, pipe_api, tsc_map);
 
     auto f_util_map = pipe_api.getFunctionUtils();
 
