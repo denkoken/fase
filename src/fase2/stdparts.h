@@ -90,7 +90,7 @@ inline auto ToHard<RetTypes...>::Pipe<Args...>::Gen(Exported&& exported) {
             if (!soft(arg_vs)) {
                 throw std::runtime_error(
                         "HardExportPipe : input/output type isn't "
-                        "match or empty pipeline was called!");
+                        "match!");
             }
             std::vector<Variable*> ret_ps;
             for (std::size_t i = arg_vs.size() - sizeof...(RetTypes);
@@ -104,6 +104,9 @@ inline auto ToHard<RetTypes...>::Pipe<Args...>::Gen(Exported&& exported) {
         }
         std::decay_t<Exported> soft;
     };
+    if (!exported) {
+        throw std::runtime_error("HardExportPipe : Empty pipeline was wraped");
+    }
     return Dst{std::forward<Exported>(exported)};
 }
 

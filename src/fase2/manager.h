@@ -24,6 +24,9 @@ public:
           types(std::move(types_)) {}
 
     bool operator()(std::vector<Variable>& vs);
+         operator bool() {
+        return bool(reseter);
+    }
     void reset() {
         reseter(&core);
     }
