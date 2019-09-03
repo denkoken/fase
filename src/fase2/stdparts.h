@@ -117,6 +117,9 @@ HardCallableParts<ReturnTypes...>::callHard(Args&&... args) {
     struct Dum {
         HardCallableParts<ReturnTypes...>* that;
         void                               reset() {}
+                                           operator bool() {
+            return true;
+        }
         bool operator()(std::vector<Variable>& vs) {
             auto [guard, pcm] = that->getWriter();
             return (*pcm)[pcm->getFocusedPipeline()].call(vs);
