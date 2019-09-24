@@ -152,7 +152,14 @@ struct Function {
 class CoreManager::Impl {
 public:
     Impl() = default;
+    Impl(const Impl&) = default;
+    Impl(Impl&) = default;
+    Impl(Impl&&) = delete;
+    Impl& operator=(const Impl&) = default;
+    Impl& operator=(Impl&) = default;
+    Impl& operator=(Impl&&) = delete;
     ~Impl() = default;
+
     bool addUnivFunc(const UnivFunc& func, const std::string& name,
                      std::vector<Variable>&& default_args,
                      FunctionUtils&& utils);
@@ -585,6 +592,20 @@ CoreManager::Impl::getFunctionUtils(const string& p_name) const {
 // ============================== Pimpl Pattern ================================
 
 CoreManager::CoreManager() : pimpl(std::make_unique<Impl>()) {}
+CoreManager::CoreManager(const CoreManager& a)
+    : pimpl(std::make_unique<Impl>(*a.pimpl)) {}
+CoreManager::CoreManager(CoreManager& a)
+    : pimpl(std::make_unique<Impl>(*a.pimpl)) {}
+CoreManager::CoreManager(CoreManager&&) = default;
+CoreManager& CoreManager::operator=(const CoreManager& a) {
+    *pimpl = *a.pimpl;
+    return *this;
+}
+CoreManager& CoreManager::operator=(CoreManager& a) {
+    *pimpl = *a.pimpl;
+    return *this;
+}
+CoreManager& CoreManager::operator=(CoreManager&&) = default;
 CoreManager::~CoreManager() = default;
 
 bool CoreManager::addUnivFunc(const UnivFunc& func, const string& c_name,

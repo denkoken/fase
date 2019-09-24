@@ -42,11 +42,13 @@ void SetGuiStyle() {
     style.FrameBorderSize = 0.3f;
 }
 
-}  // namespace
+} // namespace
 
 class ImGuiEditor::Impl {
 public:
-    Impl(ImGuiEditor* parent) : pparent(parent) {}
+    Impl(std::function<std::shared_ptr<PartsBase::API>()>&& api) {
+        resetPartsAPI(std::move(api));
+    }
 
     void addOptinalButton(std::string&& name, std::function<void()>&& callback,
                           std::string&& description);
@@ -58,9 +60,13 @@ public:
 
     bool addVarEditor(std::type_index&& type, VarEditorWraped&& f);
 
+    void resetPartsAPI(std::function<std::shared_ptr<PartsBase::API>()>&& api) {
+        api_getter = std::move(api);
+    }
+
 private:
     vector<string> opened_pipelines;
-    ImGuiEditor* const pparent;
+    std::function<std::shared_ptr<PartsBase::API>()> api_getter;
 
     Issues issues;
 
@@ -95,7 +101,7 @@ void ImGuiEditor::Impl::addOptinalButton(std::string&& name,
 
 bool ImGuiEditor::Impl::drawEditWindows(const string& win_title,
                                         LabelWrapper label) {
-    auto [lock, pcm] = pparent->getReader(16ms);
+    auto [lock, pcm] = api_getter()->getReader(16ms);
     if (!lock) {
         return true;
     }
@@ -116,7 +122,7 @@ bool ImGuiEditor::Impl::drawEditWindows(const string& win_title,
 }
 
 bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
-    auto [lock, pcm] = pparent->getReader(16ms);
+    auto [lock, pcm] = api_getter()->getReader(16ms);
     if (!lock) {
         return false;
     }
@@ -166,8 +172,8 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
             filename_it.set(p_name + ".json");
         }
         if (code_f) {
-            native_code = GenNativeCode(p_name, *pcm,
-                                        pparent->getConverterMap(), p_name);
+            native_code = GenNativeCode(
+                    p_name, *pcm, api_getter()->getConverterMap(), p_name);
         }
     }
 
@@ -177,7 +183,7 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
         filename_it.draw(label("filename"));
         if (ImGui::Button(label("OK"))) {
             SavePipeline(p_name, *pcm, filename_it.text(),
-                         pparent->getConverterMap());
+                         api_getter()->getConverterMap());
             ImGui::CloseCurrentPopup();
         }
     }
@@ -192,10 +198,11 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
     if (auto p_raii = BeginPopupModal(label("load popup"), load_f)) {
         filename_it.draw(label("filename"));
         if (ImGui::Button(label("OK"))) {
-            issues.emplace_back([filename = filename_it.text(),
-                                 this](auto pcm) {
-                LoadPipelineFromFile(filename, pcm, pparent->getConverterMap());
-            });
+            issues.emplace_back(
+                    [filename = filename_it.text(), this](auto pcm) {
+                        LoadPipelineFromFile(filename, pcm,
+                                             api_getter()->getConverterMap());
+                    });
             ImGui::CloseCurrentPopup();
         }
     }
@@ -225,7 +232,7 @@ bool ImGuiEditor::Impl::drawControlWindow(const string& win_title,
 
 bool ImGuiEditor::Impl::doIssues() {
     if (issues.empty()) return true;
-    auto [lock, pcm] = pparent->getWriter(16ms);
+    auto [lock, pcm] = api_getter()->getWriter(16ms);
     if (!pcm) return false;
     for (auto issue : issues) {
         issue(pcm.get());
@@ -261,7 +268,31 @@ bool ImGuiEditor::Impl::addVarEditor(std::type_index&& type,
 
 // ============================== Pimpl Pattern ================================
 
-ImGuiEditor::ImGuiEditor() : pimpl(std::make_unique<Impl>(this)) {}
+ImGuiEditor::ImGuiEditor()
+    : pimpl(std::make_unique<Impl>([this] { return getAPI(); })) {}
+ImGuiEditor::ImGuiEditor(const ImGuiEditor& a)
+    : pimpl(std::make_unique<Impl>(*a.pimpl)) {
+    pimpl->resetPartsAPI([this] { return getAPI(); });
+}
+ImGuiEditor::ImGuiEditor(ImGuiEditor& a)
+    : pimpl(std::make_unique<Impl>(*a.pimpl)) {
+    pimpl->resetPartsAPI([this] { return getAPI(); });
+}
+ImGuiEditor::ImGuiEditor(ImGuiEditor&&) = default;
+ImGuiEditor& ImGuiEditor::operator=(const ImGuiEditor& a) {
+    *pimpl = *a.pimpl;
+    pimpl->resetPartsAPI([this] { return getAPI(); });
+    return *this;
+}
+ImGuiEditor& ImGuiEditor::operator=(ImGuiEditor& a) {
+    EditWindow c;
+    EditWindow b;
+    b = c;
+    *pimpl = *a.pimpl;
+    pimpl->resetPartsAPI([this] { return getAPI(); });
+    return *this;
+}
+ImGuiEditor& ImGuiEditor::operator=(ImGuiEditor&&) = default;
 ImGuiEditor::~ImGuiEditor() = default;
 
 void ImGuiEditor::addOptinalButton(std::string&& name,
@@ -284,4 +315,4 @@ bool ImGuiEditor::addVarEditor(std::type_index&& type, VarEditorWraped&& f) {
     return pimpl->addVarEditor(std::move(type), std::move(f));
 }
 
-}  // namespace fase
+} // namespace fase

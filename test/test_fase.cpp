@@ -26,7 +26,7 @@ void Times(const int& a, const int& b, int& dst) {
 class BareCore : public PartsBase {
 public:
     auto getCoreManager() {
-        return getWriter();
+        return getAPI()->getWriter();
     }
 };
 

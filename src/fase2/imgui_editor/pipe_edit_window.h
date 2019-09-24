@@ -81,6 +81,6 @@ private:
                      VarEditors* var_editors);
 };
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // PIPE_EDIT_WINDOW_H_20190305
+#endif // PIPE_EDIT_WINDOW_H_20190305

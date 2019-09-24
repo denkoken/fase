@@ -60,18 +60,18 @@ public:
 namespace fase {
 
 inline ExportedPipe ExportableParts ::exportPipe() const {
-    auto [guard, pcm] = getReader();
+    auto [guard, pcm] = getAPI()->getReader();
     return pcm->exportPipe(pcm->getFocusedPipeline());
 }
 
 inline bool CallableParts::call(std::vector<Variable>& args) {
-    auto [guard, pcm] = getWriter();
+    auto [guard, pcm] = getAPI()->getWriter();
     return (*pcm)[pcm->getFocusedPipeline()].call(args);
 }
 
 inline bool CallableParts::call(const std::string&     pipeline_name,
                                 std::vector<Variable>& args) {
-    auto [guard, pcm] = getWriter();
+    auto [guard, pcm] = getAPI()->getWriter();
     return (*pcm)[pipeline_name].call(args);
 }
 
@@ -121,7 +121,7 @@ HardCallableParts<ReturnTypes...>::callHard(Args&&... args) {
             return true;
         }
         bool operator()(std::vector<Variable>& vs) {
-            auto [guard, pcm] = that->getWriter();
+            auto [guard, pcm] = that->getAPI()->getWriter();
             return (*pcm)[pcm->getFocusedPipeline()].call(vs);
         }
     };

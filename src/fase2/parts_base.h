@@ -11,19 +11,25 @@ namespace fase {
 
 class PartsBase {
 protected:
+    class API {
+    public:
+        virtual std::tuple<std::shared_lock<std::shared_timed_mutex>,
+                           std::shared_ptr<const CoreManager>>
+        getReader(const std::chrono::nanoseconds& wait_time =
+                          std::chrono::nanoseconds{-1}) const = 0;
+        virtual std::tuple<std::unique_lock<std::shared_timed_mutex>,
+                           std::shared_ptr<CoreManager>>
+        getWriter(const std::chrono::nanoseconds& wait_time =
+                          std::chrono::nanoseconds{-1}) = 0;
+
+        virtual const TSCMap& getConverterMap() = 0;
+    };
+
     PartsBase() = default;
     virtual ~PartsBase() = default;
 
-    virtual std::tuple<std::shared_lock<std::shared_timed_mutex>,
-                       std::shared_ptr<const CoreManager>>
-    getReader(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) const = 0;
-    virtual std::tuple<std::unique_lock<std::shared_timed_mutex>,
-                       std::shared_ptr<CoreManager>>
-    getWriter(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) = 0;
-
-    virtual const TSCMap& getConverterMap() = 0;
+    virtual std::shared_ptr<API>       getAPI() = 0;
+    virtual std::shared_ptr<const API> getAPI() const = 0;
 
     virtual bool init() {
         return true;

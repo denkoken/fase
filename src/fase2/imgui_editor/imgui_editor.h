@@ -21,6 +21,12 @@ using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 class ImGuiEditor : public PartsBase {
 public:
     ImGuiEditor();
+    ImGuiEditor(const ImGuiEditor&);
+    ImGuiEditor(ImGuiEditor&);
+    ImGuiEditor(ImGuiEditor&&);
+    ImGuiEditor& operator=(const ImGuiEditor&);
+    ImGuiEditor& operator=(ImGuiEditor&);
+    ImGuiEditor& operator=(ImGuiEditor&&);
     ~ImGuiEditor();
 
     /**
@@ -83,12 +89,12 @@ private:
 
 template <typename T>
 bool ImGuiEditor::addVarEditor(VarEditor<T>&& var_editor) {
-    return addVarEditor(
-            typeid(T), [var_editor](auto c, const Variable& var) -> Variable {
-                return var_editor(c, *var.getReader<T>());
-            });
+    return addVarEditor(typeid(T),
+                        [var_editor](auto c, const Variable& var) -> Variable {
+                            return var_editor(c, *var.getReader<T>());
+                        });
 }
 
-}  // namespace fase
+} // namespace fase
 
-#endif  // IMGUI_EDITOR_H_20190223
+#endif // IMGUI_EDITOR_H_20190223

@@ -18,11 +18,14 @@ public:
               std::map<std::string, GuiNode>& node_gui_utils, Issues* issues);
 
     constexpr static float SLOT_HOVER_RADIUS = 8.f;
+
 private:
     constexpr static ImU32 LINK_COLOR = IM_COL32(200, 200, 100, 255);
     // const float ARROW_BEZIER_SIZE = 80.f;
     constexpr static float ARROW_HEAD_SIZE = 15.f;
-    const float ARROW_HEAD_X_OFFSET = -ARROW_HEAD_SIZE * std::sqrt(3.f) * 0.5f;
+    constexpr static float SQRT3 = 1.7320508f;
+    constexpr static float ARROW_HEAD_X_OFFSET =
+            -ARROW_HEAD_SIZE * SQRT3 * 0.5f;
 
     std::string hovered_slot_name_prev = "";
     std::string hovered_slot_name = "";
@@ -35,6 +38,6 @@ private:
     void drawLink(const ImVec2& s_pos, const ImVec2& d_pos,
                   const std::size_t& d_id);
 };
-}  // namespace fase
+} // namespace fase
 
-#endif  // LINKS_VIEW_H_20190308
+#endif // LINKS_VIEW_H_20190308

@@ -15,33 +15,35 @@ public:
             return;
         }
 
-        auto [guard, pcm] = getWriter(std::chrono::seconds(3));
+        auto [guard, pcm] = getAPI()->getWriter(std::chrono::seconds(3));
         if (!pcm) {
             std::clog << "NFDParts::getWriter is timeout." << std::endl;
             return;
         }
 
-        if (!LoadPipelineFromFile(path, pcm.get(), getConverterMap())) {
+        if (!LoadPipelineFromFile(path, pcm.get(),
+                                  getAPI()->getConverterMap())) {
             std::cerr << "Loading pipeline from " << path << " failed."
                       << std::endl;
         }
     }
 
     void savePipelineWithNFD() {
-        auto pipe_name = std::get<1>(getReader(std::chrono::seconds(3)))
-                                 ->getFocusedPipeline();
+        auto pipe_name =
+                std::get<1>(getAPI()->getReader(std::chrono::seconds(3)))
+                        ->getFocusedPipeline();
         std::string path = getSavePathWithNFD(pipe_name);
         if (path.empty()) {
             return;
         }
 
-        auto [guard, pcm] = getReader(std::chrono::seconds(3));
+        auto [guard, pcm] = getAPI()->getReader(std::chrono::seconds(3));
         if (!pcm) {
             std::clog << "NFDParts::getReader is timeout." << std::endl;
             return;
         }
 
-        if (!SavePipeline(pipe_name, *pcm, path, getConverterMap())) {
+        if (!SavePipeline(pipe_name, *pcm, path, getAPI()->getConverterMap())) {
             std::cerr << "Saving pipeline to " << path << " failed."
                       << std::endl;
         }

@@ -13,6 +13,8 @@
 
 namespace fase {
 
+class FaseMembers;
+
 // =============================================================================
 // =========================== User Interface ==================================
 // =============================================================================
@@ -61,21 +63,22 @@ public:
                         std::function<std::string(const T&)>&& def_maker);
 
 private:
-    std::shared_ptr<CoreManager>    pcm;
-    mutable std::shared_timed_mutex cm_mutex;
+    class APIImpl;
 
-    TSCMap converter_map;
+    Variable api_impl;
 
-    std::tuple<std::shared_lock<std::shared_timed_mutex>,
-               std::shared_ptr<const CoreManager>>
-    getReader(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) const override;
-    std::tuple<std::unique_lock<std::shared_timed_mutex>,
-               std::shared_ptr<CoreManager>>
-    getWriter(const std::chrono::nanoseconds& wait_time =
-                      std::chrono::nanoseconds{-1}) override;
+    APIImpl& getAPIImpl() {
+        return *api_impl.getWriter<APIImpl>();
+    }
 
-    const TSCMap& getConverterMap() override;
+    std::shared_ptr<PartsBase::API> getAPI() override {
+        return api_impl.getWriter<APIImpl>();
+    }
+    std::shared_ptr<const PartsBase::API> getAPI() const override {
+        return api_impl.getReader<APIImpl>();
+    }
+
+    const TSCMap& getConverterMap();
 };
 
 #define FaseAddUnivFunction(func, arg_types, arg_names, ...)                   \
@@ -115,6 +118,46 @@ std::vector<Variable> GetDefaultValueVariables() {
 
 void SetupTypeConverters(std::map<std::type_index, TypeStringConverters>*);
 
+template <class... Parts>
+class Fase<Parts...>::APIImpl : public PartsBase::API {
+public:
+    APIImpl() {}
+    APIImpl(APIImpl& a)
+        : pcm(std::make_shared<CoreManager>(*a.pcm)),
+          converter_map(a.converter_map) {}
+    APIImpl(const APIImpl& a)
+        : pcm(std::make_shared<CoreManager>(*a.pcm)),
+          converter_map(a.converter_map) {}
+    APIImpl& operator=(APIImpl& a) {
+        pcm = std::make_shared<CoreManager>(*a.pcm);
+        converter_map = a.converter_map;
+        return *this;
+    }
+    APIImpl& operator=(const APIImpl& a) {
+        pcm = std::make_shared<CoreManager>(*a.pcm);
+        converter_map = a.converter_map;
+        return *this;
+    }
+    virtual ~APIImpl() {}
+
+    std::shared_ptr<CoreManager>    pcm = std::make_shared<CoreManager>();
+    mutable std::shared_timed_mutex cm_mutex;
+
+    TSCMap converter_map;
+
+    std::tuple<std::shared_lock<std::shared_timed_mutex>,
+               std::shared_ptr<const CoreManager>>
+    getReader(const std::chrono::nanoseconds& wait_time) const override;
+
+    std::tuple<std::unique_lock<std::shared_timed_mutex>,
+               std::shared_ptr<CoreManager>>
+    getWriter(const std::chrono::nanoseconds& wait_time) override;
+
+    const TSCMap& getConverterMap() override {
+        return converter_map;
+    }
+};
+
 template <typename... Args>
 std::vector<bool> GetIsInputArgs() {
     return {!(std::is_lvalue_reference_v<Args> &&
@@ -124,7 +167,7 @@ std::vector<bool> GetIsInputArgs() {
 
 template <class... Parts>
 inline Fase<Parts...>::Fase()
-    : Parts()..., pcm(std::make_shared<CoreManager>()) {
+    : Parts()..., api_impl(std::make_unique<APIImpl>()) {
     auto succeeded_flags = {std::make_tuple(std::string(typeid(Parts).name()),
                                             Parts::init())...};
     for (auto [name, f] : succeeded_flags) {
@@ -133,10 +176,10 @@ inline Fase<Parts...>::Fase()
                       << std::endl;
         }
     }
-    SetupTypeConverters(&converter_map);
+    SetupTypeConverters(&getAPIImpl().converter_map);
 
     for (auto& adder : for_macro::FuncNodeStorer::func_builder_adders) {
-        adder(pcm.get());
+        adder(getAPIImpl().pcm.get());
     }
 }
 
@@ -150,9 +193,9 @@ Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
                             std::vector<Variable>&& default_args) {
     std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
-    return pcm->addUnivFunc(func, f_name, std::move(default_args),
-                            {arg_names, types, is_input_args, pure,
-                             arg_types_repr, description});
+    return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
+                                         {arg_names, types, is_input_args, pure,
+                                          arg_types_repr, description});
 }
 
 template <class... Parts>
@@ -170,9 +213,9 @@ Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
     std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
     std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
-    return pcm->addUnivFunc(func, f_name, std::move(default_args),
-                            {arg_names, types, is_input_args, pure,
-                             arg_types_repr, description});
+    return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
+                                         {arg_names, types, is_input_args, pure,
+                                          arg_types_repr, description});
 }
 
 template <class... Parts>
@@ -182,24 +225,24 @@ inline bool Fase<Parts...>::registerTextIO(
         std::function<std::string(const T&)>&& serializer,
         std::function<T(const std::string&)>&& deserializer,
         std::function<std::string(const T&)>&& def_maker) {
-    converter_map[typeid(T)].serializer =
+    getAPIImpl().converter_map[typeid(T)].serializer =
             [serializer = std::move(serializer)](const Variable& v) {
                 return serializer(*v.getReader<T>());
             };
 
-    converter_map[typeid(T)].deserializer =
+    getAPIImpl().converter_map[typeid(T)].deserializer =
             [deserializer = std::move(deserializer)](Variable&          v,
                                                      const std::string& str) {
                 v.create<T>(deserializer(str));
             };
 
-    converter_map[typeid(T)].checker = [](const Variable& v) {
+    getAPIImpl().converter_map[typeid(T)].checker = [](const Variable& v) {
         return v.isSameType<T>();
     };
 
-    converter_map[typeid(T)].name = name;
+    getAPIImpl().converter_map[typeid(T)].name = name;
 
-    converter_map[typeid(T)].def_maker =
+    getAPIImpl().converter_map[typeid(T)].def_maker =
             [def_maker = std::move(def_maker)](const Variable& v) {
                 return def_maker(*v.getReader<T>());
             };
@@ -209,7 +252,8 @@ inline bool Fase<Parts...>::registerTextIO(
 template <class... Parts>
 inline std::tuple<std::shared_lock<std::shared_timed_mutex>,
                   std::shared_ptr<const CoreManager>>
-Fase<Parts...>::getReader(const std::chrono::nanoseconds& wait_time) const {
+Fase<Parts...>::APIImpl::getReader(
+        const std::chrono::nanoseconds& wait_time) const {
     std::shared_lock<std::shared_timed_mutex> lock(cm_mutex, wait_time);
     if (lock)
         return {std::move(lock),
@@ -220,17 +264,12 @@ Fase<Parts...>::getReader(const std::chrono::nanoseconds& wait_time) const {
 template <class... Parts>
 inline std::tuple<std::unique_lock<std::shared_timed_mutex>,
                   std::shared_ptr<CoreManager>>
-Fase<Parts...>::getWriter(const std::chrono::nanoseconds& wait_time) {
+Fase<Parts...>::APIImpl::getWriter(const std::chrono::nanoseconds& wait_time) {
     std::unique_lock<std::shared_timed_mutex> lock(cm_mutex, wait_time);
     if (lock) {
         return {std::move(lock), pcm};
     }
     return {};
-}
-
-template <class... Parts>
-inline const TSCMap& Fase<Parts...>::getConverterMap() {
-    return converter_map;
 }
 
 #define FaseExpandListHelper(...)                                              \
