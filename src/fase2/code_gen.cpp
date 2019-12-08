@@ -13,7 +13,7 @@
 namespace fase {
 
 using std::string, std::vector, std::map, std::type_index;
-using size_t = size_t;
+using size_t = std::size_t;
 
 class ENDL {};
 class UIL {};
@@ -22,6 +22,20 @@ class DIL {};
 static constexpr ENDL endl;
 static constexpr UIL uil;
 static constexpr DIL dil;
+
+class BrokenPipeError : public std::runtime_error {
+public:
+    BrokenPipeError(const string& m) : std::runtime_error(m) {}
+
+    BrokenPipeError(BrokenPipeError&) = default;
+    BrokenPipeError(const BrokenPipeError&) = default;
+    BrokenPipeError(BrokenPipeError&&) = default;
+    BrokenPipeError& operator=(BrokenPipeError&) = default;
+    BrokenPipeError& operator=(const BrokenPipeError&) = default;
+    BrokenPipeError& operator=(BrokenPipeError&&) = default;
+
+    virtual ~BrokenPipeError() = default;
+};
 
 class MyStream {
 public:
@@ -64,6 +78,30 @@ private:
     const std::string indent;
     std::stringstream ss;
     int indent_level = 0;
+};
+
+class TSCMapW {
+public:
+    TSCMapW(const TSCMap& tsc_map) : map(tsc_map) {}
+
+    virtual ~TSCMapW() = default;
+
+    auto& at(const std::type_index& k) const {
+        if (!map.count(k)) {
+            throw BrokenPipeError((HEAD + k.name() + TAIL).c_str());
+        }
+        return map.at(k);
+    }
+
+    auto count(const std::type_index& k) const {
+        return map.count(k);
+    }
+
+private:
+    const TSCMap& map;
+    const std::string HEAD = "Unset RegisterTextIO of user-defined type : ";
+    const std::string TAIL =
+            ".\nSet RegisterTextIO with FaseRegisterTextIO() macro.";
 };
 
 namespace {
@@ -125,7 +163,7 @@ T PopFront(vector<vector<T>>& set_array) {
     return dst;
 }
 
-string getValStr(const Variable& v, const TSCMap& tsc_map) {
+string getValStr(const Variable& v, const TSCMapW& tsc_map) {
     if (!tsc_map.count(v.getType())) {
         return "";
     }
@@ -164,7 +202,7 @@ searchArgName(const PipelineAPI& pipe_api, const string& node_name,
 vector<string> genLocalVariableDef(MyStream& native_code,
                                    const PipelineAPI& pipe_api,
                                    const string& node_name,
-                                   const TSCMap& tsc_map) {
+                                   const TSCMapW& tsc_map) {
     const Node& node = pipe_api.getNodes().at(node_name);
     const map<string, FunctionUtils> functions = pipe_api.getFunctionUtils();
     const FunctionUtils& function = functions.at(node.func_name);
@@ -203,7 +241,7 @@ vector<string> genLocalVariableDef(MyStream& native_code,
 void genFuncDeclaration(MyStream& code_stream, const string& func_name,
                         const map<string, Node>& nodes,
                         const map<string, FunctionUtils> functions,
-                        const TSCMap& tsc_map) {
+                        const TSCMapW& tsc_map) {
     const Node& in_n = nodes.at(InputNodeName());
     // const Node& out_n = nodes.at(OutputNodeName());
 
@@ -288,7 +326,7 @@ void genOutputAssignment(MyStream& native_code, const PipelineAPI& pipe_api,
 }
 
 bool genFunctionCode(MyStream& native_code, const string& p_name,
-                     const CoreManager& cm, const TSCMap& tsc_map,
+                     const CoreManager& cm, const TSCMapW& tsc_map,
                      const string& entry_name) {
     auto functions = cm.getFunctionUtils(p_name);
     auto& nodes = cm[p_name].getNodes();
@@ -389,8 +427,9 @@ void GenSetters(MyStream& native_code,
 string GenNativeCode(const string& p_name, const CoreManager& cm,
                      const TSCMap& tsc_map, const string& entry_name,
                      const string& indent) {
+    MyStream native_code{indent};
+    TSCMapW tsc_map_wraped(tsc_map);
     try {
-        MyStream native_code{indent};
 
         native_code << "class " << entry_name << " {" << endl;
         native_code << "private:" << uil << endl;
@@ -409,7 +448,7 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
         // write sub pipeline function Definitions.
         for (auto iter = sub_pipes.rbegin(); iter != sub_pipes.rend(); iter++) {
             for (auto& sub_pipe_name : *iter) {
-                genFunctionCode(native_code, sub_pipe_name, cm, tsc_map,
+                genFunctionCode(native_code, sub_pipe_name, cm, tsc_map_wraped,
                                 sub_pipe_name);
                 native_code << endl << endl;
             }
@@ -419,19 +458,23 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
         GenSetters(native_code, non_pure_node_map);
 
         // write main pipeline function Definitions.
-        genFunctionCode(native_code, p_name, cm, tsc_map, "operator()");
+        genFunctionCode(native_code, p_name, cm, tsc_map_wraped, "operator()");
 
         native_code << dil << endl << "};";
 
         return native_code.str();
 
+    } catch (BrokenPipeError& e) {
+        return e.what();
     } catch (std::exception& e) {
-        std::cerr << "genNativeCore() Error : " << e.what() << std::endl;
-        return "Failed to generate code.";
+        std::cerr << "genNativeCode() Error : " << e.what() << std::endl;
+        return native_code.str() + "\n" + string(80, '=') +
+               "\nFailed to generate code.";
     } catch (...) {
-        std::cerr << "genNativeCore() Error : something went wrong."
+        std::cerr << "genNativeCode() Error : something went wrong."
                   << std::endl;
-        return "Failed to generate code.";
+        return native_code.str() + "\n" + string(80, '=') +
+               "\nFailed to generate code.";
     }
 }
 
