@@ -131,6 +131,8 @@ TEST_CASE("Variable test") {
         c.create<TestClass>();
         c.getWriter<TestClass>()->clear();
         c.copyTo(b);
+        REQUIRE(a.getReader<TestClass>().get() ==
+                b.getReader<TestClass>().get());
         REQUIRE(a.getReader<TestClass>()->isCopied());
         REQUIRE(b.getReader<TestClass>()->isCopied());
         REQUIRE(c.getReader<TestClass>()->isNone());
