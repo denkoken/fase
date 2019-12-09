@@ -88,7 +88,7 @@ int main() {
         return {};
     });
 
-    FaseRegisterTestIO(
+    FaseRegisterTextIO(
             app, cv::Mat, [](const cv::Mat&) -> std::string { return {}; },
             [](const std::string&) -> cv::Mat { return {}; },
             [](const cv::Mat&) -> std::string { return "cv::Mat()"; });
