@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <typeindex>
+#include <vector>
 
 #include "exceptions.h"
 
@@ -139,6 +140,24 @@ private:
 
     std::shared_ptr<Substance> member;
 };
+
+inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
+    dst->clear();
+    dst->resize(src.size());
+    for (size_t i = 0; i < src.size(); i++) {
+        (*dst)[i] = src[i].ref();
+    }
+}
+
+inline void RefCopy(std::vector<Variable>::iterator&& begin,
+                    std::vector<Variable>::iterator&& end,
+                    std::vector<Variable>*            dst) {
+    dst->clear();
+    dst->reserve(std::size_t(end - begin));
+    for (auto it = begin; it != end; it++) {
+        dst->emplace_back(it->ref());
+    }
+}
 
 } // namespace fase
 
