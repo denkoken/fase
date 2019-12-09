@@ -6,6 +6,8 @@
 #include <string>
 #include <typeindex>
 
+#include "utils.h"
+
 namespace fase {
 
 class WrongTypeCast : public std::logic_error {
@@ -14,8 +16,8 @@ public:
         : std::logic_error("WrongTypeCast"), cast_type(cast_type_),
           casted_type(casted_type_),
           err_message(std::string("fase::Variable : Invalid cast (") +
-                      cast_type_.name() + std::string(" vs ") +
-                      casted_type_.name() + std::string(")")) {}
+                      type_name(cast_type_) + std::string(" vs ") +
+                      type_name(casted_type_) + std::string(")")) {}
 
     ~WrongTypeCast() {}
 

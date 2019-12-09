@@ -168,8 +168,8 @@ std::vector<bool> GetIsInputArgs() {
 template <class... Parts>
 inline Fase<Parts...>::Fase()
     : Parts()..., api_impl(std::make_unique<APIImpl>()) {
-    auto succeeded_flags = {std::make_tuple(std::string(typeid(Parts).name()),
-                                            Parts::init())...};
+    auto succeeded_flags = {std::make_tuple(
+            std::string(type_name(typeid(Parts))), Parts::init())...};
     for (auto [name, f] : succeeded_flags) {
         if (!f) {
             std::cerr << "Fase Parts : \"" + name + "\"'s init() is failed"

@@ -2,6 +2,8 @@
 #ifndef UTILS_H_20190215
 #define UTILS_H_20190215
 
+#include <cxxabi.h>
+
 #include <algorithm>
 #include <map>
 #include <numeric>
@@ -12,6 +14,15 @@ namespace fase {
 template <typename T, typename C>
 inline bool exists(T&& t, C&& c) {
     return std::end(c) != std::find(std::begin(c), std::end(c), t);
+}
+
+template <class Type>
+std::string type_name(const Type& t) {
+    int         status;
+    char*       a = abi::__cxa_demangle(t.name(), NULL, NULL, &status);
+    std::string dst(a);
+    free(a);
+    return dst;
 }
 
 template <typename Container, class Checker>

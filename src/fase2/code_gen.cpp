@@ -10,6 +10,16 @@
 #include "constants.h"
 #include "manager.h"
 
+#if __has_include(<source_location>)
+#include <source_location>
+using std::source_location;
+#elif __has_include(<experimental/source_location>)
+#include <experimental/source_location>
+using std::experimental::source_location;
+#else
+#define NO_SOURCE_LOCATION
+#endif
+
 namespace fase {
 
 using std::string, std::vector, std::map, std::type_index;
@@ -86,9 +96,20 @@ public:
 
     virtual ~TSCMapW() = default;
 
-    auto& at(const std::type_index& k) const {
+    auto& at(const std::type_index& k
+#ifndef NO_SOURCE_LOCATION
+             ,
+             source_location loc = source_location::current()
+#endif
+    ) const {
         if (!map.count(k)) {
-            throw BrokenPipeError((HEAD + k.name() + TAIL).c_str());
+            throw BrokenPipeError((HEAD + type_name(k) + TAIL
+#ifndef NO_SOURCE_LOCATION
+                                   + "\n(thrown by " + loc.file_name() + ":" +
+                                   std::to_string(loc.line()) + ")"
+#endif
+                                   )
+                                          .c_str());
         }
         return map.at(k);
     }
