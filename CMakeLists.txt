@@ -75,7 +75,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
                          -Wmissing-declarations -Wmissing-include-dirs \
                          -Wnoexcept -Woverloaded-virtual \
                          -Wredundant-decls -Wshadow -Wsign-conversion \
-                         -Wsign-promo -Wstrict-null-sentinel \
+                         -Wsign-promo -Wstrict-null-sentinel -Wno-noexcept\
                          -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warning_options "/W4")
@@ -207,20 +207,13 @@ if (FASE_BUILD_EXAMPLES)
     add_executable(guieditor
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
     )
-    # use Native File Dialog
-    if (FASE_USE_NFD_AT_EXAMPLE)
-        list(APPEND FASE_LIBRARY nfd)
+    list(APPEND EXAMPLES guieditor)
 
-        if (WIN32)
-            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -lole32 -luuid")
-        elseif (MSVC)
-            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -lole32 -luuid")
-        elseif (APPLE)
-            SET_TARGET_PROPERTIES(guieditor PROPERTIES LINK_FLAGS " -framework Foundation -framework AppKit")
-        endif()
-    endif()
-
-    setup_target(guieditor "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    # Exported Pipe
+    add_executable(exported_pipe
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/exported_pipe/main.cpp
+    )
+    list(APPEND EXAMPLES exported_pipe)
 
     # GUI Editor with OpenCV
     if (${OpenCV_FOUND})
@@ -229,8 +222,25 @@ if (FASE_BUILD_EXAMPLES)
         )
         list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
-        setup_target(guieditor_opencv "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+        list(APPEND EXAMPLES guieditor_opencv)
     endif()
+
+    # use Native File Dialog
+    if (FASE_USE_NFD_AT_EXAMPLE)
+        list(APPEND FASE_LIBRARY nfd)
+
+        if (WIN32)
+            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -lole32 -luuid")
+        elseif (MSVC)
+            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -lole32 -luuid")
+        elseif (APPLE)
+            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -framework Foundation -framework AppKit")
+        endif()
+    endif()
+
+    foreach(target IN LISTS EXAMPLES)
+        setup_target(${target} "${FASE_INCLUDE}" "${FASE_LIBRARY}")
+    endforeach()
 endif()
 
 # ----------------------------------- tests ------------------------------------
