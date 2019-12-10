@@ -614,7 +614,7 @@ inline bool GenVariableFromString(const std::string& code, Variable* v,
             }
         }
 
-        auto args =
+        [[maybe_unused]] auto args =
                 std::make_tuple(FromString<Get<InfoType, Seq>>(strs[Seq])...);
         if constexpr (IsBrace::value) {
             BraceMake<Type, Get<InfoType, Seq>...>(v, std::get<Seq>(args)...);
@@ -1013,7 +1013,8 @@ private:
                                  SearchComma(code_str, dv_s,                   \
                                              arg_end_poss[ArgN], Count + 1));  \
                                                                                \
-                constexpr auto type = specifyType<dv_arg_start, dv_arg_end>(); \
+                [[maybe_unused]] constexpr auto type =                         \
+                        specifyType<dv_arg_start, dv_arg_end>();               \
                 if constexpr (0 == default_v_arg_c[ArgN]) {                    \
                     return TypeSequence<>{};                                   \
                 } else if constexpr (Count == default_v_arg_c[ArgN] - 1) {     \
