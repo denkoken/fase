@@ -7,30 +7,13 @@
 #include <vector>
 
 #include "../extra_parts.h"
-
 #include "../fase_gl_utils.h"
 
-void Add(const float& a, const float& b, float& dst) {
-    dst = a + b;
-}
-
-void Square(const float& in, float& dst) {
-    dst = in * in;
-}
-
-void Print(const float& in) {
-    std::cout << in << std::endl;
-}
+#include "funcs.h"
 
 int main() {
     // Create Fase instance with GUI editor
     fase::Fase<fase::ImGuiEditor, fase::FixedPipelineParts, NFDParts> app;
-
-    // Register functions
-    FaseAddUnivFunction(Add, (const float&, const float&, float&),
-                        ("in1", "in2", "out"), app);
-    FaseAddUnivFunction(Square, (const float&, float&), ("in", "out"), app);
-    FaseAddUnivFunction(Print, (const float&), ("in"), app);
 
     std::vector<std::string> in_arg{"red", "green", "blue", "count"};
     std::vector<std::string> out_arg{
@@ -44,6 +27,9 @@ int main() {
 
     auto hook = [&](std::vector<float>* bg_col) {
         try {
+            if (!api) {
+                return; // "fixed" is deleted or something went wrong.
+            }
             bg_col->resize(3);
             auto [r, g, b] =
                     api(bg_col->at(0), bg_col->at(1), bg_col->at(2), 0.f);

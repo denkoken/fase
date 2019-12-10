@@ -215,11 +215,17 @@ if (FASE_BUILD_EXAMPLES)
     )
     list(APPEND EXAMPLES guieditor)
 
-    # Exported Pipe
-    add_executable(exported_pipe
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/exported_pipe/main.cpp
+    # Fixed Pipe
+    add_executable(fixed
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/std_parts/fixed.cpp
     )
-    list(APPEND EXAMPLES exported_pipe)
+    list(APPEND EXAMPLES fixed)
+
+    # Exportable Pipe
+    add_executable(exportable
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/std_parts/exportable.cpp
+    )
+    list(APPEND EXAMPLES exportable)
 
     # GUI Editor with OpenCV
     if (${OpenCV_FOUND})
