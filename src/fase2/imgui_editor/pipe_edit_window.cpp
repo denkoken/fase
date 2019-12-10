@@ -175,7 +175,7 @@ void drawNodeContent(const string& n_name, const Node& node,
                      GuiNode& gui_node, bool simple, LabelWrapper label,
                      VarEditors* var_editors, Issues* issues) {
     label.addSuffix("##" + n_name);
-    ImGui::BeginGroup();  // Lock horizontal position
+    ImGui::BeginGroup(); // Lock horizontal position
     bool s_flag = IsSpecialNodeName(n_name);
 
     if (s_flag) {
@@ -218,18 +218,22 @@ void drawNodeContent(const string& n_name, const Node& node,
             const Variable& var = node.args[arg_idx];
             std::string expr;
             const std::string view_label = arg_name + "##" + n_name;
-            Variable v = func(label(view_label), var);
-            if (v) {
-                struct {
-                    Variable v;
-                    string n_name;
-                    string p_name;
-                    size_t arg_idx;
-                    void operator()(CoreManager* pcm) {
-                        (*pcm)[p_name].setArgument(n_name, arg_idx, v);
-                    }
-                } a{std::move(v), n_name, p_name, arg_idx};
-                issues->emplace_back(a);
+            try {
+                Variable v = func(label(view_label), var);
+                if (v) {
+                    struct {
+                        Variable v;
+                        string n_name;
+                        string p_name;
+                        size_t arg_idx;
+                        void operator()(CoreManager* pcm) {
+                            (*pcm)[p_name].setArgument(n_name, arg_idx, v);
+                        }
+                    } a{std::move(v), n_name, p_name, arg_idx};
+                    issues->emplace_back(a);
+                }
+            } catch (TryToGetEmptyVariable&) {
+                ImGui::Text("[empty]");
             }
         } else {
             // No GUI for editing
@@ -296,7 +300,7 @@ size_t SearchUnusedID(const map<string, GuiNode>& node_gui_utils) {
     }
 }
 
-}  // namespace
+} // namespace
 
 ImU32 GenNodeColor(const size_t& idx) {
     const float v = GetVolume(idx);
@@ -313,7 +317,7 @@ bool EditWindow::drawNormalNode(const string& n_name, const Node& node,
                                 Issues* issues, VarEditors* var_editors) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     // Draw node contents first
-    draw_list->ChannelsSetCurrent(1 + base_channel);  // Foreground
+    draw_list->ChannelsSetCurrent(1 + base_channel); // Foreground
     ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos +
                               NODE_WINDOW_PADDING);
     drawNodeContent(n_name, node, funcs.at(node.func_name), pipe_name, gui_node,
@@ -323,7 +327,7 @@ bool EditWindow::drawNormalNode(const string& n_name, const Node& node,
     gui_node.size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING * 2;
 
     // Draw node box
-    draw_list->ChannelsSetCurrent(0 + base_channel);  // Background
+    draw_list->ChannelsSetCurrent(0 + base_channel); // Background
     ImGui::SetCursorScreenPos(canvas_offset + gui_node.pos);
     if (drawNodeBox(canvas_offset + gui_node.pos, gui_node.size,
                     selected_node_name == n_name, gui_node.id, label)) {
@@ -814,4 +818,4 @@ bool EditWindow::draw(const string& p_name, const string& win_title,
     return opened;
 }
 
-}  // namespace fase
+} // namespace fase
