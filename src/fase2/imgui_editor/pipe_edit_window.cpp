@@ -216,9 +216,9 @@ void drawNodeContent(const string& n_name, const Node& node,
             // Call registered GUI for editing
             auto& func = var_editors->at(arg_type);
             const Variable& var = node.args[arg_idx];
-            std::string expr;
-            const std::string view_label = arg_name + "##" + n_name;
-            try {
+            if (var) {
+                std::string expr;
+                const std::string view_label = arg_name + "##" + n_name;
                 Variable v = func(label(view_label), var);
                 if (v) {
                     struct {
@@ -232,7 +232,7 @@ void drawNodeContent(const string& n_name, const Node& node,
                     } a{std::move(v), n_name, p_name, arg_idx};
                     issues->emplace_back(a);
                 }
-            } catch (TryToGetEmptyVariable&) {
+            } else {
                 ImGui::Text("[empty]");
             }
         } else {
