@@ -221,9 +221,6 @@ public:
     }
 
     bool setArgument(const string& n_name, size_t idx, Variable& var) override {
-        if (core.setArgument(n_name, idx, var)) {
-            return true;
-        }
         if (n_name == InputNodeName()) {
             inputs[idx] = var.ref();
             core.supposeInput(inputs);
@@ -233,6 +230,8 @@ public:
             outputs[idx] = var.ref();
             core.supposeOutput(outputs);
             cm_ref.get().updateBindedPipes(myname());
+            return true;
+        } else if (core.setArgument(n_name, idx, var)) {
             return true;
         } else {
             return false;
