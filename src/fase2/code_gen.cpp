@@ -8,17 +8,8 @@
 #include <vector>
 
 #include "constants.h"
+#include "debug_macros.h"
 #include "manager.h"
-
-#if __has_include(<source_location>)
-#include <source_location>
-using std::source_location;
-#elif __has_include(<experimental/source_location>)
-#include <experimental/source_location>
-using std::experimental::source_location;
-#else
-#define NO_SOURCE_LOCATION
-#endif
 
 namespace fase {
 
@@ -96,15 +87,10 @@ public:
 
     virtual ~TSCMapW() = default;
 
-    auto& at(const std::type_index& k
-#ifndef NO_SOURCE_LOCATION
-             ,
-             source_location loc = source_location::current()
-#endif
-    ) const {
+    auto& at(const std::type_index& k FASE_COMMA_DEBUG_LOC(loc)) const {
         if (!map.count(k)) {
             throw BrokenPipeError((HEAD + type_name(k) + TAIL
-#ifndef NO_SOURCE_LOCATION
+#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
                                    + "\n(thrown by " + loc.file_name() + ":" +
                                    std::to_string(loc.line()) + ")"
 #endif

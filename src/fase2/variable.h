@@ -8,6 +8,7 @@
 #include <typeindex>
 #include <vector>
 
+#include "debug_macros.h"
 #include "exceptions.h"
 
 namespace fase {
@@ -88,21 +89,33 @@ public:
     }
 
     template <typename T>
-    std::shared_ptr<T> getWriter() {
+    std::shared_ptr<T> getWriter(FASE_DEBUG_LOC(loc)) {
         if (!isSameType<T>()) {
+            FASE_DEBUG_LOC_LOG(loc, "getWriter::WrongTypeCast");
             throw(WrongTypeCast(typeid(T), member->type));
         } else if (!*this) {
-            throw(TryToGetEmptyVariable{});
+            std::string err_m = "getWriter::TryToGetEmptyVariable";
+#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
+            err_m += std::string(" called at ") + loc.file_name() + ":" +
+                     std::to_string(loc.line());
+#endif
+            throw(TryToGetEmptyVariable(err_m));
         }
         return std::static_pointer_cast<T>(member->data);
     }
 
     template <typename T>
-    std::shared_ptr<const T> getReader() const {
+    std::shared_ptr<const T> getReader(FASE_DEBUG_LOC(loc)) const {
         if (!isSameType<T>()) {
+            FASE_DEBUG_LOC_LOG(loc, "getReader::WrongTypeCast");
             throw(WrongTypeCast(typeid(T), member->type));
         } else if (!*this) {
-            throw(TryToGetEmptyVariable{});
+            std::string err_m = "getReader::TryToGetEmptyVariable";
+#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
+            err_m += std::string(" called at ") + loc.file_name() + ":" +
+                     std::to_string(loc.line());
+#endif
+            throw(TryToGetEmptyVariable(err_m));
         }
         return std::static_pointer_cast<const T>(member->data);
     }

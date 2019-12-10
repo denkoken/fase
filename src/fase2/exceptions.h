@@ -32,7 +32,10 @@ private:
     std::string err_message;
 };
 
-class TryToGetEmptyVariable {};
+class TryToGetEmptyVariable : public std::runtime_error {
+public:
+    TryToGetEmptyVariable(const std::string& m) : std::runtime_error(m) {}
+};
 
 class ErrorThrownByNode : public std::nested_exception {
 public:
