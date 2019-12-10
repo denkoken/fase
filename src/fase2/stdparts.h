@@ -4,6 +4,7 @@
 
 #include <tuple>
 
+#include "constants.h"
 #include "parts_base.h"
 
 // =============================================================================
@@ -49,6 +50,42 @@ class HardCallableParts : public PartsBase {
 public:
     template <typename... Args>
     inline std::tuple<ReturnTypes...> callHard(Args&&... args);
+};
+
+class FixedPipelineParts : public PartsBase {
+public:
+    template <typename... ReturnTypes>
+    class Exported {
+    public:
+        template <typename... Args>
+        class API {
+        public:
+            inline std::tuple<ReturnTypes...> operator()(Args... args);
+            inline                            operator bool() {
+                return !api.expired();
+            }
+
+            std::string                   pipe_name;
+            std::weak_ptr<PartsBase::API> api;
+        };
+    };
+    template <typename... ReturnTypes>
+    class Intermediate {
+    public:
+        template <typename... Args>
+        typename Exported<ReturnTypes...>::template API<Args...> fix();
+        Intermediate(std::string name, std::weak_ptr<PartsBase::API>&& papi);
+
+    private:
+        std::string                   pipe_name;
+        std::weak_ptr<PartsBase::API> api;
+    };
+
+    template <typename... ReturnTypes>
+    inline Intermediate<ReturnTypes...>
+    newPipeline(const std::string&              pipe_name,
+                const std::vector<std::string>& arg_names,
+                const std::vector<std::string>& dst_names);
 };
 
 } // namespace fase
@@ -126,6 +163,80 @@ HardCallableParts<ReturnTypes...>::callHard(Args&&... args) {
         }
     };
     return ToHard<ReturnTypes...>::template Pipe<Args...>::Gen(Dum{this})(
+            std::forward<Args>(args)...);
+}
+
+template <typename... ReturnTypes>
+inline FixedPipelineParts::Intermediate<ReturnTypes...>
+FixedPipelineParts::newPipeline(const std::string&              pipe_name,
+                                const std::vector<std::string>& arg_names,
+                                const std::vector<std::string>& dst_names) {
+    assert(dst_names.size() == sizeof...(ReturnTypes));
+    auto [guard, pcm] = getAPI()->getWriter();
+    if (pcm) {
+        (*pcm)[pipe_name].supposeInput(arg_names);
+        (*pcm)[pipe_name].supposeOutput(dst_names);
+    }
+    return {pipe_name, std::weak_ptr<PartsBase::API>(getAPI())};
+}
+
+template <typename... ReturnTypes>
+FixedPipelineParts::Intermediate<ReturnTypes...>::Intermediate(
+        std::string name, std::weak_ptr<PartsBase::API>&& papi) {
+    pipe_name = std::move(name);
+    api = std::move(papi);
+}
+
+template <typename... ReturnTypes>
+template <typename... Args>
+typename FixedPipelineParts::Exported<ReturnTypes...>::template API<Args...>
+FixedPipelineParts::Intermediate<ReturnTypes...>::fix() {
+    if (api.expired()) {
+        throw std::runtime_error("mother pipeline is deleted");
+    }
+    auto [guard, pcm] = api.lock()->getWriter();
+    if (pcm) {
+        assert((*pcm)[pipe_name].getNodes().at(InputNodeName()).args.size() ==
+               sizeof...(Args));
+        assert((*pcm)[pipe_name].getNodes().at(OutputNodeName()).args.size() ==
+               sizeof...(ReturnTypes));
+        std::vector<Variable> arg_vs;
+        [[maybe_unused]] auto _ = {arg_vs.emplace_back(typeid(Args))...};
+        for (size_t i = 0; i < sizeof...(Args); i++) {
+            (*pcm)[pipe_name].setArgument(InputNodeName(), i, arg_vs[i]);
+        }
+
+        arg_vs.clear();
+        _ = {arg_vs.emplace_back(typeid(ReturnTypes))...};
+        for (size_t i = 0; i < sizeof...(ReturnTypes); i++) {
+            (*pcm)[pipe_name].setArgument(OutputNodeName(), i, arg_vs[i]);
+        }
+
+        return {pipe_name, std::move(api)};
+    } else {
+        throw std::runtime_error("mother pipeline is not lockable.");
+    }
+}
+
+template <typename... ReturnTypes>
+template <typename... Args>
+std::tuple<ReturnTypes...>                      FixedPipelineParts::Exported<
+        ReturnTypes...>::template API<Args...>::operator()(Args... args) {
+    if (api.expired()) {
+        throw std::runtime_error("mother pipeline is deleted");
+    }
+    struct Dum {
+        std::weak_ptr<PartsBase::API> api;
+        void                          reset() {}
+                                      operator bool() {
+            return !api.expired();
+        }
+        bool operator()(std::vector<Variable>& vs) {
+            auto [guard, pcm] = api.lock()->getWriter();
+            return (*pcm)[pcm->getFocusedPipeline()].call(vs);
+        }
+    };
+    return ToHard<ReturnTypes...>::template Pipe<Args...>::Gen(Dum{api})(
             std::forward<Args>(args)...);
 }
 
