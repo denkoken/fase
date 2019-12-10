@@ -203,6 +203,12 @@ list(APPEND FASE_LIBRARY fase)
 
 # ---------------------------------- examples ----------------------------------
 if (FASE_BUILD_EXAMPLES)
+    # GUI Editor for first touch.
+    add_executable(guieditor_for_first_touch
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor_for_first_touch/main.cpp
+    )
+    list(APPEND EXAMPLES guieditor_for_first_touch)
+
     # GUI Editor
     add_executable(guieditor
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
