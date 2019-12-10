@@ -2,13 +2,14 @@
 #include <fase2/fase.h>
 #include <fase2/imgui_editor/imgui_editor.h>
 
-#include "fase_gl_utils.h"
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <random>
+
+#include "../extra_parts.h"
+#include "../fase_gl_utils.h"
 
 void LoadImage(const std::string& filename, cv::Mat& img) {
     img = cv::imread(filename);
@@ -37,7 +38,7 @@ void Random(int& v, const int& min_v, const int& max_v) {
 
 int main() {
     // Create Fase instance with GUI editor
-    fase::Fase<fase::ImGuiEditor> app;
+    fase::Fase<fase::ImGuiEditor, NFDParts> app;
 
     // Register functions
     FaseAddUnivFunction(LoadImage, (const std::string&, cv::Mat&),
@@ -87,6 +88,8 @@ int main() {
                      ImVec2(0, 0), ImVec2(1, 1));
         return {};
     });
+
+    AddNFDButtons(app, app);
 
     FaseRegisterTextIO(
             app, cv::Mat, [](const cv::Mat&) -> std::string { return {}; },

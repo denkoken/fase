@@ -10,6 +10,8 @@
 
 #include <fase2/imgui_editor/imgui_editor.h>
 
+#include <functional>
+
 static GLFWwindow* InitOpenGL(const std::string& window_title) {
     GLFWwindow* window = nullptr;
 
@@ -83,8 +85,10 @@ static void InitImGui(GLFWwindow* window, const std::string& font_path) {
     });
 }
 
-static void RunRenderingLoop(GLFWwindow* window, fase::ImGuiEditor& editor,
-                             std::shared_ptr<std::vector<float>> bg_col = {}) {
+static void
+RunRenderingLoop(GLFWwindow* window, fase::ImGuiEditor& editor,
+                 std::function<void(std::vector<float>*)> hook = {}) {
+    std::vector<float> bg_col = {0.45f, 0.55f, 0.60f};
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -111,11 +115,11 @@ static void RunRenderingLoop(GLFWwindow* window, fase::ImGuiEditor& editor,
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
 
-        if (bg_col) {
-            glClearColor((*bg_col)[0], (*bg_col)[1], (*bg_col)[2], 1.f);
-        } else {
-            glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        if (hook) {
+            hook(&bg_col);
         }
+
+        glClearColor(bg_col[0], bg_col[1], bg_col[2], 1.f);
 
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -9,11 +9,9 @@
 #include <valarray>
 #include <vector>
 
-#ifdef USE_NFD
-#include "extra_parts.h"
-#endif
+#include "../extra_parts.h"
 
-#include "fase_gl_utils.h"
+#include "../fase_gl_utils.h"
 
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
@@ -168,12 +166,7 @@ int main() {
     // clang-format on
     // Create Fase instance with GUI editor
     fase::Fase<fase::ImGuiEditor, fase::HardCallableParts<int>,
-               fase::ExportableParts
-#ifdef USE_NFD
-               ,
-               NFDParts
-#endif
-               >
+               fase::ExportableParts, NFDParts>
             app;
 
     // Register functions
@@ -193,7 +186,7 @@ int main() {
     } counter;
     FaseAddUnivFunction(counter, (int&), ("count"), app);
 
-    auto bg_col = std::make_shared<std::vector<float>>(3);
+    std::vector<float> bg_col(3);
 
     // add optional buttons.  [fase::GUIEditor]
     app.addOptinalButton(
@@ -201,10 +194,10 @@ int main() {
             "say \"hello world!\" in command line");
     app.addOptinalButton(
             "Reset BG",
-            [bg_col] {
-                (*bg_col)[0] = float(std::rand()) / RAND_MAX;
-                (*bg_col)[1] = float(std::rand()) / RAND_MAX;
-                (*bg_col)[2] = float(std::rand()) / RAND_MAX;
+            [&] {
+                bg_col[0] = float(std::rand()) / RAND_MAX;
+                bg_col[1] = float(std::rand()) / RAND_MAX;
+                bg_col[2] = float(std::rand()) / RAND_MAX;
             },
             "Change a background color at random.\n"
             "The mood will change too.");
@@ -259,20 +252,15 @@ int main() {
             "and call exported(2, 6) three times,\n"
             "and reset, and call one more");
 
-#ifdef USE_NFD
-    app.addOptinalButton(
-            "Load Pipeline", [&] { app.loadPipelineWithNFD(); },
-            "Load a pipeline with NativeFileDialog.");
-    app.addOptinalButton(
-            "Save Pipeline", [&] { app.savePipelineWithNFD(); },
-            "Save a focused pipeline with NativeFileDialog.");
-#endif
+    AddNFDButtons(app, app);
 
     // add serializer/deserializer
     app.registerTextIO<int>(
             "int", [](const int& a) { return std::to_string(a); },
             [](const std::string& str) { return std::stoi(str); },
             [](const int& a) { return "int(" + std::to_string(a) + ")"; });
+
+    auto hook = [&](std::vector<float>* bg_col_) { *bg_col_ = bg_col; };
 
     // Create OpenGL window
     GLFWwindow* window = InitOpenGL("GUI Editor Example");
@@ -284,7 +272,7 @@ int main() {
     InitImGui(window, "../third_party/imgui/misc/fonts/Cousine-Regular.ttf");
 
     // Start main loop
-    RunRenderingLoop(window, app, bg_col);
+    RunRenderingLoop(window, app, hook);
 
     try {
         auto [dst] = app.callHard(3, 4);
