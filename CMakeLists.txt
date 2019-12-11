@@ -203,34 +203,30 @@ list(APPEND FASE_LIBRARY fase)
 
 # ---------------------------------- examples ----------------------------------
 if (FASE_BUILD_EXAMPLES)
+    set(EXAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+
     # GUI Editor for first touch.
     add_executable(guieditor_for_first_touch
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor_for_first_touch/main.cpp
+        ${EXAMPLES_DIR}/guieditor_for_first_touch/main.cpp
     )
     list(APPEND EXAMPLES guieditor_for_first_touch)
 
     # GUI Editor
-    add_executable(guieditor
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main.cpp
-    )
+    add_executable(guieditor ${EXAMPLES_DIR}/guieditor/main.cpp)
     list(APPEND EXAMPLES guieditor)
 
-    # Fixed Pipe
-    add_executable(fixed
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/std_parts/fixed.cpp
-    )
+    # Standard Parts
+    add_executable(fixed         ${EXAMPLES_DIR}/std_parts/fixed.cpp)
+    add_executable(exportable    ${EXAMPLES_DIR}/std_parts/exportable.cpp)
+    add_executable(hard_callable ${EXAMPLES_DIR}/std_parts/hard_callable.cpp)
     list(APPEND EXAMPLES fixed)
-
-    # Exportable Pipe
-    add_executable(exportable
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/std_parts/exportable.cpp
-    )
     list(APPEND EXAMPLES exportable)
+    list(APPEND EXAMPLES hard_callable)
 
     # GUI Editor with OpenCV
     if (${OpenCV_FOUND})
         add_executable(guieditor_opencv
-            ${CMAKE_CURRENT_SOURCE_DIR}/examples/guieditor/main_opencv.cpp
+            ${EXAMPLES_DIR}/guieditor/main_opencv.cpp
         )
         list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
