@@ -174,43 +174,56 @@ bool StringToPipeline(const string& p_name, LineIterator& linep,
 }
 
 json11::Json getLinksJson(const PipelineAPI& pipe,
-                          const map<string, FunctionUtils>& f_util_map) {
-    json11::Json::array link_json_array;
-    auto get_args = [&](const string& n_name, size_t i) {
-        return f_util_map.at(pipe.getNodes().at(n_name).func_name).arg_names[i];
-    };
-    for (auto& link : pipe.getLinks()) {
-        link_json_array.emplace_back(json11::Json::object({
-                {kLinkSrcNNameKey, link.src_node},
-                {kLinkSrcArgKey, get_args(link.src_node, link.src_arg)},
-                {kLinkDstNNameKey, link.dst_node},
-                {kLinkDstArgKey, get_args(link.dst_node, link.dst_arg)},
-        }));
+                          const map<string, FunctionUtils>& f_util_map
+                                  FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        json11::Json::array link_json_array;
+        auto get_args = [&](const string& n_name, size_t i) {
+            return f_util_map.at(pipe.getNodes().at(n_name).func_name)
+                    .arg_names[i];
+        };
+        for (auto& link : pipe.getLinks()) {
+            link_json_array.emplace_back(json11::Json::object({
+                    {kLinkSrcNNameKey, link.src_node},
+                    {kLinkSrcArgKey, get_args(link.src_node, link.src_arg)},
+                    {kLinkDstNNameKey, link.dst_node},
+                    {kLinkDstArgKey, get_args(link.dst_node, link.dst_arg)},
+            }));
+        }
+        return link_json_array;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-    return link_json_array;
 }
 
 json11::Json getNodeArgsJson(const Node& node,
                              const map<string, FunctionUtils>& f_util_map,
-                             const TSCMap& utils) {
+                             const TSCMap& utils FASE_COMMA_DEBUG_LOC(loc)) {
     std::vector<json11::Json::object> arg_jsons;
-    for (size_t i = 0; i < node.args.size(); i++) {
-        const Variable& arg = node.args[i];
-        if (!utils.count(arg.getType())) {
-            continue;
-        }
-        arg_jsons.push_back({
-                {kNodeArgNameKey, f_util_map.at(node.func_name).arg_names[i]},
-                {kNodeArgValueKey, utils.at(arg.getType()).serializer(arg)},
-                {kNodeArgTypeKey, utils.at(arg.getType()).name},
-        });
+    try {
+        for (size_t i = 0; i < node.args.size(); i++) {
+            const Variable& arg = node.args[i];
+            if (!utils.count(arg.getType())) {
+                continue;
+            }
+            arg_jsons.push_back({
+                    {kNodeArgNameKey,
+                     f_util_map.at(node.func_name).arg_names[i]},
+                    {kNodeArgValueKey, utils.at(arg.getType()).serializer(arg)},
+                    {kNodeArgTypeKey, utils.at(arg.getType()).name},
+            });
 
-        // arg_json_map[f_util_map.at(node.func_name).arg_names[i]] =
-        //         json11::Json::object{
-        //                 {kNodeArgValueKey,
-        //                  utils.at(arg.getType()).serializer(arg)},
-        //                 {kNodeArgTypeKey, utils.at(arg.getType()).name},
-        //         };
+            // arg_json_map[f_util_map.at(node.func_name).arg_names[i]] =
+            //         json11::Json::object{
+            //                 {kNodeArgValueKey,
+            //                  utils.at(arg.getType()).serializer(arg)},
+            //                 {kNodeArgTypeKey, utils.at(arg.getType()).name},
+            //         };
+        }
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
 
     return arg_jsons;
@@ -218,96 +231,118 @@ json11::Json getNodeArgsJson(const Node& node,
 
 json11::Json getNodesJson(const PipelineAPI& pipe,
                           const map<string, FunctionUtils>& f_util_map,
-                          const TSCMap& utils) {
-    json11::Json::object nodes_json_map;
-    for (auto& [n_name, node] : pipe.getNodes()) {
-        if (n_name == InputNodeName() || n_name == OutputNodeName()) {
-            continue;
+                          const TSCMap& utils FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        json11::Json::object nodes_json_map;
+        for (auto& [n_name, node] : pipe.getNodes()) {
+            if (n_name == InputNodeName() || n_name == OutputNodeName()) {
+                continue;
+            }
+            json11::Json::object node_json{
+                    {kNodeFuncNameKey, node.func_name},
+                    {kNodePriorityKey, node.priority},
+                    {kNodeArgsKey, getNodeArgsJson(node, f_util_map, utils)},
+            };
+            nodes_json_map[n_name] = node_json;
         }
-        json11::Json::object node_json{
-                {kNodeFuncNameKey, node.func_name},
-                {kNodePriorityKey, node.priority},
-                {kNodeArgsKey, getNodeArgsJson(node, f_util_map, utils)},
-        };
-        nodes_json_map[n_name] = node_json;
+        return nodes_json_map;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-    return nodes_json_map;
 }
 
 bool LoadInOutputFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
-                          const TSCMap& tsc_map) {
-    vector<string> arg_names;
-    for (auto& arg_json : pipe_json[kInputKey].array_items()) {
-        arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
-    }
-    pipe_api.supposeInput(arg_names);
-    for (size_t i = 0; i < arg_names.size(); i++) {
-        auto& arg_json = pipe_json[kInputKey].array_items()[i];
-        Variable v;
-        strToVar(arg_json[kNodeArgValueKey].string_value(),
-                 arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
-        pipe_api.setArgument(InputNodeName(), i, v);
-    }
-    arg_names.clear();
+                          const TSCMap& tsc_map FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        vector<string> arg_names;
+        for (auto& arg_json : pipe_json[kInputKey].array_items()) {
+            arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
+        }
+        pipe_api.supposeInput(arg_names);
+        for (size_t i = 0; i < arg_names.size(); i++) {
+            auto& arg_json = pipe_json[kInputKey].array_items()[i];
+            Variable v;
+            strToVar(arg_json[kNodeArgValueKey].string_value(),
+                     arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
+            pipe_api.setArgument(InputNodeName(), i, v);
+        }
+        arg_names.clear();
 
-    for (auto& arg_json : pipe_json[kOutputKey].array_items()) {
-        arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
+        for (auto& arg_json : pipe_json[kOutputKey].array_items()) {
+            arg_names.emplace_back(arg_json[kNodeArgNameKey].string_value());
+        }
+        pipe_api.supposeOutput(arg_names);
+        for (size_t i = 0; i < arg_names.size(); i++) {
+            auto& arg_json = pipe_json[kOutputKey].array_items()[i];
+            Variable v;
+            strToVar(arg_json[kNodeArgValueKey].string_value(),
+                     arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
+            pipe_api.setArgument(OutputNodeName(), i, v);
+        }
+        return true;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-    pipe_api.supposeOutput(arg_names);
-    for (size_t i = 0; i < arg_names.size(); i++) {
-        auto& arg_json = pipe_json[kOutputKey].array_items()[i];
-        Variable v;
-        strToVar(arg_json[kNodeArgValueKey].string_value(),
-                 arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
-        pipe_api.setArgument(OutputNodeName(), i, v);
-    }
-    return true;
 }
 
 bool LoadNodeFromJson(const string& n_name, const json11::Json& node_json,
                       PipelineAPI& pipe_api, const TSCMap& tsc_map,
-                      const map<string, FunctionUtils>& f_util_map) {
-    pipe_api.newNode(n_name);
-    auto f_name = node_json[kNodeFuncNameKey].string_value();
-    pipe_api.allocateFunc(f_name, n_name);
-    pipe_api.setPriority(n_name, node_json[kNodePriorityKey].int_value());
-    for (auto& arg_json : node_json[kNodeArgsKey].array_items()) {
-        std::string arg_name = arg_json[kNodeArgNameKey].string_value();
+                      const map<string, FunctionUtils>& f_util_map
+                              FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        pipe_api.newNode(n_name);
+        auto f_name = node_json[kNodeFuncNameKey].string_value();
+        pipe_api.allocateFunc(f_name, n_name);
+        pipe_api.setPriority(n_name, node_json[kNodePriorityKey].int_value());
+        for (auto& arg_json : node_json[kNodeArgsKey].array_items()) {
+            std::string arg_name = arg_json[kNodeArgNameKey].string_value();
 
-        size_t idx = ArgNameToIdx(arg_name, f_util_map.at(f_name));
-        string arg_v_str = arg_json[kNodeArgTypeKey].string_value();
-        auto& deserializer = getDeserializer(arg_v_str, tsc_map);
-        Variable v;
-        deserializer(v, arg_json[kNodeArgValueKey].string_value());
-        pipe_api.setArgument(n_name, idx, v);
+            size_t idx = ArgNameToIdx(arg_name, f_util_map.at(f_name));
+            string arg_v_str = arg_json[kNodeArgTypeKey].string_value();
+            auto& deserializer = getDeserializer(arg_v_str, tsc_map);
+            Variable v;
+            deserializer(v, arg_json[kNodeArgValueKey].string_value());
+            pipe_api.setArgument(n_name, idx, v);
+        }
+        return true;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-    return true;
 }
 
 bool LoadPipelineFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
-                          const TSCMap& tsc_map) {
-    LoadInOutputFromJson(pipe_json, pipe_api, tsc_map);
+                          const TSCMap& tsc_map FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        LoadInOutputFromJson(pipe_json, pipe_api, tsc_map);
 
-    auto f_util_map = pipe_api.getFunctionUtils();
+        auto f_util_map = pipe_api.getFunctionUtils();
 
-    for (auto& [n_name, node_json] : pipe_json[kNodesKey].object_items()) {
-        LoadNodeFromJson(n_name, node_json, pipe_api, tsc_map, f_util_map);
+        for (auto& [n_name, node_json] : pipe_json[kNodesKey].object_items()) {
+            LoadNodeFromJson(n_name, node_json, pipe_api, tsc_map, f_util_map);
+        }
+
+        auto& link_json_array = pipe_json[kLinksKey].array_items();
+        for (auto& link_json : link_json_array) {
+            auto& src_n_name = link_json[kLinkSrcNNameKey].string_value();
+            const Node& src_node = pipe_api.getNodes().at(src_n_name);
+            auto& dst_n_name = link_json[kLinkDstNNameKey].string_value();
+            const Node& dst_node = pipe_api.getNodes().at(dst_n_name);
+
+            auto s_idx = ArgNameToIdx(link_json[kLinkSrcArgKey].string_value(),
+                                      f_util_map.at(src_node.func_name));
+            auto d_idx = ArgNameToIdx(link_json[kLinkDstArgKey].string_value(),
+                                      f_util_map.at(dst_node.func_name));
+            pipe_api.smartLink(src_n_name, s_idx, dst_n_name, d_idx);
+        }
+        return true;
+
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-
-    auto& link_json_array = pipe_json[kLinksKey].array_items();
-    for (auto& link_json : link_json_array) {
-        auto& src_n_name = link_json[kLinkSrcNNameKey].string_value();
-        const Node& src_node = pipe_api.getNodes().at(src_n_name);
-        auto& dst_n_name = link_json[kLinkDstNNameKey].string_value();
-        const Node& dst_node = pipe_api.getNodes().at(dst_n_name);
-
-        auto s_idx = ArgNameToIdx(link_json[kLinkSrcArgKey].string_value(),
-                                  f_util_map.at(src_node.func_name));
-        auto d_idx = ArgNameToIdx(link_json[kLinkDstArgKey].string_value(),
-                                  f_util_map.at(dst_node.func_name));
-        pipe_api.smartLink(src_n_name, s_idx, dst_n_name, d_idx);
-    }
-    return true;
 }
 
 } // namespace
@@ -347,15 +382,20 @@ std::string PipelineToString(const string& p_name, const CoreManager& cm,
 }
 
 bool LoadPipelineFromJson(const string& str, CoreManager* pcm,
-                          const TSCMap& tsc_map) {
-    std::string err;
-    json11::Json json = json11::Json::parse(str, err);
-    auto& pipe_json_array = json.array_items();
-    for (auto& pipe_json : pipe_json_array) {
-        auto& pipe_api = (*pcm)[pipe_json[kPipelineNameKey].string_value()];
-        LoadPipelineFromJson(pipe_json[kPipelineKey], pipe_api, tsc_map);
+                          const TSCMap& tsc_map FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        std::string err;
+        json11::Json json = json11::Json::parse(str, err);
+        auto& pipe_json_array = json.array_items();
+        for (auto& pipe_json : pipe_json_array) {
+            auto& pipe_api = (*pcm)[pipe_json[kPipelineNameKey].string_value()];
+            LoadPipelineFromJson(pipe_json[kPipelineKey], pipe_api, tsc_map);
+        }
+        return true;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
     }
-    return true;
 };
 
 bool LoadPipelineFromString(const string& str, CoreManager* pcm,
