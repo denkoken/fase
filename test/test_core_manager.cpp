@@ -21,7 +21,7 @@ TEST_CASE("Core Manager test") {
 
     {
         auto univ_add = UnivFuncGenerator<const int&, const int&, int&>::Gen(
-                [&]() -> std::function<void(const int&, const int&, int&)> {
+                []() -> std::function<void(const int&, const int&, int&)> {
                     return Add;
                 });
 
@@ -35,14 +35,15 @@ TEST_CASE("Core Manager test") {
                                {{"a", "b", "dst"},
                                 {typeid(int), typeid(int), typeid(int)},
                                 {true, true, false},
-                                true,
+                                FOGtype::Pure,
+                                "",
                                 "",
                                 "dst := a + b"}));
     }
 
     {
         auto univ_sq = UnivFuncGenerator<const int&, int&>::Gen(
-                [&]() -> std::function<void(const int&, int&)> {
+                []() -> std::function<void(const int&, int&)> {
                     return Square;
                 });
 
@@ -55,7 +56,8 @@ TEST_CASE("Core Manager test") {
                                {{"in", "dst"},
                                 {typeid(int), typeid(int)},
                                 {true, false},
-                                true,
+                                FOGtype::Pure,
+                                "",
                                 "",
                                 "dst := in * in"}));
     }
@@ -76,7 +78,8 @@ TEST_CASE("Core Manager test") {
                                {{"in", "dst"},
                                 {typeid(int), typeid(int)},
                                 {true, false},
-                                false,
+                                FOGtype::Pure,
+                                "",
                                 "",
                                 "dst := in * in"}));
     }
@@ -122,9 +125,14 @@ TEST_CASE("Core Manager test") {
     auto univ_counter = UnivFuncGenerator<int&>::Gen(
             []() -> std::function<void(int&)> { return Counter{}; });
 
-    REQUIRE(cm.addUnivFunc(
-            univ_counter, "counter", {std::make_unique<int>(0)},
-            {{"count"}, {typeid(int)}, {false}, false, "", "counter."}));
+    REQUIRE(cm.addUnivFunc(univ_counter, "counter", {std::make_unique<int>(0)},
+                           {{"count"},
+                            {typeid(int)},
+                            {false},
+                            FOGtype::IndependingClass,
+                            "",
+                            "",
+                            "counter."}));
     REQUIRE(cm["Pipe1"].newNode("c"));
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
     REQUIRE(cm["Pipe1"].supposeInput({"in1"}));

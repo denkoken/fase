@@ -743,8 +743,9 @@ public:
                     [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
             pcm->addUnivFunc(func, func_name, std::move(default_args_buf),
-                             {arg_names, types, is_input_args, true,
-                              arg_types_repr, for_macro::FilterFuncStr(code)});
+                             {arg_names, types, is_input_args, FOGtype::Pure,
+                              func_name, arg_types_repr,
+                              for_macro::FilterFuncStr(code)});
         };
     }
 

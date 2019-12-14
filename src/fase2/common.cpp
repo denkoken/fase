@@ -308,7 +308,7 @@ bool LoadNodeFromJson(const string& n_name, const json11::Json& node_json,
         }
         return true;
     } catch (std::exception& e) {
-        FASE_DEBUG_LOC_LOG(loc, e.what());
+        FASE_DEBUG_LOC_LOG(loc, n_name + ":: " + node_json.dump() + e.what());
         throw std::runtime_error(std::string(__func__) + " caught exception");
     }
 }

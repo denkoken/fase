@@ -49,17 +49,17 @@ enum struct FOGtype {
     IndependingClass,
     DependingClass,
     OtherPipe,
+    Special,
 };
 
 struct FunctionUtils {
     std::vector<std::string>     arg_names;
     std::vector<std::type_index> arg_types;
     std::vector<bool>            is_input_args;
-    bool                         pure;
-    // FOGtype                      type;
-    // std::string                  repr;
-    std::string arg_types_repr;
-    std::string description;
+    FOGtype                      type;
+    std::string                  repr;
+    std::string                  arg_types_repr;
+    std::string                  description;
 };
 
 class Core;

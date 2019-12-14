@@ -295,7 +295,7 @@ void genFunctionCall(MyStream& ss, const string& func_name,
                      const string& node_name, const string& pipe_name,
                      const FunctionUtils& func_util,
                      const vector<string>& var_names) {
-    if (func_util.pure) {
+    if (func_util.type == FOGtype::Pure) {
         ss << func_name;
     } else {
         ss << func_name << "s[" << toEnumValueName(node_name, pipe_name) << "]";
@@ -391,7 +391,7 @@ map<string, vector<N_ID>> GetNonPureNodeMap(const vector<string>& pipes,
     for (auto& p_name : pipes) {
         auto f_utils = cm.getFunctionUtils(p_name);
         for (auto& [n_name, node] : cm[p_name].getNodes()) {
-            if (!f_utils.at(node.func_name).pure) {
+            if (f_utils.at(node.func_name).type != FOGtype::Pure) {
                 dst[node.func_name].push_back({p_name, n_name});
             }
         }

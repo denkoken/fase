@@ -26,14 +26,10 @@ public:
 
     template <typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     const std::vector<std::string>& arg_names, bool pure,
-                     const std::string& func_args_type_repr,
-                     const std::string& description = "");
+                     FunctionUtils&& utils);
     template <typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     const std::vector<std::string>& arg_names, bool pure,
-                     const std::string&      func_args_type_repr,
-                     const std::string&      description,
+                     FunctionUtils&&         utils,
                      std::vector<Variable>&& default_args);
 
     /**
@@ -109,8 +105,8 @@ private:
             }                                                                  \
         }                                                                      \
         fase::AddingUnivFuncHelper<void arg_types>::Gen(                       \
-                f_name, FaseExpandList(arg_names), fog_t, #arg_types, fog,     \
-                __VA_ARGS__);                                                  \
+                f_name, FaseExpandList(arg_names), fog_t, #arg_types, #func,   \
+                fog, __VA_ARGS__);                                             \
     }(func)
 
 // TODO Make Macro for lvalue function object.
@@ -212,37 +208,31 @@ inline Fase<Parts...>::Fase()
 
 template <class... Parts>
 template <typename... Args>
-inline bool
-Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                            const std::vector<std::string>& arg_names,
-                            bool pure, const std::string& arg_types_repr,
-                            const std::string&      description,
-                            std::vector<Variable>&& default_args) {
-    std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
-    std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
+inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&         func,
+                                        const std::string&      f_name,
+                                        FunctionUtils&&         utils,
+                                        std::vector<Variable>&& default_args) {
+    utils.arg_types = {typeid(std::decay_t<Args>)...};
+    utils.is_input_args = GetIsInputArgs<Args...>();
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
-                                         {arg_names, types, is_input_args, pure,
-                                          arg_types_repr, description});
+                                         std::move(utils));
 }
 
 template <class... Parts>
 template <typename... Args>
-inline bool
-Fase<Parts...>::addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                            const std::vector<std::string>& arg_names,
-                            bool pure, const std::string& arg_types_repr,
-                            const std::string& description) {
+inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&    func,
+                                        const std::string& f_name,
+                                        FunctionUtils&&    utils) {
     static_assert(
             is_all_ok<std::is_default_constructible_v<std::decay_t<Args>>...>(),
             "Fase::addUnivFunc<Args...> : "
             "If not all Args have default constructor,"
             "do not call me WITHOUT default_args!");
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
-    std::vector<std::type_index> types = {typeid(std::decay_t<Args>)...};
-    std::vector<bool>            is_input_args = GetIsInputArgs<Args...>();
+    utils.arg_types = {typeid(std::decay_t<Args>)...};
+    utils.is_input_args = GetIsInputArgs<Args...>();
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
-                                         {arg_names, types, is_input_args, pure,
-                                          arg_types_repr, description});
+                                         std::move(utils));
 }
 
 template <class... Parts>
@@ -315,28 +305,37 @@ struct AddingUnivFuncHelper<void(Args...)> {
     template <class FaseClass, class FuncObjGenerator>
     static void Gen(const std::string&              f_name,
                     const std::vector<std::string>& arg_names, FOGtype fog_type,
-                    const std::string& arg_types_repr, FuncObjGenerator&& fog,
-                    FaseClass& app, std::string description = "") {
-        // TODO
+                    const std::string& arg_types_repr, const std::string& repr,
+                    FuncObjGenerator&& fog, FaseClass& app,
+                    std::string description = "") {
         auto unived = UnivFuncGenerator<Args...>::Gen(
                 std::forward<FuncObjGenerator>(fog));
-        app.template addUnivFunc<Args...>(unived, f_name, arg_names,
-                                          fog_type == FOGtype::Pure,
-                                          arg_types_repr, description);
+        FunctionUtils utils;
+        utils.arg_names = arg_names;
+        utils.arg_types_repr = arg_types_repr;
+        utils.description = description;
+        utils.type = fog_type;
+        utils.repr = repr;
+        app.template addUnivFunc<Args...>(unived, f_name, std::move(utils));
     }
 
     template <class FaseClass, class FuncObjGenerator>
     static void Gen(const std::string&              f_name,
                     const std::vector<std::string>& arg_names, FOGtype fog_type,
-                    const std::string& arg_types_repr, FuncObjGenerator&& fog,
-                    FaseClass& app, std::string description,
+                    const std::string& arg_types_repr, const std::string& repr,
+                    FuncObjGenerator&& fog, FaseClass& app,
+                    std::string                         description,
                     std::tuple<std::decay_t<Args>...>&& default_args) {
         auto unived = UnivFuncGenerator<Args...>::Gen(
                 std::forward<FuncObjGenerator>(fog));
-        // TODO
+        FunctionUtils utils;
+        utils.arg_names = arg_names;
+        utils.arg_types_repr = arg_types_repr;
+        utils.description = description;
+        utils.type = fog_type;
+        utils.repr = repr;
         app.template addUnivFunc<Args...>(
-                unived, f_name, arg_names, fog_type == FOGtype::Pure,
-                arg_types_repr, description,
+                unived, f_name, std::move(utils),
                 toVariables(std::move(default_args),
                             std::index_sequence_for<Args...>()));
     }
