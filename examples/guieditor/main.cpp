@@ -185,6 +185,9 @@ int main() {
         }
     };
     FaseAddUnivFunction(Counter{}, (int&), ("count"), app);
+    FaseAddUnivFunction(Counter{3}, (int&), ("count"), app);
+    FaseAddUnivFunction([] { return Counter{4}; }(), (int&), ("count"), app);
+    FaseAddUnivFunction([](int& d) { d = 1; }, (int&), ("count"), app);
 
     std::vector<float> bg_col(3);
 

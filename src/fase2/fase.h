@@ -96,10 +96,11 @@ private:
         } else {                                                               \
             fog_t = FOGtype::IndependingClass;                                 \
             f_name = #func;                                                    \
-            for (char c : {'{', '}', '(', ')', ',', '.'}) {                    \
+            for (char c :                                                      \
+                 {'[', ']', '{', '}', '(', ')', ',', '.', ' ', ';'}) {         \
                 auto p = f_name.find_first_of(c);                              \
                 while (p != std::string::npos) {                               \
-                    f_name.erase(p);                                           \
+                    f_name.erase(p, 1);                                        \
                     p = f_name.find_first_of(c);                               \
                 }                                                              \
             }                                                                  \
