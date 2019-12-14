@@ -739,7 +739,8 @@ public:
                     typeid(std::decay_t<Args>)...};
             std::vector<bool> is_input_args =
                     for_macro::GetIsInputArgs<Args...>();
-            auto func = UnivFuncGenerator<Args...>::Gen(fp);
+            auto func = UnivFuncGenerator<Args...>::Gen(
+                    [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
             pcm->addUnivFunc(func, func_name, std::move(default_args_buf),
                              {arg_names, types, is_input_args, true,

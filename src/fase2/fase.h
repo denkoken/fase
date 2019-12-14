@@ -82,11 +82,38 @@ private:
 };
 
 #define FaseAddUnivFunction(func, arg_types, arg_names, ...)                   \
-    [&](auto& f, bool pure) {                                                  \
+    [&](auto&& f) {                                                            \
+        using Ftype = std::function<void arg_types>;                           \
+        using T = Ftype (*)();                                                 \
+        using fase::FOGtype;                                                   \
+        FOGtype     fog_t;                                                     \
+        T           fog = []() -> Ftype { return func; };                      \
+        std::string f_name;                                                    \
+        if constexpr (std::is_same_v<std::decay_t<decltype(f)>,                \
+                                     void(*) arg_types>) {                     \
+            fog_t = FOGtype::Pure;                                             \
+            f_name = #func;                                                    \
+        } else if constexpr (std::is_convertible_v<std::decay_t<decltype(f)>,  \
+                                                   void(*) arg_types>) {       \
+            fog_t = FOGtype::Lambda;                                           \
+            f_name = "[[lambda]]" + std::to_string(__LINE__);                  \
+        } else {                                                               \
+            fog_t = FOGtype::IndependingClass;                                 \
+            f_name = #func;                                                    \
+            for (char c : {'{', '}', '(', ')', ',', '.'}) {                    \
+                auto p = f_name.find_first_of(c);                              \
+                while (p != std::string::npos) {                               \
+                    f_name.erase(p);                                           \
+                    p = f_name.find_first_of(c);                               \
+                }                                                              \
+            }                                                                  \
+        }                                                                      \
         fase::AddingUnivFuncHelper<void arg_types>::Gen(                       \
-                #func, FaseExpandList(arg_names), pure, #arg_types, f,         \
+                f_name, FaseExpandList(arg_names), fog_t, #arg_types, fog,     \
                 __VA_ARGS__);                                                  \
-    }(func, std::is_function_v<decltype(func)>);
+    }(func)
+
+// TODO Make Macro for lvalue function object.
 
 #define FaseRegisterTextIO(app, type, serializer, deserializer, def_maker)     \
     [&] {                                                                      \
@@ -285,27 +312,31 @@ struct AddingUnivFuncHelper {};
 
 template <typename... Args>
 struct AddingUnivFuncHelper<void(Args...)> {
-    template <class FaseClass, class Callable>
+    template <class FaseClass, class FuncObjGenerator>
     static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, bool pure,
-                    const std::string& arg_types_repr, Callable&& f,
+                    const std::vector<std::string>& arg_names, FOGtype fog_type,
+                    const std::string& arg_types_repr, FuncObjGenerator&& fog,
                     FaseClass& app, std::string description = "") {
-        auto unived =
-                UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
-        app.template addUnivFunc<Args...>(unived, f_name, arg_names, pure,
+        // TODO
+        auto unived = UnivFuncGenerator<Args...>::Gen(
+                std::forward<FuncObjGenerator>(fog));
+        app.template addUnivFunc<Args...>(unived, f_name, arg_names,
+                                          fog_type == FOGtype::Pure,
                                           arg_types_repr, description);
     }
 
-    template <class FaseClass, class Callable>
+    template <class FaseClass, class FuncObjGenerator>
     static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, bool pure,
-                    const std::string& arg_types_repr, Callable&& f,
+                    const std::vector<std::string>& arg_names, FOGtype fog_type,
+                    const std::string& arg_types_repr, FuncObjGenerator&& fog,
                     FaseClass& app, std::string description,
                     std::tuple<std::decay_t<Args>...>&& default_args) {
-        auto unived =
-                UnivFuncGenerator<Args...>::Gen(std::forward<Callable>(f));
+        auto unived = UnivFuncGenerator<Args...>::Gen(
+                std::forward<FuncObjGenerator>(fog));
+        // TODO
         app.template addUnivFunc<Args...>(
-                unived, f_name, arg_names, pure, arg_types_repr, description,
+                unived, f_name, arg_names, fog_type == FOGtype::Pure,
+                arg_types_repr, description,
                 toVariables(std::move(default_args),
                             std::index_sequence_for<Args...>()));
     }

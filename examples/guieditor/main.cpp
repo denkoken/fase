@@ -178,13 +178,13 @@ int main() {
                         "wait for \"seconds\".");
     FaseAddUnivFunction(Assert, (const int&, const int&), ("a", "b"), app,
                         "assert(a == b)", {1, 1});
-    struct A {
+    struct Counter {
         int count = 0;
         void operator()(int& dst) {
             dst = count++;
         }
-    } counter;
-    FaseAddUnivFunction(counter, (int&), ("count"), app);
+    };
+    FaseAddUnivFunction(Counter{}, (int&), ("count"), app);
 
     std::vector<float> bg_col(3);
 

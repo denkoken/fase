@@ -4,15 +4,18 @@
 using namespace fase;
 
 TEST_CASE("FunctionBuilder test") {
-    auto non_copyable = std::make_unique<int>(4);
-    auto buf = [non_copyable = std::move(non_copyable)](int a, float& b,
-                                                        double&& c) {
+    auto buf = [](int a, float& b, double&& c) {
         a++;
         b += 2.f;
         return a * int(b) + c;
     };
 
-    auto worker = fase::UnivFuncGenerator<int, float&, double&&>::Gen(buf);
+    auto worker_gen = fase::UnivFuncGenerator<int, float&, double&&>::Gen(
+            [=]() -> std::function<void(int, float&, double&&)> {
+                return buf;
+            });
+
+    auto worker = worker_gen;
 
     std::vector<fase::Variable> vs(3);
 

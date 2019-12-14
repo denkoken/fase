@@ -42,13 +42,24 @@ struct Link {
     std::size_t dst_arg;
 };
 
+// Function Object Generator Type
+enum struct FOGtype {
+    Pure,
+    Lambda,
+    IndependingClass,
+    DependingClass,
+    OtherPipe,
+};
+
 struct FunctionUtils {
     std::vector<std::string>     arg_names;
     std::vector<std::type_index> arg_types;
     std::vector<bool>            is_input_args;
     bool                         pure;
-    std::string                  arg_types_repr;
-    std::string                  description;
+    // FOGtype                      type;
+    // std::string                  repr;
+    std::string arg_types_repr;
+    std::string description;
 };
 
 class Core;

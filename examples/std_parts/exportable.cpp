@@ -65,8 +65,8 @@ int main() {
         void operator()(float& dst) {
             dst = count++;
         }
-    } counter;
-    FaseAddUnivFunction(counter, (float&), ("count"), app);
+    };
+    FaseAddUnivFunction(Counter{}, (float&), ("count"), app);
 
     app.addOptinalButton(
             "Export pipe test",

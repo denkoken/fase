@@ -20,8 +20,10 @@ TEST_CASE("Core Manager test") {
     CoreManager cm;
 
     {
-        auto univ_add =
-                UnivFuncGenerator<const int&, const int&, int&>::Gen(Add);
+        auto univ_add = UnivFuncGenerator<const int&, const int&, int&>::Gen(
+                [&]() -> std::function<void(const int&, const int&, int&)> {
+                    return Add;
+                });
 
         std::vector<Variable> default_args(3);
 
@@ -39,7 +41,10 @@ TEST_CASE("Core Manager test") {
     }
 
     {
-        auto univ_sq = UnivFuncGenerator<const int&, int&>::Gen(Square);
+        auto univ_sq = UnivFuncGenerator<const int&, int&>::Gen(
+                [&]() -> std::function<void(const int&, int&)> {
+                    return Square;
+                });
 
         std::vector<Variable> default_args(2);
 
@@ -56,10 +61,13 @@ TEST_CASE("Core Manager test") {
     }
 
     {
-        auto lambda = [pc = std::make_unique<float>(3.5)](int in, int& dst) {
+        auto lambda = [pc = std::make_shared<float>(3.5)](int in, int& dst) {
             dst = float(in) * *pc;
         };
-        auto univ_lambda = UnivFuncGenerator<int, int&>::Gen(std::move(lambda));
+        auto univ_lambda = UnivFuncGenerator<int, int&>::Gen(
+                [&lambda]() -> std::function<void(int, int&)> {
+                    return lambda;
+                });
 
         std::vector<Variable> default_args = {std::make_unique<int>(3),
                                               std::make_unique<int>()};
@@ -104,14 +112,15 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
             int(3.5f * ((5 + 6) * (5 + 6))));
 
-    struct {
+    struct Counter {
         int count = 0;
         void operator()(int& dst) {
             dst = count++;
         }
-    } counter;
+    };
 
-    auto univ_counter = UnivFuncGenerator<int&>::Gen(counter);
+    auto univ_counter = UnivFuncGenerator<int&>::Gen(
+            []() -> std::function<void(int&)> { return Counter{}; });
 
     REQUIRE(cm.addUnivFunc(
             univ_counter, "counter", {std::make_unique<int>(0)},
