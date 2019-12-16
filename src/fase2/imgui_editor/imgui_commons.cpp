@@ -5,9 +5,11 @@
 
 #if __has_include(<filesystem>)
 #include <filesystem>
+namespace fs = std::filesystem;
 
 #elif __has_include(<experimental/filesystem>)
 #include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 #endif
 
@@ -43,7 +45,6 @@ bool InputPath::draw(const char* label) {
 
 void InputPath::updatePathBuffer() {
 #if __cpp_lib_filesystem || __cpp_lib_experimental_filesystem
-    namespace fs = std::filesystem;
     fs::path curr = text();
     if (!curr.has_root_directory()) {
         curr = "." / curr;
