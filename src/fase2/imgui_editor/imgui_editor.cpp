@@ -76,8 +76,7 @@ private:
     vector<OptionalButton> optional_buttons;
     InputText new_core_name_it{64, ImGuiInputTextFlags_EnterReturnsTrue};
     // for save pipeline
-    InputText filename_it{256, ImGuiInputTextFlags_EnterReturnsTrue |
-                                       ImGuiInputTextFlags_AutoSelectAll};
+    InputPath filename_it{{int(10e3), 15, {".json"}}};
     // for store native code
     std::string native_code;
 

@@ -147,6 +147,40 @@ private:
     ImGuiInputTextFlags flags;
 };
 
+class InputPath {
+public:
+    struct Prefferences {
+        int searching_limit = 10e3;
+        int viewing_limit = 15;
+        std::vector<std::string> target_extensions; // ".txt", "", ".JSON" ...
+    };
+
+    InputPath(Prefferences prefferences_, std::size_t char_size = 256);
+
+    bool draw(const char* label);
+
+    std::string text() const {
+        return {chars.begin(), std::find(chars.begin(), chars.end(), '\0')};
+    }
+
+    void set(const std::string& str) {
+        auto size = std::max(str.size() + 1, chars.size());
+        chars.resize(size);
+
+        str.copy(&chars[0], str.size());
+        chars[str.size()] = '\0';
+        updatePathBuffer();
+    }
+
+private:
+    Prefferences prefferences;
+    std::vector<char> chars;
+    std::vector<std::string> path_buffer;
+    const static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll;
+
+    void updatePathBuffer();
+};
+
 class Combo {
 public:
     Combo(std::vector<std::string>&& choice_texts_ = {})
@@ -199,7 +233,7 @@ public:
 
 private:
     std::string suffix;
-    std::string last_label;  // temporary storage to return char*
+    std::string last_label; // temporary storage to return char*
 };
 
 using Issues = std::deque<std::function<void(CoreManager*)>>;
@@ -280,4 +314,4 @@ inline PopupModalRAII BeginPopupModal(
 
 }  // namespace fase
 
-#endif  // IMGUI_COMMONS_H_20190223
+#endif // IMGUI_COMMONS_H_20190223

@@ -21,7 +21,7 @@ set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
 set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
-message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, use native file dialog: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, use nfd: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
@@ -195,6 +195,7 @@ add_library(fase ${LINK_TYPE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/pipe_edit_window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/setup_var_editors.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/links_view.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fase2/imgui_editor/imgui_commons.cpp
 )
 
 setup_target(fase "${FASE_INCLUDE}" "${FASE_LIBRARY}")
