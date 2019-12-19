@@ -113,6 +113,10 @@ private:
 
 namespace {
 
+bool isFunctionObject(const FunctionUtils& utils) {
+    return utils.type != FOGtype::Pure && utils.type != FOGtype::Special;
+}
+
 std::tuple<string, size_t> GetSrcName(const string& dst_n_name,
                                       const size_t idx,
                                       const vector<Link>& links) {
@@ -295,10 +299,10 @@ void genFunctionCall(MyStream& ss, const string& func_name,
                      const string& node_name, const string& pipe_name,
                      const FunctionUtils& func_util,
                      const vector<string>& var_names) {
-    if (func_util.type == FOGtype::Pure) {
-        ss << func_name;
-    } else {
+    if (isFunctionObject(func_util)) {
         ss << func_name << "s[" << toEnumValueName(node_name, pipe_name) << "]";
+    } else {
+        ss << func_name;
     }
     ss << "(";
     for (size_t i = 0; i < var_names.size(); i++) {
@@ -391,7 +395,7 @@ map<string, vector<N_ID>> GetNonPureNodeMap(const vector<string>& pipes,
     for (auto& p_name : pipes) {
         auto f_utils = cm.getFunctionUtils(p_name);
         for (auto& [n_name, node] : cm[p_name].getNodes()) {
-            if (f_utils.at(node.func_name).type != FOGtype::Pure) {
+            if (isFunctionObject(f_utils.at(node.func_name))) {
                 dst[node.func_name].push_back({p_name, n_name});
             }
         }
