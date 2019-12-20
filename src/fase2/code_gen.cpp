@@ -117,6 +117,11 @@ bool isFunctionObject(const FunctionUtils& utils) {
     return utils.type != FOGtype::Pure && utils.type != FOGtype::Special;
 }
 
+bool isConstructableObject(const FunctionUtils& utils) {
+    return utils.type == FOGtype::Lambda ||
+           utils.type == FOGtype::IndependingClass;
+}
+
 std::tuple<string, size_t> GetSrcName(const string& dst_n_name,
                                       const size_t idx,
                                       const vector<Link>& links) {
@@ -407,9 +412,20 @@ void GenFunctionArrays(MyStream& native_code,
                        const map<string, vector<N_ID>>& non_pure_node_map,
                        const map<string, FunctionUtils>& f_utils) {
     for (auto& [f_name, vs] : non_pure_node_map) {
-        native_code << "std::array<std::function<void"
-                    << f_utils.at(f_name).arg_types_repr;
-        native_code << ">, " << vs.size() << "> " << f_name + "s;" << endl;
+        if (isConstructableObject(f_utils.at(f_name))) {
+            native_code << "std::array<"
+                        << type_name(*f_utils.at(f_name).callable_type);
+            native_code << ", " << vs.size() << "> " << f_name + "s = {" << uil
+                        << uil;
+            for (size_t i = 0; i < vs.size(); i++) {
+                native_code << endl << f_utils.at(f_name).repr << ",";
+            }
+            native_code << dil << dil << endl << "};" << endl;
+        } else {
+            native_code << "std::array<std::function<void"
+                        << f_utils.at(f_name).arg_types_repr;
+            native_code << ">, " << vs.size() << "> " << f_name + "s;" << endl;
+        }
 
         for (size_t i = 0; i < vs.size(); i++) {
             native_code << "constexpr static int "
@@ -420,8 +436,12 @@ void GenFunctionArrays(MyStream& native_code,
 }
 
 void GenSetters(MyStream& native_code,
-                const map<string, vector<N_ID>>& non_pure_node_map) {
+                const map<string, vector<N_ID>>& non_pure_node_map,
+                const map<string, FunctionUtils>& f_utils) {
     for (auto& [f_name, vs] : non_pure_node_map) {
+        if (isConstructableObject(f_utils.at(f_name))) {
+            continue;
+        }
         native_code << "template <class Callable>" << endl;
         native_code << "void set_" << f_name << "(Callable&& " << f_name
                     << ") {" << uil << endl;
@@ -466,7 +486,7 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
         }
         native_code << dil << endl << "public:" << uil << endl;
 
-        GenSetters(native_code, non_pure_node_map);
+        GenSetters(native_code, non_pure_node_map, cm.getFunctionUtils(p_name));
 
         // write main pipeline function Definitions.
         genFunctionCode(native_code, p_name, cm, tsc_map_wraped, "operator()");

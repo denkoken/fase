@@ -742,9 +742,11 @@ public:
             auto func = UnivFuncGenerator<Args...>::Gen(
                     [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
+            auto callable_type =
+                    std::make_shared<std::type_index>(typeid(Ret(*)(Args...)));
             pcm->addUnivFunc(func, func_name, std::move(default_args_buf),
                              {arg_names, types, is_input_args, FOGtype::Pure,
-                              func_name, arg_types_repr,
+                              func_name, callable_type, arg_types_repr,
                               for_macro::FilterFuncStr(code)});
         };
     }

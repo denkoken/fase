@@ -408,8 +408,9 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
 bool CoreManager::Impl::newPipeline(const string& c_name) {
     if (wrapeds.count(c_name) || functions.count(c_name)) return false;
 
-    addUnivFunc({}, c_name, {},
-                {{}, {}, {}, FOGtype::OtherPipe, "", "", "Another pipeline"});
+    addUnivFunc(
+            {}, c_name, {},
+            {{}, {}, {}, FOGtype::OtherPipe, "", {}, "", "Another pipeline"});
 
     wrapeds.emplace(c_name, *this); // create new WrapedCore.
     for (auto& [f_name, func] : functions) {
@@ -572,6 +573,7 @@ CoreManager::Impl::getFunctionUtils(const string& p_name) const {
                            vector<bool>(i_names.size(), false),
                            FOGtype::Special,
                            "",
+                           {},
                            "",
                            ""};
     auto& o_names = wrapeds.at(p_name).output_var_names;
@@ -580,6 +582,7 @@ CoreManager::Impl::getFunctionUtils(const string& p_name) const {
                             vector<bool>(o_names.size(), true),
                             FOGtype::Special,
                             "",
+                            {},
                             "",
                             ""};
 

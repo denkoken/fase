@@ -37,6 +37,7 @@ TEST_CASE("Core Manager test") {
                                 {true, true, false},
                                 FOGtype::Pure,
                                 "",
+                                {},
                                 "",
                                 "dst := a + b"}));
     }
@@ -58,6 +59,7 @@ TEST_CASE("Core Manager test") {
                                 {true, false},
                                 FOGtype::Pure,
                                 "",
+                                {},
                                 "",
                                 "dst := in * in"}));
     }
@@ -80,6 +82,7 @@ TEST_CASE("Core Manager test") {
                                 {true, false},
                                 FOGtype::Pure,
                                 "",
+                                {},
                                 "",
                                 "dst := in * in"}));
     }
@@ -131,6 +134,7 @@ TEST_CASE("Core Manager test") {
                             {false},
                             FOGtype::IndependingClass,
                             "",
+                            {},
                             "",
                             "counter."}));
     REQUIRE(cm["Pipe1"].newNode("c"));

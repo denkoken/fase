@@ -85,6 +85,8 @@ private:
         FOGtype     fog_t;                                                     \
         T           fog = []() -> Ftype { return func; };                      \
         std::string f_name;                                                    \
+        auto        callable_type =                                            \
+                std::make_shared<std::type_index>(typeid(void(*) arg_types));  \
         if constexpr (std::is_same_v<std::decay_t<decltype(f)>,                \
                                      void(*) arg_types>) {                     \
             fog_t = FOGtype::Pure;                                             \
@@ -94,6 +96,8 @@ private:
             fog_t = FOGtype::Lambda;                                           \
             f_name = "[[lambda]]" + std::to_string(__LINE__);                  \
         } else {                                                               \
+            callable_type = std::make_shared<std::type_index>(                 \
+                    typeid(std::decay_t<decltype(f)>));                        \
             fog_t = FOGtype::IndependingClass;                                 \
             f_name = #func;                                                    \
             for (char c :                                                      \
@@ -107,7 +111,7 @@ private:
         }                                                                      \
         fase::AddingUnivFuncHelper<void arg_types>::Gen(                       \
                 f_name, FaseExpandList(arg_names), fog_t, #arg_types, #func,   \
-                fog, __VA_ARGS__);                                             \
+                callable_type, fog, __VA_ARGS__);                              \
     }(func)
 
 // TODO Make Macro for lvalue function object.
@@ -304,11 +308,11 @@ struct AddingUnivFuncHelper {};
 template <typename... Args>
 struct AddingUnivFuncHelper<void(Args...)> {
     template <class FaseClass, class FuncObjGenerator>
-    static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, FOGtype fog_type,
-                    const std::string& arg_types_repr, const std::string& repr,
-                    FuncObjGenerator&& fog, FaseClass& app,
-                    std::string description = "") {
+    static void
+    Gen(const std::string& f_name, const std::vector<std::string>& arg_names,
+        FOGtype fog_type, const std::string& arg_types_repr,
+        const std::string& repr, std::shared_ptr<std::type_index> callable_type,
+        FuncObjGenerator&& fog, FaseClass& app, std::string description = "") {
         auto unived = UnivFuncGenerator<Args...>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
@@ -317,16 +321,17 @@ struct AddingUnivFuncHelper<void(Args...)> {
         utils.description = description;
         utils.type = fog_type;
         utils.repr = repr;
+        utils.callable_type = callable_type;
         app.template addUnivFunc<Args...>(unived, f_name, std::move(utils));
     }
 
     template <class FaseClass, class FuncObjGenerator>
-    static void Gen(const std::string&              f_name,
-                    const std::vector<std::string>& arg_names, FOGtype fog_type,
-                    const std::string& arg_types_repr, const std::string& repr,
-                    FuncObjGenerator&& fog, FaseClass& app,
-                    std::string                         description,
-                    std::tuple<std::decay_t<Args>...>&& default_args) {
+    static void
+    Gen(const std::string& f_name, const std::vector<std::string>& arg_names,
+        FOGtype fog_type, const std::string& arg_types_repr,
+        const std::string& repr, std::shared_ptr<std::type_index> callable_type,
+        FuncObjGenerator&& fog, FaseClass& app, std::string description,
+        std::tuple<std::decay_t<Args>...>&& default_args) {
         auto unived = UnivFuncGenerator<Args...>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
@@ -335,6 +340,7 @@ struct AddingUnivFuncHelper<void(Args...)> {
         utils.description = description;
         utils.type = fog_type;
         utils.repr = repr;
+        utils.callable_type = callable_type;
         app.template addUnivFunc<Args...>(
                 unived, f_name, std::move(utils),
                 toVariables(std::move(default_args),
