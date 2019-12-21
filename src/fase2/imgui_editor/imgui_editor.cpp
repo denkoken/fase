@@ -129,8 +129,8 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
     if (new_core_name_it.draw(label("##core_open_name"))) {
         if (!exists(new_core_name_it.text(), opened_pipelines)) {
             issues.emplace_back(
-                    [name = new_core_name_it.text(), this](auto pcm) {
-                        if (!(*pcm)[name].getNodes().empty()) {
+                    [name = new_core_name_it.text(), this](auto pcm_) {
+                        if (!(*pcm_)[name].getNodes().empty()) {
                             opened_pipelines.emplace_back(name);
                         }
                     });
@@ -149,7 +149,7 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
         if (ImGui::BeginTabItem(label(a))) {
             p_name = a;
             issues.emplace_back(
-                    [p_name](auto pcm) { pcm->setFocusedPipeline(p_name); });
+                    [p_name](auto pcm_) { pcm_->setFocusedPipeline(p_name); });
             ImGui::EndTabItem();
         }
     }
@@ -198,8 +198,8 @@ bool ImGuiEditor::Impl::drawControlWindowContents(LabelWrapper label) {
         filename_it.draw(label("filename"));
         if (ImGui::Button(label("OK"))) {
             issues.emplace_back(
-                    [filename = filename_it.text(), this](auto pcm) {
-                        LoadPipelineFromFile(filename, pcm,
+                    [filename = filename_it.text(), this](auto pcm_) {
+                        LoadPipelineFromFile(filename, pcm_,
                                              api_getter()->getConverterMap());
                     });
             ImGui::CloseCurrentPopup();

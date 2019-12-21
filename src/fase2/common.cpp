@@ -345,6 +345,23 @@ bool LoadPipelineFromJson(const json11::Json& pipe_json, PipelineAPI& pipe_api,
     }
 }
 
+bool LoadPipelineFromJson(const string& str, CoreManager* pcm,
+                          const TSCMap& tsc_map FASE_COMMA_DEBUG_LOC(loc)) {
+    try {
+        std::string err;
+        json11::Json json = json11::Json::parse(str, err);
+        auto& pipe_json_array = json.array_items();
+        for (auto& pipe_json : pipe_json_array) {
+            auto& pipe_api = (*pcm)[pipe_json[kPipelineNameKey].string_value()];
+            LoadPipelineFromJson(pipe_json[kPipelineKey], pipe_api, tsc_map);
+        }
+        return true;
+    } catch (std::exception& e) {
+        FASE_DEBUG_LOC_LOG(loc, e.what());
+        throw std::runtime_error(std::string(__func__) + " caught exception");
+    }
+}
+
 } // namespace
 
 std::string PipelineToString(const string& p_name, const CoreManager& cm,
@@ -380,23 +397,6 @@ std::string PipelineToString(const string& p_name, const CoreManager& cm,
 
     return json11::Json(pipe_json_array).dump();
 }
-
-bool LoadPipelineFromJson(const string& str, CoreManager* pcm,
-                          const TSCMap& tsc_map FASE_COMMA_DEBUG_LOC(loc)) {
-    try {
-        std::string err;
-        json11::Json json = json11::Json::parse(str, err);
-        auto& pipe_json_array = json.array_items();
-        for (auto& pipe_json : pipe_json_array) {
-            auto& pipe_api = (*pcm)[pipe_json[kPipelineNameKey].string_value()];
-            LoadPipelineFromJson(pipe_json[kPipelineKey], pipe_api, tsc_map);
-        }
-        return true;
-    } catch (std::exception& e) {
-        FASE_DEBUG_LOC_LOG(loc, e.what());
-        throw std::runtime_error(std::string(__func__) + " caught exception");
-    }
-};
 
 bool LoadPipelineFromString(const string& str, CoreManager* pcm,
                             const TSCMap& tsc_map) {

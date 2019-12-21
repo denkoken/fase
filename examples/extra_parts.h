@@ -2,12 +2,16 @@
 #ifndef EXTRA_PARTS_H_20190329
 #define EXTRA_PARTS_H_20190329
 
+#include <fase2/imgui_editor/imgui_editor.h>
+
+class NFDParts;
+void AddNFDButtons(fase::ImGuiEditor&, NFDParts&);
+
 #ifdef USE_NFD
 
 #include <string>
 
 #include <fase2/fase.h>
-#include <fase2/imgui_editor/imgui_editor.h>
 
 #include <nfd.h>
 
@@ -74,7 +78,7 @@ private:
         free(outPath);
 
         return ss.str();
-    };
+    }
 
     std::string getLoadPathWithNFD() {
         return getPathWithNFDTmep(NFD_OpenDialog, "txt,json");

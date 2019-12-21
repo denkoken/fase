@@ -21,6 +21,7 @@ public:
 template <typename... RetTypes>
 class ToHard {
 public:
+    ToHard() = delete;
     template <typename... Args>
     class Pipe {
     public:
@@ -220,8 +221,9 @@ FixedPipelineParts::Intermediate<ReturnTypes...>::fix() {
 
 template <typename... ReturnTypes>
 template <typename... Args>
-std::tuple<ReturnTypes...>                      FixedPipelineParts::Exported<
-        ReturnTypes...>::template API<Args...>::operator()(Args... args) {
+std::tuple<ReturnTypes...>
+FixedPipelineParts::Exported<ReturnTypes...>::API<Args...>::operator()(
+        Args... args) {
     if (api.expired()) {
         throw std::runtime_error("mother pipeline is deleted");
     }

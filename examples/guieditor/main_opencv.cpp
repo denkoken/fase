@@ -11,6 +11,8 @@
 #include "../extra_parts.h"
 #include "../fase_gl_utils.h"
 
+namespace {
+
 void LoadImage(const std::string& filename, cv::Mat& img) {
     img = cv::imread(filename);
 }
@@ -35,6 +37,8 @@ void Random(int& v, const int& min_v, const int& max_v) {
         }
     }
 }
+
+} // namespace
 
 int main() {
     // Create Fase instance with GUI editor

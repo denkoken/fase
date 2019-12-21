@@ -12,6 +12,8 @@
 
 #include "funcs.h"
 
+namespace {
+
 void exportTest(fase::ExportableParts& exportable_app) {
     // export current pipeline.
     auto exported = exportable_app.exportPipe();
@@ -55,6 +57,8 @@ void exportTestWithHard(fase::ExportableParts& exportable_app) {
     auto [res4] = exported(2, 6);
     std::cout << "4th result : " << res4 << std::endl;
 }
+
+} // namespace
 
 int main() {
     // Create Fase instance with GUI editor

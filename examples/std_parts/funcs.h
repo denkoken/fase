@@ -4,6 +4,8 @@
 
 #include <fase2/fase.h>
 
+namespace {
+
 // clang-format off
 
 FaseAutoAddingUnivFunction(Add,
@@ -23,5 +25,7 @@ void Print(const float& in) {
     std::cout << in << std::endl;
 }
 )
+
+}
 
 #endif // FUNCS_H_20191210

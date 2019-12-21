@@ -378,7 +378,7 @@ constexpr size_t SearchComma(String<M> code_str, size_t dv_s, size_t end,
         }
     }
     return dv_s;
-};
+}
 
 inline std::vector<std::string> split(const std::string& str, const char& sp) {
     size_t                   start = 0;
@@ -414,7 +414,6 @@ inline std::string CleanStr(std::string str) {
     return str;
 }
 
-namespace for_macro {
 template <typename T>
 inline bool Delete(T) {
     return false;
@@ -719,8 +718,6 @@ std::vector<bool> GetIsInputArgs() {
                              std::decay_t<Args>>)...};
 }
 
-} // namespace for_macro
-
 class FuncNodeStorer {
 public:
     template <typename Ret, typename... Args>
@@ -737,9 +734,8 @@ public:
 
             std::vector<std::type_index> types = {
                     typeid(std::decay_t<Args>)...};
-            std::vector<bool> is_input_args =
-                    for_macro::GetIsInputArgs<Args...>();
-            auto func = UnivFuncGenerator<Args...>::Gen(
+            std::vector<bool> is_input_args = GetIsInputArgs<Args...>();
+            auto              func = UnivFuncGenerator<Args...>::Gen(
                     [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
             auto callable_type =
@@ -747,7 +743,7 @@ public:
             pcm->addUnivFunc(func, func_name, std::move(default_args_buf),
                              {arg_names, types, is_input_args, FOGtype::Pure,
                               func_name, callable_type, arg_types_repr,
-                              for_macro::FilterFuncStr(code)});
+                              FilterFuncStr(code)});
         };
     }
 
@@ -798,10 +794,10 @@ public:
 
         std::vector<Variable> default_args(N);
 
-        std::array<std::string, N> default_v_arg_strs = {{for_macro::getArgsStr(
-                arg_type_reprs[Seq], default_arg_reprs[Seq])...}};
+        std::array<std::string, N> default_v_arg_strs = {
+                {getArgsStr(arg_type_reprs[Seq], default_arg_reprs[Seq])...}};
 
-        std::vector<bool> success = {{for_macro::GenVariableFromString<
+        std::vector<bool> success = {{GenVariableFromString<
                 Get<ArgTypesTuple, Seq>, Get<ArgInfoTuples, Seq>,
                 Get<ExistingDefaults, Seq>, Get<IsBraces, Seq>>(
                 default_v_arg_strs[Seq], &default_args[Seq],
@@ -881,48 +877,55 @@ private:
 #define Fase_CE constexpr static inline
 
 #define FaseAutoAddingUnivFunction_B(func_name, code, c)                       \
-    code namespace fase {                                                      \
-        namespace for_macro {                                                  \
+    code namespace fase_auto_adding {                                          \
         template <size_t... Seq>                                               \
         class AutoFunctionBuilderAdder_##func_name##c {                        \
         public:                                                                \
             template <typename Ret, typename... Args>                          \
             AutoFunctionBuilderAdder_##func_name##c(Ret (*fp)(Args...)) {      \
+                using namespace fase;                                          \
+                using namespace fase::for_macro;                               \
                 FuncNodeStorer a(#func_name, #code, fp);                       \
                 a.build<N, decltype(infos), TypeSequence<Cleaned<Args>...>,    \
                         decltype(existing_default_vs), decltype(is_brace),     \
                         Seq...>(#code, arg_start_poss, arg_end_poss);          \
             }                                                                  \
                                                                                \
+        private:                                                               \
             template <size_t N>                                                \
-            using Str = String<N>;                                             \
+            using Str = fase::for_macro::String<N>;                            \
             template <typename T, size_t N>                                    \
-            using Arr = Array<T, N>;                                           \
+            using Arr = fase::for_macro::Array<T, N>;                          \
                                                                                \
             Fase_CE size_t C_L = sizeof(#code) + 10;                           \
-            Fase_CE size_t N = ArgC(func_name);                                \
+            Fase_CE size_t N = fase::for_macro::ArgC(func_name);               \
             Fase_CE Str<C_L> code_str{#code};                                  \
             Fase_CE Str<C_L> func_str{#func_name};                             \
             Fase_CE size_t   start =                                           \
                     code_str.find(func_str) + func_str.size() + 1;             \
-            Fase_CE size_t end = getArgsEnd(func_str, code_str);               \
+            Fase_CE size_t end =                                               \
+                    fase::for_macro::getArgsEnd(func_str, code_str);           \
             Fase_CE Arr<size_t, N> arg_start_poss =                            \
-                    getArgStarts<N, C_L>(start, code_str);                     \
+                    fase::for_macro::getArgStarts<N, C_L>(start, code_str);    \
             Fase_CE Arr<size_t, N> arg_end_poss =                              \
-                    getArgEnds<N, C_L>(start, end, code_str);                  \
+                    fase::for_macro::getArgEnds<N, C_L>(start, end, code_str); \
             Fase_CE Arr<size_t, N> default_v_arg_c =                           \
-                    getDefaultVArgC(arg_start_poss, arg_end_poss, code_str);   \
+                    fase::for_macro::getDefaultVArgC(arg_start_poss,           \
+                                                     arg_end_poss, code_str);  \
             Fase_CE auto existing_default_vs =                                 \
-                    make_type_sequence(getTruthValue<bool(code_str.count(      \
-                                               '=', arg_start_poss[Seq],       \
-                                               arg_end_poss[Seq]))>()...);     \
-            Fase_CE auto is_brace =                                            \
-                    make_type_sequence(getTruthValue<for_macro::CheckIsBrace(  \
-                                               code_str, arg_start_poss[Seq],  \
-                                               arg_end_poss[Seq])>()...);      \
-                                                                               \
+                    fase::for_macro::make_type_sequence(                       \
+                            fase::for_macro::getTruthValue<bool(               \
+                                    code_str.count('=', arg_start_poss[Seq],   \
+                                                   arg_end_poss[Seq]))>()...); \
+            Fase_CE auto is_brace = fase::for_macro::make_type_sequence(       \
+                    fase::for_macro::getTruthValue<                            \
+                            fase::for_macro::CheckIsBrace(                     \
+                                    code_str, arg_start_poss[Seq],             \
+                                    arg_end_poss[Seq])>()...);                 \
             template <size_t Start, size_t End>                                \
             constexpr static auto specifyType() {                              \
+                using namespace fase;                                          \
+                using namespace fase::for_macro;                               \
                 /* other type */                                               \
                 if constexpr (code_str.find('"', Start, End) != npos &&        \
                               code_str.find('"', Start, End) <                 \
@@ -1004,6 +1007,8 @@ private:
                                                                                \
             template <size_t Count, size_t ArgN>                               \
             constexpr static auto MakeNSizeTuple() {                           \
+                using namespace fase;                                          \
+                using namespace fase::for_macro;                               \
                 constexpr size_t dv_s =                                        \
                         code_str.find('=', arg_start_poss[ArgN]);              \
                 constexpr size_t dv_arg_start =                                \
@@ -1027,19 +1032,21 @@ private:
                     return joint(type, MakeNSizeTuple<Count + 1, ArgN>());     \
                 }                                                              \
             }                                                                  \
-            Fase_CE auto infos =                                               \
-                    make_type_sequence(MakeNSizeTuple<0, Seq>()...);           \
+            Fase_CE auto infos = fase::for_macro::make_type_sequence(          \
+                    MakeNSizeTuple<0, Seq>()...);                              \
         };                                                                     \
         template <size_t... Seq>                                               \
         static auto make_AutoFunctionBuilderAdder_##func_name##c(              \
                 std::index_sequence<Seq...>) {                                 \
+            using namespace fase;                                              \
+            using namespace fase::for_macro;                                   \
             return AutoFunctionBuilderAdder_##func_name##c<Seq...>(func_name); \
         }                                                                      \
         static auto test##func_name##c =                                       \
                 make_AutoFunctionBuilderAdder_##func_name##c(                  \
-                        std::make_index_sequence<ArgC(func_name)>());          \
-        } /* namespace for_macro */                                            \
-    }     /* namespace fase */
+                        std::make_index_sequence<fase::for_macro::ArgC(        \
+                                func_name)>());                                \
+    } /* namespace fase_auto_adding */
 
 #ifdef __COUNTER__
 #define FaseAutoAddingUnivFunction_(func_name, code, c)                        \

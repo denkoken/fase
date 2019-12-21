@@ -5,23 +5,27 @@
 
 using namespace fase;
 
+namespace {
+
 // clang-format off
 
 FaseAutoAddingUnivFunction(Add,
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
-});
+})
 
 FaseAutoAddingUnivFunction(Square,
 void Square(const int& in, int& dst) {
     dst = in * in;
-});
+})
 
 void Times(const int& a, const int& b, int& dst) {
     dst = a * b;
 }
 
 // clang-format on
+
+} // namespace
 
 class BareCore : public PartsBase {
 public:

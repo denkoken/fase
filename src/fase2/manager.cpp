@@ -60,6 +60,24 @@ vector<std::type_index> getTypes(const vector<Variable>& vars) {
     return a;
 }
 
+void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
+              Report* preport) {
+    size_t i_size = pcore->getNodes().at(InputNodeName()).args.size();
+    size_t o_size = pcore->getNodes().at(OutputNodeName()).args.size();
+    if (vs.size() != i_size + o_size) {
+        throw std::logic_error("Invalid size of variables at Binded Pipe.");
+    }
+    vector<Variable> inputs, outputs;
+    RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
+    RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
+
+    pcore->supposeInput(inputs);
+    pcore->supposeOutput(outputs);
+    if (!pcore->run(preport)) {
+        throw(std::runtime_error(c_name + " is failed!"));
+    }
+}
+
 } // namespace
 
 class FaildDummy : public PipelineAPI {
@@ -122,24 +140,6 @@ private:
     std::map<std::string, Node> dum_n;
     std::vector<Link> dum_l;
 };
-
-void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
-              Report* preport) {
-    size_t i_size = pcore->getNodes().at(InputNodeName()).args.size();
-    size_t o_size = pcore->getNodes().at(OutputNodeName()).args.size();
-    if (vs.size() != i_size + o_size) {
-        throw std::logic_error("Invalid size of variables at Binded Pipe.");
-    }
-    vector<Variable> inputs, outputs;
-    RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
-    RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
-
-    pcore->supposeInput(inputs);
-    pcore->supposeOutput(outputs);
-    if (!pcore->run(preport)) {
-        throw(std::runtime_error(c_name + " is failed!"));
-    }
-}
 
 // ============================== CoreManager ==================================
 
@@ -399,7 +399,7 @@ bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
             std::move(default_args),
             std::move(utils),
     };
-    for (auto& [c_name, wrapeds] : wrapeds) {
+    for (auto& [c_name, _] : wrapeds) {
         if (!addFunction(f_name, c_name)) return false;
     }
     return true;
@@ -456,7 +456,7 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
     }
 
     // Add updated function to other pipelines.
-    for (auto& [other_c_name, wrapeds] : wrapeds) {
+    for (auto& [other_c_name, _] : wrapeds) {
         if (other_c_name == c_name) {
         } else if (!addFunction(c_name, other_c_name)) {
             std::cerr << "CoreManager::updateBindedPipes(\"" + c_name +
@@ -554,7 +554,7 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
 
 vector<string> CoreManager::Impl::getPipelineNames() const {
     vector<string> dst;
-    for (auto& [c_name, wrapeds] : wrapeds) {
+    for (auto& [c_name, _] : wrapeds) {
         dst.emplace_back(c_name);
     }
     return dst;

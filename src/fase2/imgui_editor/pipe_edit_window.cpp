@@ -58,9 +58,9 @@ void WrapError(Task&& task, string* str) {
         *str = e.what();
         try {
             e.rethrow_nested();
-        } catch (std::exception& e) {
+        } catch (std::exception& d) {
             *str += " : ";
-            *str += e.what();
+            *str += d.what();
         } catch (...) {
         }
     }

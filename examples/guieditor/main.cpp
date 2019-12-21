@@ -13,6 +13,8 @@
 
 #include "../fase_gl_utils.h"
 
+namespace {
+
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
@@ -95,6 +97,7 @@ void Test0(int& test_dst,
 }
 )
 
+
 FaseAutoAddingUnivFunction(VARandom,
 void VARandom(const size_t& size,
               std::valarray<double>& dst) {
@@ -161,6 +164,7 @@ void VecAdd(const std::vector<double>& a,
     }
 })
 
+}
 
 int main() {
     // clang-format on

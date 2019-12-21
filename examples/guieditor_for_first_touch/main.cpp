@@ -4,6 +4,8 @@
 
 #include "../fase_gl_utils.h"
 
+namespace {
+
 void Add(const int& a, const int& b, int& dst) {
     dst = a + b;
 }
@@ -21,6 +23,8 @@ void Assert(const int& a, const int& b) {
         throw std::runtime_error("a is not equal to b!");
     }
 }
+
+} // namespace
 
 int main() {
     // clang-format on

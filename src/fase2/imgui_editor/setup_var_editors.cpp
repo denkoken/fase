@@ -9,6 +9,8 @@
 
 namespace fase {
 
+namespace {
+
 using VarEditorWraped = std::function<Variable(const char*, const Variable&)>;
 
 constexpr size_t LIST_VIEW_MAX = 32;
@@ -114,6 +116,8 @@ void EditorMaker(std::map<std::type_index, VarEditorWraped>& var_editors) {
     AddListViewer<std::list<T>>(var_editors);
 }
 
+} // namespace
+
 void SetupDefaultVarEditors(
         std::map<std::type_index, VarEditorWraped>* var_editors) {
     EditorMaker<int>(*var_editors);
@@ -140,4 +144,4 @@ void SetupDefaultVarEditors(
     EditorMaker<std::string>(*var_editors);
 }
 
-}  // namespace fase
+} // namespace fase

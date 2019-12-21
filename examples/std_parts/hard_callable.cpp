@@ -11,6 +11,8 @@
 
 #include "funcs.h"
 
+namespace {
+
 void HardCallableTest(fase::HardCallableParts<float>& app) {
     try {
         // Return type have set at makeing app.
@@ -28,6 +30,8 @@ void HardCallableTest(fase::HardCallableParts<float>& app) {
                   << std::endl;
     }
 }
+
+} // namespace
 
 int main() {
     // Create Fase instance with GUI editor and HardCallableParts.
