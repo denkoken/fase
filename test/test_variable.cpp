@@ -153,6 +153,7 @@ TEST_CASE("Variable test") {
         {
             Variable v(&a);
             REQUIRE(*v.getReader<int>() == 123);
+            REQUIRE(v.getReader<int>().get() == &a);
             *v.getWriter<int>() = 2;
         }
         REQUIRE(a == 2);

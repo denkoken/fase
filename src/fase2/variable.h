@@ -45,7 +45,8 @@ public:
     }
 
     Variable(Variable&& a) : member(std::move(a.member)) {
-        std::swap(is_managed_object, a.is_managed_object);
+        is_managed_object = a.is_managed_object;
+        a.is_managed_object = true;
     }
     Variable& operator=(Variable&& a) {
         free_if_not_managed_object();
@@ -101,6 +102,7 @@ public:
     void free() {
         member->data.reset();
         toEmpty(member->type);
+        is_managed_object = true;
     }
 
     template <typename T>
@@ -198,10 +200,9 @@ private:
     bool                       is_managed_object = true;
 };
 
-template <typename Container, typename Head, typename... Tail,
-          bool b = CheckerForSFINAE<std::is_same_v<
-                  typename Container::value_type, Variable>>::value>
-inline void Assign(Container& c, Head&& h, Tail&&... tail) {
+template <typename Head, typename... Tail>
+inline void Assign(std::vector<Variable>& c, Head&& h, Tail&&... tail) {
+    c.reserve(c.size() + sizeof...(Tail) + 1);
     c.emplace_back(h);
     if constexpr (sizeof...(Tail) > 0) {
         Assign(c, tail...);
