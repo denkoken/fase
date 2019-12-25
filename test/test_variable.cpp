@@ -148,6 +148,16 @@ TEST_CASE("Variable test") {
         REQUIRE(!b);
     }
 
+    SECTION("No Manage Variable") {
+        int a = 123;
+        {
+            Variable v(&a);
+            REQUIRE(*v.getReader<int>() == 123);
+            *v.getWriter<int>() = 2;
+        }
+        REQUIRE(a == 2);
+    }
+
     SECTION("WrongTypeCast") {
         Variable test_class;
         test_class.create<TestClass>();

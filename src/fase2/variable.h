@@ -13,6 +13,16 @@
 
 namespace fase {
 
+template <bool b>
+struct CheckerForSFINAE {};
+
+template <>
+struct CheckerForSFINAE<true> {
+    static constexpr bool value = true;
+};
+template <>
+struct CheckerForSFINAE<false> {};
+
 class Variable {
 public:
     Variable() : member(std::make_shared<Substance>()) {}
@@ -27,10 +37,26 @@ public:
         toEmpty(type);
     }
 
-    Variable(Variable&&) = default;
-    Variable& operator=(Variable&&) = default;
+    template <typename T, bool b = CheckerForSFINAE<!std::is_same_v<
+                                  T, const std::type_info>>::value>
+    explicit Variable(T* object_ptr)
+        : member(std::make_shared<Substance>()), is_managed_object(false) {
+        set(std::shared_ptr<T>(object_ptr, [](auto&) {}));
+    }
+
+    Variable(Variable&& a) : member(std::move(a.member)) {
+        std::swap(is_managed_object, a.is_managed_object);
+    }
+    Variable& operator=(Variable&& a) {
+        free_if_not_managed_object();
+        member = std::move(a.member);
+        is_managed_object = a.is_managed_object;
+        a.is_managed_object = true;
+        return *this;
+    }
 
     Variable& operator=(Variable& v) {
+        free_if_not_managed_object();
         member = std::make_shared<Substance>();
         v.member->cloner(*this, v);
         return *this;
@@ -41,6 +67,7 @@ public:
     }
 
     Variable& operator=(const Variable& v) {
+        free_if_not_managed_object();
         member = std::make_shared<Substance>();
         v.member->cloner(*this, v);
         return *this;
@@ -50,7 +77,9 @@ public:
         v.member->cloner(*this, v);
     }
 
-    ~Variable() = default;
+    ~Variable() {
+        free_if_not_managed_object();
+    }
 
     template <typename T, typename... Args>
     void create(Args&&... args) {
@@ -159,9 +188,25 @@ private:
             }
         };
     }
+    void free_if_not_managed_object() {
+        if (!is_managed_object) {
+            free();
+        }
+    }
 
     std::shared_ptr<Substance> member;
+    bool                       is_managed_object = true;
 };
+
+template <typename Container, typename Head, typename... Tail,
+          bool b = CheckerForSFINAE<std::is_same_v<
+                  typename Container::value_type, Variable>>::value>
+inline void Assign(Container& c, Head&& h, Tail&&... tail) {
+    c.emplace_back(h);
+    if constexpr (sizeof...(Tail) > 0) {
+        Assign(c, tail...);
+    }
+}
 
 inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
     dst->clear();
