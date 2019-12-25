@@ -24,17 +24,7 @@ public:
 
     Variable(const std::type_index& type)
         : member(std::make_shared<Substance>()) {
-        member->type = type;
-        member->cloner = [](Variable& d, const Variable& s) {
-            d.member->type = s.member->type;
-        };
-        member->copyer = [](Variable& d, const Variable& s) {
-            if (d.getType() == s.getType()) {
-                s.member->cloner(d, s);
-            } else {
-                throw(WrongTypeCast(d.member->type, s.member->type));
-            }
-        };
+        toEmpty(type);
     }
 
     Variable(Variable&&) = default;
@@ -77,6 +67,11 @@ public:
         member->copyer = [](Variable& d, const Variable& s) {
             *d.getWriter<T>() = *s.getReader<T>();
         };
+    }
+
+    void free() {
+        member->data.reset();
+        toEmpty(member->type);
     }
 
     template <typename T>
@@ -150,6 +145,20 @@ private:
     };
 
     explicit Variable(std::shared_ptr<Substance>& m) : member(m) {}
+
+    void toEmpty(const std::type_index& type) {
+        member->type = type;
+        member->cloner = [](Variable& d, const Variable& s) {
+            d.member->type = s.member->type;
+        };
+        member->copyer = [](Variable& d, const Variable& s) {
+            if (d.getType() == s.getType()) {
+                s.member->cloner(d, s);
+            } else {
+                throw(WrongTypeCast(d.member->type, s.member->type));
+            }
+        };
+    }
 
     std::shared_ptr<Substance> member;
 };
