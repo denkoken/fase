@@ -64,9 +64,10 @@ TEST_CASE("Core test") {
             core.getNodes().at("a").args[2].getReader<int>());
     REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 9);
 
-    std::vector<Variable> inputs(2);
-    inputs[0].create<int>(4);
-    inputs[1].create<int>(5);
+    int input0 = 4, input1 = 5;
+    std::vector<Variable> inputs;
+    Assign(inputs, &input0, &input1);
+    REQUIRE(inputs[0].getWriter<int>().get() == &input0);
     REQUIRE(core.supposeInput(inputs));
     std::vector<Variable> outputs(1);
     outputs[0].create<int>();
@@ -96,8 +97,9 @@ TEST_CASE("Core test") {
 
     REQUIRE(*outputs[0].getReader<int>() == 81);
 
-    *inputs[0].getWriter<int>() = 2;
-    *inputs[1].getWriter<int>() = 6;
+    REQUIRE(inputs[0].getWriter<int>().get() == &input0);
+    input0 = 2;
+    input1 = 6;
 
     REQUIRE(core.newNode("c"));
     REQUIRE(core.allocateFunc("square", "c"));

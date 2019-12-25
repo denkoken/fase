@@ -107,11 +107,11 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe2"].allocateFunc("lambda", "l"));
     REQUIRE(cm["Pipe2"].smartLink("One", 2, "l", 0));
 
-    Variable v = std::make_unique<int>(5);
-    Variable v_ = std::make_unique<int>(6);
+    Variable var = std::make_unique<int>(5);
+    Variable var_ = std::make_unique<int>(6);
 
-    REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
-    REQUIRE(cm["Pipe2"].setArgument("One", 1, v_));
+    REQUIRE(cm["Pipe2"].setArgument("One", 0, var));
+    REQUIRE(cm["Pipe2"].setArgument("One", 1, var_));
 
     REQUIRE(cm["Pipe2"].run());
 
@@ -151,8 +151,8 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe1"].getNodes().at("b").args[1].getReader<int>() == 4);
 
     REQUIRE(cm["Pipe2"].smartLink("One", 1, "l", 0));
-    v = std::make_unique<int>(3);
-    REQUIRE(cm["Pipe2"].setArgument("One", 0, v));
+    var = std::make_unique<int>(3);
+    REQUIRE(cm["Pipe2"].setArgument("One", 0, var));
     REQUIRE(cm["Pipe2"].run());
 
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
@@ -171,22 +171,26 @@ TEST_CASE("Core Manager test") {
 
     { // exportPipe test.
         auto exported = cm.exportPipe("Pipe1");
-        std::vector<Variable> vs = {std::make_unique<int>(3),
-                                    std::make_unique<int>()};
+        int result, input = 3;
+        std::vector<Variable> vs;
+        Assign(vs, &input, &result);
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
+        REQUIRE(result == (3 + 3) * (3 + 3));
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == (3 + 4) * (3 + 4));
+        REQUIRE(result == (3 + 4) * (3 + 4));
         exported(vs);
         exported(vs);
         exported(vs);
         exported(vs);
         exported.reset();
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == (3 + 3) * (3 + 3));
+        REQUIRE(result == (3 + 3) * (3 + 3));
         exported(vs);
         exported(vs);
         exported(vs);
+        for (Variable& v : vs) {
+            v.free();
+        }
     }
 
     { // exportPipe test, with pipe dependence.
@@ -195,20 +199,24 @@ TEST_CASE("Core Manager test") {
         REQUIRE(cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
         REQUIRE(cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
         auto exported = cm.exportPipe("Pipe2");
-        std::vector<Variable> vs = {std::make_unique<int>(1),
-                                    std::make_unique<int>()};
+        int result, input = 1;
+        std::vector<Variable> vs;
+        Assign(vs, &input, &result);
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
+        REQUIRE(result == int(3.5f * (1 + 3) * (1 + 3)));
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 4) * (1 + 4)));
+        REQUIRE(result == int(3.5f * (1 + 4) * (1 + 4)));
         exported(vs);
         exported(vs);
         exported.reset();
         exported(vs);
-        REQUIRE(*vs[1].getReader<int>() == int(3.5f * (1 + 3) * (1 + 3)));
+        REQUIRE(result == int(3.5f * (1 + 3) * (1 + 3)));
         exported(vs);
         exported(vs);
         exported(vs);
+        for (Variable& v : vs) {
+            v.free();
+        }
     }
     REQUIRE(cm["Pipe2"].run());
     REQUIRE(*cm["Pipe2"].getNodes().at("l").args[1].getReader<int>() ==
