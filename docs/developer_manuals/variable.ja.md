@@ -12,7 +12,7 @@
 の性質 を持ちます.
 
 気分としては `shared_ptr<any<optional<T>>>` に近いものがあります.  
-(当然 `any` は非テンプレートクラスなので, `optional<T>` は便宜上のものです.)
+(当然 `any` は非テンプレートクラスなので, `any<optional<T>>` は便宜上のものです.)
 
 ただし, 中に持つ値の型 (上で言う`T`) は
 コピーコンストラクタとコピー代入演算子を持っている必要があります.
@@ -28,6 +28,37 @@
 ## `Variable(const std::type_index& type)` コンストラクタ
 
 `type` の型を持ち値を持たない実体を作成し, それを指すインタンスとなります.
+
+## `template<typename T>Variable(T* ptr)` コンストラクタ
+
+`ptr` が指すオブジェクトを指し示す所有権を持たない実体を作成し, それを指すインスタンスとなります.  
+つまり、このインスタンスが指す実体が消える際に `*ptr` のデストラクタは呼ばれません.  
+このインスタンスには、寿命が尽きる、もしくはムーブ代入演算子が呼ばれる際に指している実体の中身を空にする義務が発生します.  
+この義務はムーブによってのみ移譲されます.  
+このインスタンスよりも先に`*ptr`の寿命が尽きると未定義動作となります.  
+
+```c++
+Variable v;
+int c = 123;
+{
+    Variable v2(&c);
+    v = v2.ref();
+    assert(*v.getReader<int>() == 123);
+    *v.getWriter<int>() = 456;
+} //  v2 was deleted! And the pointed by v2 and v was cleared.
+assert(!bool(v));
+assert(c == 456);
+```
+
+```c++
+Variable v;
+{
+    int a;
+    v = Variable(&a);
+} //  a was deleted!
+
+*v.getReader<int>() = 0;  // Undefined behavior!!
+```
 
 ## ムーブコンストラクタ, ムーブ代入演算子
 
