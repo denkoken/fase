@@ -24,10 +24,10 @@ class Fase : public Parts... {
 public:
     Fase();
 
-    template <typename... Args>
+    template <typename Ret, typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
                      FunctionUtils&& utils);
-    template <typename... Args>
+    template <typename Ret, typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
                      FunctionUtils&&         utils,
                      std::vector<Variable>&& default_args);
@@ -77,22 +77,23 @@ private:
     const TSCMap& getConverterMap();
 };
 
-#define FaseAddUnivFunction(func, arg_types, arg_names, ...)                   \
+#define FaseAddUnivFunction(func, func_form_type, arg_names, ...)              \
     [&](auto&& f) {                                                            \
-        using Ftype = std::function<void arg_types>;                           \
+        using Ftype = std::function<func_form_type>;                           \
         using T = Ftype (*)();                                                 \
         using fase::FOGtype;                                                   \
+        using FuncFormPointerType = std::add_pointer_t<func_form_type>;        \
         FOGtype     fog_t;                                                     \
         T           fog = []() -> Ftype { return func; };                      \
         std::string f_name;                                                    \
-        auto        callable_type =                                            \
-                std::make_shared<std::type_index>(typeid(void(*) arg_types));  \
+        auto        callable_type = std::make_shared<std::type_index>(         \
+                typeid(FuncFormPointerType));                           \
         if constexpr (std::is_same_v<std::decay_t<decltype(f)>,                \
-                                     void(*) arg_types>) {                     \
+                                     FuncFormPointerType>) {                   \
             fog_t = FOGtype::Pure;                                             \
             f_name = #func;                                                    \
         } else if constexpr (std::is_convertible_v<std::decay_t<decltype(f)>,  \
-                                                   void(*) arg_types>) {       \
+                                                   FuncFormPointerType>) {     \
             fog_t = FOGtype::Lambda;                                           \
             f_name = "[[lambda]]" + std::to_string(__LINE__);                  \
         } else {                                                               \
@@ -109,9 +110,9 @@ private:
                 }                                                              \
             }                                                                  \
         }                                                                      \
-        fase::AddingUnivFuncHelper<void arg_types>::Gen(                       \
-                f_name, FaseExpandList(arg_names), fog_t, #arg_types, #func,   \
-                callable_type, fog, __VA_ARGS__);                              \
+        fase::AddingUnivFuncHelper<func_form_type>::Gen(                       \
+                f_name, FaseExpandList(arg_names), fog_t, #func_form_type,     \
+                #func, callable_type, fog, __VA_ARGS__);                       \
     }(func)
 
 // TODO Make Macro for lvalue function object.
@@ -125,15 +126,6 @@ private:
 // =============================================================================
 // =========================== Non User Interface ==============================
 // =============================================================================
-
-template <bool head, bool... tails>
-constexpr bool is_all_ok() {
-    if constexpr (sizeof...(tails) == 0) {
-        return head;
-    } else {
-        return head && is_all_ok<tails...>();
-    }
-}
 
 template <typename... Args>
 std::vector<Variable> GetDefaultValueVariables() {
@@ -205,30 +197,39 @@ inline Fase<Parts...>::Fase()
 }
 
 template <class... Parts>
-template <typename... Args>
+template <typename Ret, typename... Args>
 inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&         func,
                                         const std::string&      f_name,
                                         FunctionUtils&&         utils,
                                         std::vector<Variable>&& default_args) {
     utils.arg_types = {typeid(std::decay_t<Args>)...};
     utils.is_input_args = {IsInputType<Args>()...};
+    if constexpr (!std::is_same_v<Ret, void>) {
+        default_args.emplace_back(typeid(Ret));
+        utils.arg_types.emplace_back(typeid(std::decay_t<Ret>));
+        utils.is_input_args.emplace_back(false);
+    }
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
                                          std::move(utils));
 }
 
 template <class... Parts>
-template <typename... Args>
+template <typename Ret, typename... Args>
 inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&    func,
                                         const std::string& f_name,
                                         FunctionUtils&&    utils) {
-    static_assert(
-            is_all_ok<std::is_default_constructible_v<std::decay_t<Args>>...>(),
-            "Fase::addUnivFunc<Args...> : "
-            "If not all Args have default constructor,"
-            "do not call me WITHOUT default_args!");
+    static_assert((... && std::is_default_constructible_v<std::decay_t<Args>>),
+                  "Fase::addUnivFunc<Args...> : "
+                  "If not all Args have default constructor,"
+                  "do not call me WITHOUT default_args!");
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
     utils.arg_types = {typeid(std::decay_t<Args>)...};
     utils.is_input_args = {IsInputType<Args>()...};
+    if constexpr (!std::is_same_v<Ret, void>) {
+        default_args.emplace_back(typeid(Ret));
+        utils.arg_types.emplace_back(typeid(std::decay_t<Ret>));
+        utils.is_input_args.emplace_back(false);
+    }
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
                                          std::move(utils));
 }
@@ -298,43 +299,54 @@ Fase<Parts...>::APIImpl::getWriter(const std::chrono::nanoseconds& wait_time) {
 template <typename... Args>
 struct AddingUnivFuncHelper {};
 
-template <typename... Args>
-struct AddingUnivFuncHelper<void(Args...)> {
+template <typename Ret, typename... Args>
+struct AddingUnivFuncHelper<Ret(Args...)> {
     template <class FaseClass, class FuncObjGenerator>
     static void
     Gen(const std::string& f_name, const std::vector<std::string>& arg_names,
-        FOGtype fog_type, const std::string& arg_types_repr,
+        FOGtype fog_type, const std::string& func_types_repr,
         const std::string& repr, std::shared_ptr<std::type_index> callable_type,
         FuncObjGenerator&& fog, FaseClass& app, std::string description = "") {
-        auto unived = UnivFuncGenerator<void(Args...)>::Gen(
+        auto unived = UnivFuncGenerator<Ret(Args...)>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
         utils.arg_names = arg_names;
-        utils.arg_types_repr = arg_types_repr;
+        utils.arg_types_repr = func_types_repr;
         utils.description = description;
         utils.type = fog_type;
         utils.repr = repr;
         utils.callable_type = callable_type;
-        app.template addUnivFunc<Args...>(unived, f_name, std::move(utils));
+
+        if constexpr (!std::is_same_v<Ret, void>) {
+            utils.arg_names.push_back("[[returned]]");
+        }
+
+        app.template addUnivFunc<Ret, Args...>(unived, f_name,
+                                               std::move(utils));
     }
 
     template <class FaseClass, class FuncObjGenerator>
     static void
     Gen(const std::string& f_name, const std::vector<std::string>& arg_names,
-        FOGtype fog_type, const std::string& arg_types_repr,
+        FOGtype fog_type, const std::string& func_types_repr,
         const std::string& repr, std::shared_ptr<std::type_index> callable_type,
         FuncObjGenerator&& fog, FaseClass& app, std::string description,
         std::tuple<std::decay_t<Args>...>&& default_args) {
-        auto unived = UnivFuncGenerator<void(Args...)>::Gen(
+        auto unived = UnivFuncGenerator<Ret(Args...)>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
         utils.arg_names = arg_names;
-        utils.arg_types_repr = arg_types_repr;
+        utils.arg_types_repr = func_types_repr;
         utils.description = description;
         utils.type = fog_type;
         utils.repr = repr;
         utils.callable_type = callable_type;
-        app.template addUnivFunc<Args...>(
+
+        if constexpr (!std::is_same_v<Ret, void>) {
+            utils.arg_names.push_back("[[returned]]");
+        }
+
+        app.template addUnivFunc<Ret, Args...>(
                 unived, f_name, std::move(utils),
                 toVariables(std::move(default_args),
                             std::index_sequence_for<Args...>()));

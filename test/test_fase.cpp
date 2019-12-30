@@ -19,8 +19,8 @@ void Square(const int& in, int& dst) {
     dst = in * in;
 })
 
-void Times(const int& a, const int& b, int& dst) {
-    dst = a * b;
+int Times(const int& a, const int& b) {
+    return a * b;
 }
 
 // clang-format on
@@ -36,8 +36,8 @@ public:
 
 TEST_CASE("Fase test") {
     Fase<BareCore> app;
-    FaseAddUnivFunction(Times, (const int&, const int&, int&),
-                        ("a", "b", "dst"), app, "dst = a * b", {1, 1, 1});
+    FaseAddUnivFunction(Times, int(const int&, const int&), ("a", "b"), app,
+                        "dst = a * b", {1, 1});
 
     auto [guard, pcm] = app.getCoreManager();
     auto& cm = *pcm;

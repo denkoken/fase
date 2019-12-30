@@ -15,16 +15,17 @@
 
 namespace {
 
-void Add(const int& a, const int& b, int& dst) {
-    dst = a + b;
+int Add(const int& a, const int& b) {
+    return a + b;
 }
 
-void Square(const int& in, int& dst) {
-    dst = in * in;
+int Square(const int& in) {
+    return in * in;
 }
 
-void Print(const int& in) {
+bool Print(const int& in) {
     std::cout << in << std::endl;
+    return true;
 }
 
 void Wait(const int& seconds) {
@@ -174,24 +175,23 @@ int main() {
             app;
 
     // Register functions
-    FaseAddUnivFunction(Add, (const int&, const int&, int&),
-                        ("in1", "in2", "out"), app);
-    FaseAddUnivFunction(Square, (const int&, int&), ("in", "out"), app);
-    FaseAddUnivFunction(Print, (const int&), ("in"), app);
-    FaseAddUnivFunction(Wait, (const int&), ("seconds"), app,
+    FaseAddUnivFunction(Add, int(const int&, const int&), ("in1", "in2"), app);
+    FaseAddUnivFunction(Square, int(const int&), ("in"), app);
+    FaseAddUnivFunction(Print, bool(const int&), ("in"), app);
+    FaseAddUnivFunction(Wait, void(const int&), ("seconds"), app,
                         "wait for \"seconds\".");
-    FaseAddUnivFunction(Assert, (const int&, const int&), ("a", "b"), app,
+    FaseAddUnivFunction(Assert, void(const int&, const int&), ("a", "b"), app,
                         "assert(a == b)", {1, 1});
     struct Counter {
         int count = 0;
-        void operator()(int& dst) {
-            dst = count++;
+        int operator()() {
+            return count++;
         }
     };
-    FaseAddUnivFunction(Counter{}, (int&), ("count"), app);
-    FaseAddUnivFunction(Counter{3}, (int&), ("count"), app);
-    FaseAddUnivFunction([] { return Counter{4}; }(), (int&), ("count"), app);
-    FaseAddUnivFunction([](int& d) { d = 1; }, (int&), ("count"), app);
+    FaseAddUnivFunction(Counter{}, int(), (), app);
+    FaseAddUnivFunction(Counter{3}, int(), (), app);
+    FaseAddUnivFunction([] { return Counter{4}; }(), int(), (), app);
+    FaseAddUnivFunction([](int& d) { d = 1; }, void(int&), ("count"), app);
 
     std::vector<float> bg_col(3);
 

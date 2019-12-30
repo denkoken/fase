@@ -45,12 +45,12 @@ int main() {
     fase::Fase<fase::ImGuiEditor, NFDParts> app;
 
     // Register functions
-    FaseAddUnivFunction(LoadImage, (const std::string&, cv::Mat&),
+    FaseAddUnivFunction(LoadImage, void(const std::string&, cv::Mat&),
                         ("filename", "img"), app);
-    FaseAddUnivFunction(BlurImage, (const cv::Mat&, cv::Mat&, int),
+    FaseAddUnivFunction(BlurImage, void(const cv::Mat&, cv::Mat&, int),
                         ("in", "out", "ksize"), app, "blur image",
                         {cv::Mat(), cv::Mat(), 3});
-    FaseAddUnivFunction(Random, (int&, const int&, const int&),
+    FaseAddUnivFunction(Random, void(int&, const int&, const int&),
                         ("out", "min", "max"), app, "output random integer.",
                         {0, 0, 256});
 

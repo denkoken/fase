@@ -70,7 +70,7 @@ int main() {
             dst = count++;
         }
     };
-    FaseAddUnivFunction(Counter{}, (float&), ("count"), app);
+    FaseAddUnivFunction(Counter{}, void(float&), ("count"), app);
 
     app.addOptinalButton(
             "Export pipe test",

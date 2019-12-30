@@ -21,8 +21,9 @@ void Square(const float& in, float& dst) {
 )
 
 FaseAutoAddingUnivFunction(Print,
-void Print(const float& in) {
+bool Print(const float& in) {
     std::cout << in << std::endl;
+    return true;
 }
 )
 
