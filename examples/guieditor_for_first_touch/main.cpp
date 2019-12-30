@@ -33,9 +33,8 @@ int main() {
     fase::Fase<fase::ImGuiEditor> app;
 
     // Register functions
-    FaseAddUnivFunction(Add, int(const int&, const int&), ("in1", "in2", "out"),
-                        app);
-    FaseAddUnivFunction(Square, int(const int&), ("in", "out"), app);
+    FaseAddUnivFunction(Add, int(const int&, const int&), ("in1", "in2"), app);
+    FaseAddUnivFunction(Square, int(const int&), ("in"), app);
     FaseAddUnivFunction(Print, bool(const int&), ("in"), app);
     FaseAddUnivFunction(Assert, void(const int&, const int&), ("a", "b"), app,
                         "assert(a == b)", {1, 1});
