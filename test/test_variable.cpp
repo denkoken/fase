@@ -159,6 +159,40 @@ TEST_CASE("Variable test") {
         REQUIRE(a == 2);
     }
 
+    SECTION("assignedAs") {
+        Variable a(typeid(TestClass));
+        Variable b(typeid(int));
+        Variable c = std::make_unique<TestClass>();
+        Variable d;
+
+        TestClass tc;
+        tc.clear();
+
+        a.assignedAs(tc);
+        REQUIRE(a.getReader<TestClass>()->isCopied());
+
+        TestClass tc_m;
+        tc_m.clear();
+        a.assignedAs(std::move(tc_m));
+        REQUIRE(a.getReader<TestClass>()->isMoved());
+
+        try {
+            b.assignedAs(tc);
+            REQUIRE(false);
+        } catch (WrongTypeCast& e) {
+            REQUIRE(e.cast_type == typeid(TestClass));
+            REQUIRE(e.casted_type == typeid(int));
+        } catch (...) {
+            REQUIRE(false);
+        }
+
+        c.assignedAs(tc);
+        REQUIRE(c.getReader<TestClass>()->isCopied());
+
+        d.assignedAs(tc);
+        REQUIRE(d.getReader<TestClass>()->isCopied());
+    }
+
     SECTION("WrongTypeCast") {
         Variable test_class;
         test_class.create<TestClass>();

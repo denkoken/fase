@@ -11,6 +11,21 @@
 #include "debug_macros.h"
 #include "exceptions.h"
 
+#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
+#define EXEPTION_STR(err_name, loc)                                            \
+    [&](std::string f_name) {                                                  \
+        return f_name + " throw " + err_name + " @ " + __FILE__ + ":" +        \
+               std::to_string(__LINE__) + std::string(" called by ") +         \
+               loc.file_name() + ":" + std::to_string(loc.line());             \
+    }(__func__)
+#else
+#define EXEPTION_STR(err_name, loc)                                            \
+    [&](std::string f_name) {                                                  \
+        return f_name + " throw " + err_name + " @ " + __FILE__ + ":" +        \
+               std::to_string(__LINE__);                                       \
+    }(__func__)
+#endif
+
 namespace fase {
 
 template <bool b>
@@ -56,13 +71,6 @@ public:
         return *this;
     }
 
-    Variable& operator=(Variable& v) {
-        free_if_not_managed_object();
-        member = std::make_shared<Substance>();
-        v.member->cloner(*this, v);
-        return *this;
-    }
-
     Variable(const Variable& v) : member(std::make_shared<Substance>()) {
         v.member->cloner(*this, v);
     }
@@ -72,10 +80,6 @@ public:
         member = std::make_shared<Substance>();
         v.member->cloner(*this, v);
         return *this;
-    }
-
-    Variable(Variable& v) : member(std::make_shared<Substance>()) {
-        v.member->cloner(*this, v);
     }
 
     ~Variable() {
@@ -99,6 +103,21 @@ public:
         };
     }
 
+    template <typename T>
+    void assignedAs(T&& v FASE_COMMA_DEBUG_LOC(loc)) {
+        using Type = std::decay_t<T>;
+        if (member->data) {
+            *getWriter<Type>() = std::forward<T>(v);
+        } else if (member->type == typeid(Type) ||
+                   member->type == typeid(void)) {
+            member->data = std::make_shared<Type>(std::forward<T>(v));
+            member->type = typeid(Type);
+        } else {
+            throw(WrongTypeCast(typeid(T), member->type,
+                                EXEPTION_STR("WrongTypeCast", loc)));
+        }
+    }
+
     void free() {
         member->data.reset();
         toEmpty(member->type);
@@ -117,15 +136,11 @@ public:
     template <typename T>
     std::shared_ptr<T> getWriter(FASE_DEBUG_LOC(loc)) {
         if (!isSameType<T>()) {
-            FASE_DEBUG_LOC_LOG(loc, "getWriter::WrongTypeCast");
-            throw(WrongTypeCast(typeid(T), member->type));
+            throw(WrongTypeCast(typeid(T), member->type,
+                                EXEPTION_STR("WrongTypeCast", loc)));
         } else if (!*this) {
-            std::string err_m = "getWriter::TryToGetEmptyVariable";
-#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
-            err_m += std::string(" called at ") + loc.file_name() + ":" +
-                     std::to_string(loc.line());
-#endif
-            throw(TryToGetEmptyVariable(err_m));
+            throw(TryToGetEmptyVariable(
+                    EXEPTION_STR("TryToGetEmptyVariable", loc)));
         }
         return std::static_pointer_cast<T>(member->data);
     }
@@ -133,15 +148,11 @@ public:
     template <typename T>
     std::shared_ptr<const T> getReader(FASE_DEBUG_LOC(loc)) const {
         if (!isSameType<T>()) {
-            FASE_DEBUG_LOC_LOG(loc, "getReader::WrongTypeCast");
-            throw(WrongTypeCast(typeid(T), member->type));
+            throw(WrongTypeCast(typeid(T), member->type,
+                                EXEPTION_STR("WrongTypeCast", loc)));
         } else if (!*this) {
-            std::string err_m = "getReader::TryToGetEmptyVariable";
-#ifdef FASE_IS_DEBUG_SOURCE_LOCATION_ON
-            err_m += std::string(" called at ") + loc.file_name() + ":" +
-                     std::to_string(loc.line());
-#endif
-            throw(TryToGetEmptyVariable(err_m));
+            throw(TryToGetEmptyVariable(
+                    EXEPTION_STR("TryToGetEmptyVariable", loc)));
         }
         return std::static_pointer_cast<const T>(member->data);
     }
@@ -228,5 +239,7 @@ inline void RefCopy(std::vector<Variable>::iterator&& begin,
 }
 
 } // namespace fase
+
+#undef EXEPTION_STR
 
 #endif // VARIABLE_H_20190206

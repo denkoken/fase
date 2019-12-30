@@ -12,10 +12,11 @@ namespace fase {
 
 class WrongTypeCast : public std::logic_error {
 public:
-    WrongTypeCast(std::type_index cast_type_, std::type_index casted_type_)
+    WrongTypeCast(std::type_index cast_type_, std::type_index casted_type_,
+                  std::string m = {})
         : std::logic_error("WrongTypeCast"), cast_type(cast_type_),
           casted_type(casted_type_),
-          err_message(std::string("fase::Variable : Invalid cast (") +
+          err_message(m + std::string(" Invalid cast (") +
                       type_name(cast_type_) + std::string(" vs ") +
                       type_name(casted_type_) + std::string(")")) {}
 
