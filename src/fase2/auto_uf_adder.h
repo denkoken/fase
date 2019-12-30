@@ -735,15 +735,22 @@ public:
             std::vector<std::type_index> types = {
                     typeid(std::decay_t<Args>)...};
             std::vector<bool> is_input_args = GetIsInputArgs<Args...>();
-            auto              func = UnivFuncGenerator<void(Args...)>::Gen(
+            auto              func = UnivFuncGenerator<Ret(Args...)>::Gen(
                     [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
+            auto arg_names_buf = arg_names;
+            if constexpr (!std::is_same_v<Ret, void>) {
+                default_args_buf.emplace_back(typeid(Ret));
+                types.emplace_back(typeid(std::decay_t<Ret>));
+                is_input_args.emplace_back(false);
+                arg_names_buf.push_back("[[returned]]");
+            }
             auto callable_type =
                     std::make_shared<std::type_index>(typeid(Ret(*)(Args...)));
             pcm->addUnivFunc(func, func_name, std::move(default_args_buf),
-                             {arg_names, types, is_input_args, FOGtype::Pure,
-                              func_name, callable_type, arg_types_repr,
-                              FilterFuncStr(code)});
+                             {std::move(arg_names_buf), types, is_input_args,
+                              FOGtype::Pure, func_name, callable_type,
+                              arg_types_repr, FilterFuncStr(code)});
         };
     }
 
