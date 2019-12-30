@@ -233,7 +233,7 @@ void drawNodeContent(const string& n_name, const Node& node,
                     issues->emplace_back(a);
                 }
             } else {
-                ImGui::Text("[empty]");
+                ImGui::Text("[empty] %s", arg_name.c_str());
             }
         } else {
             // No GUI for editing
