@@ -11,6 +11,12 @@
 
 namespace fase {
 
+template <typename T>
+constexpr bool IsInputType() {
+    return !(std::is_reference_v<T> &&
+             std::is_same_v<std::remove_reference_t<T>, std::decay_t<T>>);
+}
+
 template <typename T, typename C>
 inline bool exists(T&& t, C&& c) {
     return std::end(c) != std::find(std::begin(c), std::end(c), t);

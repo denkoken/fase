@@ -8,8 +8,11 @@
 
 namespace fase {
 
-template <typename... Args>
-class UnivFuncGenerator {
+template <typename CallForm>
+class UnivFuncGenerator {};
+
+template <typename Ret, typename... Args>
+class UnivFuncGenerator<Ret(Args...)> {
 public:
     template <typename FuncObjGenerator>
     static auto Gen(FuncObjGenerator&& f) {
@@ -23,7 +26,7 @@ private:
         struct Dst {
             Dst() = default;
 #define COPY(a)                                                                \
-    if (!a.f) {                                                                \
+    if (a.fog) {                                                               \
         f = a.fog();                                                           \
     } else {                                                                   \
         f = a.f;                                                               \
@@ -49,15 +52,20 @@ private:
             virtual ~Dst() = default;
 
             void operator()(std::vector<Variable>& args) {
-                f(static_cast<Args>(
-                        *args[Seq].getWriter<std::decay_t<Args>>())...);
+                if constexpr (std::is_same_v<Ret, void>) {
+                    f(static_cast<Args>(*Get<Args>(args[Seq]))...);
+                } else {
+                    args[sizeof...(Args)].assignedAs(
+                            f(static_cast<Args>(*Get<Args>(args[Seq]))...));
+                }
             }
 
-            std::function<std::function<void(Args...)>()> fog;
-            std::function<void(Args...)>                  f;
+            std::function<std::function<Ret(Args...)>()> fog;
+            std::function<Ret(Args...)>                  f;
         };
         Dst dst;
         dst.fog = std::forward<FuncObjGenerator>(fog);
+        dst.f = dst.fog();
         return dst;
     }
 
@@ -65,7 +73,8 @@ private:
     static auto Wrap(Callable f) {
         return [f = std::move(f)](std::vector<Variable>& args,
                                   Report*                preport) mutable {
-            if (args.size() != sizeof...(Args)) {
+            if (args.size() !=
+                sizeof...(Args) + size_t(!std::is_same_v<Ret, void>)) {
                 throw std::logic_error(
                         "Invalid size of variables at UnivFunc.");
             }
@@ -78,6 +87,15 @@ private:
                 f(args);
             }
         };
+    }
+
+    template <typename Type>
+    static auto Get(Variable& v) {
+        if constexpr (IsInputType<Type>()) {
+            return v.getReader<std::decay_t<Type>>();
+        } else {
+            return v.getWriter<std::decay_t<Type>>();
+        }
     }
 };
 

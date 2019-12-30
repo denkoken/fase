@@ -735,7 +735,7 @@ public:
             std::vector<std::type_index> types = {
                     typeid(std::decay_t<Args>)...};
             std::vector<bool> is_input_args = GetIsInputArgs<Args...>();
-            auto              func = UnivFuncGenerator<Args...>::Gen(
+            auto              func = UnivFuncGenerator<void(Args...)>::Gen(
                     [&]() -> std::function<Ret(Args...)> { return fp; });
             auto default_args_buf = default_args;
             auto callable_type =

@@ -186,13 +186,6 @@ public:
     }
 };
 
-template <typename... Args>
-std::vector<bool> GetIsInputArgs() {
-    return {!(std::is_lvalue_reference_v<Args> &&
-              std::is_same_v<std::remove_reference_t<Args>,
-                             std::decay_t<Args>>)...};
-}
-
 template <class... Parts>
 inline Fase<Parts...>::Fase()
     : Parts()..., api_impl(std::make_unique<APIImpl>()) {
@@ -218,7 +211,7 @@ inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&         func,
                                         FunctionUtils&&         utils,
                                         std::vector<Variable>&& default_args) {
     utils.arg_types = {typeid(std::decay_t<Args>)...};
-    utils.is_input_args = GetIsInputArgs<Args...>();
+    utils.is_input_args = {IsInputType<Args>()...};
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
                                          std::move(utils));
 }
@@ -235,7 +228,7 @@ inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&    func,
             "do not call me WITHOUT default_args!");
     std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
     utils.arg_types = {typeid(std::decay_t<Args>)...};
-    utils.is_input_args = GetIsInputArgs<Args...>();
+    utils.is_input_args = {IsInputType<Args>()...};
     return getAPIImpl().pcm->addUnivFunc(func, f_name, std::move(default_args),
                                          std::move(utils));
 }
@@ -313,7 +306,7 @@ struct AddingUnivFuncHelper<void(Args...)> {
         FOGtype fog_type, const std::string& arg_types_repr,
         const std::string& repr, std::shared_ptr<std::type_index> callable_type,
         FuncObjGenerator&& fog, FaseClass& app, std::string description = "") {
-        auto unived = UnivFuncGenerator<Args...>::Gen(
+        auto unived = UnivFuncGenerator<void(Args...)>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
         utils.arg_names = arg_names;
@@ -332,7 +325,7 @@ struct AddingUnivFuncHelper<void(Args...)> {
         const std::string& repr, std::shared_ptr<std::type_index> callable_type,
         FuncObjGenerator&& fog, FaseClass& app, std::string description,
         std::tuple<std::decay_t<Args>...>&& default_args) {
-        auto unived = UnivFuncGenerator<Args...>::Gen(
+        auto unived = UnivFuncGenerator<void(Args...)>::Gen(
                 std::forward<FuncObjGenerator>(fog));
         FunctionUtils utils;
         utils.arg_names = arg_names;

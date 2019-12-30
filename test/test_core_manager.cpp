@@ -20,10 +20,10 @@ TEST_CASE("Core Manager test") {
     CoreManager cm;
 
     {
-        auto univ_add = UnivFuncGenerator<const int&, const int&, int&>::Gen(
-                []() -> std::function<void(const int&, const int&, int&)> {
-                    return Add;
-                });
+        auto univ_add =
+                UnivFuncGenerator<void(const int&, const int&, int&)>::Gen(
+                        []() -> std::function<void(const int&, const int&,
+                                                   int&)> { return Add; });
 
         std::vector<Variable> default_args(3);
 
@@ -43,7 +43,7 @@ TEST_CASE("Core Manager test") {
     }
 
     {
-        auto univ_sq = UnivFuncGenerator<const int&, int&>::Gen(
+        auto univ_sq = UnivFuncGenerator<void(const int&, int&)>::Gen(
                 []() -> std::function<void(const int&, int&)> {
                     return Square;
                 });
@@ -68,7 +68,7 @@ TEST_CASE("Core Manager test") {
         auto lambda = [pc = std::make_shared<float>(3.5)](int in, int& dst) {
             dst = float(in) * *pc;
         };
-        auto univ_lambda = UnivFuncGenerator<int, int&>::Gen(
+        auto univ_lambda = UnivFuncGenerator<void(int, int&)>::Gen(
                 [&lambda]() -> std::function<void(int, int&)> {
                     return lambda;
                 });
@@ -125,7 +125,7 @@ TEST_CASE("Core Manager test") {
         }
     };
 
-    auto univ_counter = UnivFuncGenerator<int&>::Gen(
+    auto univ_counter = UnivFuncGenerator<void(int&)>::Gen(
             []() -> std::function<void(int&)> { return Counter{}; });
 
     REQUIRE(cm.addUnivFunc(univ_counter, "counter", {std::make_unique<int>(0)},
