@@ -180,7 +180,7 @@ T PopFront(vector<vector<T>>& set_array) {
 }
 
 string getValStr(const Variable& v, const TSCMapW& tsc_map) {
-    if (!tsc_map.count(v.getType())) {
+    if (!tsc_map.count(v.getType()) || !v) {
         return "";
     }
     return tsc_map.at(v.getType()).def_maker(v);
@@ -201,6 +201,9 @@ searchArgName(const PipelineAPI& pipe_api, const string& node_name,
         return {arg_repr, false};
     } else if (src.empty()) {
         // Case 1: Create default argument
+        if (function.arg_names[arg_idx] == kReturnValueID) {
+            return {kReturnValueID + node_name + "_ret", false};
+        }
         return {genVarName(node_name, arg_idx), true};
     } else {
         // Case 2: Use output variable
@@ -302,8 +305,14 @@ void genFuncDeclaration(MyStream& code_stream, const string& func_name,
 
 void genFunctionCall(MyStream& ss, const string& func_name,
                      const string& node_name, const string& pipe_name,
-                     const FunctionUtils& func_util,
-                     const vector<string>& var_names) {
+                     const FunctionUtils& func_util, vector<string> var_names) {
+    if (var_names.back().find(kReturnValueID) != std::string::npos) {
+        if (var_names.back().find(node_name + "_ret") != std::string::npos) {
+            ss << "auto ";
+        }
+        ss << replace(var_names.back(), kReturnValueID, "") << " = ";
+        var_names.pop_back();
+    }
     if (isFunctionObject(func_util)) {
         ss << func_name << "s[" << toEnumValueName(node_name, pipe_name) << "]";
     } else {
@@ -311,7 +320,7 @@ void genFunctionCall(MyStream& ss, const string& func_name,
     }
     ss << "(";
     for (size_t i = 0; i < var_names.size(); i++) {
-        ss << var_names[i];
+        ss << replace(var_names[i], kReturnValueID, "");
         if (i != var_names.size() - 1) {
             ss << ", ";
         }
@@ -461,6 +470,8 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
     MyStream native_code{indent};
     TSCMapW tsc_map_wraped(tsc_map);
     try {
+
+        // TODO change local function array member to local members.
 
         native_code << "class " << entry_name << " {" << endl;
         native_code << "private:" << uil << endl;
