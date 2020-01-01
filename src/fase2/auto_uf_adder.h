@@ -743,7 +743,7 @@ public:
                 default_args_buf.emplace_back(typeid(Ret));
                 types.emplace_back(typeid(std::decay_t<Ret>));
                 is_input_args.emplace_back(false);
-                arg_names_buf.push_back("[[returned]]");
+                arg_names_buf.push_back(kReturnValueID);
             }
             auto callable_type =
                     std::make_shared<std::type_index>(typeid(Ret(*)(Args...)));

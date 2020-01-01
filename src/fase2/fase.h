@@ -318,7 +318,7 @@ struct AddingUnivFuncHelper<Ret(Args...)> {
         utils.callable_type = callable_type;
 
         if constexpr (!std::is_same_v<Ret, void>) {
-            utils.arg_names.push_back("[[returned]]");
+            utils.arg_names.push_back(kReturnValueID);
         }
 
         app.template addUnivFunc<Ret, Args...>(unived, f_name,
@@ -343,7 +343,7 @@ struct AddingUnivFuncHelper<Ret(Args...)> {
         utils.callable_type = callable_type;
 
         if constexpr (!std::is_same_v<Ret, void>) {
-            utils.arg_names.push_back("[[returned]]");
+            utils.arg_names.push_back(kReturnValueID);
         }
 
         app.template addUnivFunc<Ret, Args...>(
