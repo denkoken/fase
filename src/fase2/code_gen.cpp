@@ -314,7 +314,7 @@ void genFunctionCall(MyStream& ss, const string& func_name,
         var_names.pop_back();
     }
     if (isFunctionObject(func_util)) {
-        ss << func_name << "s[" << toEnumValueName(node_name, pipe_name) << "]";
+        ss << toEnumValueName(node_name, pipe_name);
     } else {
         ss << func_name;
     }
@@ -421,26 +421,33 @@ void GenFunctionArrays(MyStream& native_code,
                        const map<string, vector<N_ID>>& non_pure_node_map,
                        const map<string, FunctionUtils>& f_utils) {
     for (auto& [f_name, vs] : non_pure_node_map) {
-        if (isConstructableObject(f_utils.at(f_name))) {
-            native_code << "std::array<"
-                        << type_name(*f_utils.at(f_name).callable_type);
-            native_code << ", " << vs.size() << "> " << f_name + "s = {" << uil
-                        << uil;
+        if (f_utils.at(f_name).type == FOGtype::Lambda) {
+            native_code << "using " << f_name << "Type = "
+                        << type_name(*f_utils.at(f_name).callable_type) << ";"
+                        << endl;
             for (size_t i = 0; i < vs.size(); i++) {
-                native_code << endl << f_utils.at(f_name).repr << ",";
+                native_code << f_name << "Type"
+                            << " " << toEnumValueName(vs[i].node, vs[i].pipe)
+                            << " = " << f_utils.at(f_name).repr << ";" << endl;
             }
-            native_code << dil << dil << endl << "};" << endl;
+        } else if (isConstructableObject(f_utils.at(f_name))) {
+            for (size_t i = 0; i < vs.size(); i++) {
+                native_code << type_name(*f_utils.at(f_name).callable_type)
+                            << " " << toEnumValueName(vs[i].node, vs[i].pipe)
+                            << " = " << f_utils.at(f_name).repr << ";" << endl;
+            }
         } else {
-            native_code << "std::array<std::function<void"
-                        << f_utils.at(f_name).arg_types_repr;
-            native_code << ">, " << vs.size() << "> " << f_name + "s;" << endl;
+            native_code << "std::array<std::function<"
+                        << f_utils.at(f_name).arg_types_repr << ">, "
+                        << vs.size() << "> " << f_name << "s;" << endl;
+            for (size_t i = 0; i < vs.size(); i++) {
+                native_code << "std::function<"
+                            << f_utils.at(f_name).arg_types_repr << ">& "
+                            << toEnumValueName(vs[i].node, vs[i].pipe) << " = "
+                            << f_name << "s[" << i << "];" << endl;
+            }
         }
-
-        for (size_t i = 0; i < vs.size(); i++) {
-            native_code << "constexpr static int "
-                        << toEnumValueName(vs[i].node, vs[i].pipe) << " = " << i
-                        << ";" << endl;
-        }
+        native_code << endl;
     }
 }
 
@@ -470,8 +477,6 @@ string GenNativeCode(const string& p_name, const CoreManager& cm,
     MyStream native_code{indent};
     TSCMapW tsc_map_wraped(tsc_map);
     try {
-
-        // TODO change local function array member to local members.
 
         native_code << "class " << entry_name << " {" << endl;
         native_code << "private:" << uil << endl;
