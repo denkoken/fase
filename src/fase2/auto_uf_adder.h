@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "constants.h"
 #include "manager.h"
 #include "univ_functions.h"
 #include "variable.h"

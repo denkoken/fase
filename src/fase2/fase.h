@@ -6,6 +6,7 @@
 
 #include "auto_uf_adder.h"
 #include "common.h"
+#include "constants.h"
 #include "manager.h"
 #include "parts_base.h"
 #include "univ_functions.h"
@@ -95,7 +96,7 @@ private:
         } else if constexpr (std::is_convertible_v<std::decay_t<decltype(f)>,  \
                                                    FuncFormPointerType>) {     \
             fog_t = FOGtype::Lambda;                                           \
-            f_name = "[[lambda]]" + std::to_string(__LINE__);                  \
+            f_name = "LambdaExp" + std::to_string(__LINE__);                   \
         } else {                                                               \
             callable_type = std::make_shared<std::type_index>(                 \
                     typeid(std::decay_t<decltype(f)>));                        \
