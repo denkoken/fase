@@ -153,10 +153,8 @@ class CoreManager::Impl {
 public:
     Impl() = default;
     Impl(const Impl&) = default;
-    Impl(Impl&) = default;
     Impl(Impl&&) = delete;
     Impl& operator=(const Impl&) = default;
-    Impl& operator=(Impl&) = default;
     Impl& operator=(Impl&&) = delete;
     ~Impl() = default;
 

@@ -2,7 +2,9 @@
 #ifndef UTILS_H_20190215
 #define UTILS_H_20190215
 
+#ifndef _MSVC_LANG
 #include <cxxabi.h>
+#endif
 
 #include <algorithm>
 #include <map>
@@ -24,11 +26,17 @@ inline bool exists(T&& t, C&& c) {
 
 template <class Type>
 std::string type_name(const Type& t) {
+#ifndef _MSVC_LANG
+#include <cxxabi.h>
+
     int         status;
     char*       a = abi::__cxa_demangle(t.name(), NULL, NULL, &status);
     std::string dst(a);
     free(a);
     return dst;
+#else
+    return t.name();
+#endif
 }
 
 template <typename Container, class Checker>

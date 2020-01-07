@@ -28,10 +28,8 @@ class BrokenPipeError : public std::runtime_error {
 public:
     BrokenPipeError(const string& m) : std::runtime_error(m) {}
 
-    BrokenPipeError(BrokenPipeError&) = default;
     BrokenPipeError(const BrokenPipeError&) = default;
     BrokenPipeError(BrokenPipeError&&) = default;
-    BrokenPipeError& operator=(BrokenPipeError&) = default;
     BrokenPipeError& operator=(const BrokenPipeError&) = default;
     BrokenPipeError& operator=(BrokenPipeError&&) = default;
 
