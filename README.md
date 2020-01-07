@@ -13,6 +13,7 @@ After GUI editing, you can obtain native C++ source code for the deploy.
 
 * MacOS 10.13.4 & clang++
 * Ubuntu 16.04 LTS + clang++ 8 (should be greater than 5)
+* Windows10 MSVC2019
 
 ## Build Examples
 
