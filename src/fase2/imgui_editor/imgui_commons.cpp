@@ -49,6 +49,7 @@ void InputPath::updatePathBuffer() {
     if (!curr.has_root_directory()) {
         curr = "." / curr;
     }
+    curr.make_preferred();
     std::error_code ec;
 
     fs::path search_dir =
@@ -67,7 +68,7 @@ void InputPath::updatePathBuffer() {
     }
     path_buffer.clear();
     auto add = [&](const fs::path& path) {
-        std::string str = path.string();
+        std::string str = path.generic_string();
         if (!curr.has_root_directory()) {
             str = str.substr(2);
         }
