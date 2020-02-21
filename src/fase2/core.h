@@ -13,16 +13,6 @@
 
 namespace fase {
 
-enum class LinkNodeError : char {
-    None = 0,
-    UndefinedNode0,
-    UndefinedNode1,
-    OutOfLenge0,
-    OutOfLenge1,
-    InvalidType,
-    LoopCreated,
-};
-
 class Core {
 public:
     Core();

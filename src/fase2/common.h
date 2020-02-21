@@ -63,6 +63,16 @@ struct FunctionUtils {
     std::string                      description;
 };
 
+enum class LinkNodeError : char {
+    None = 0,
+    UndefinedNode0,
+    UndefinedNode1,
+    OutOfLenge0,
+    OutOfLenge1,
+    InvalidType,
+    LoopCreated,
+    Another,
+};
 class Core;
 
 class CoreManager;
@@ -83,11 +93,12 @@ public:
     virtual bool allocateFunc(const std::string& work,
                               const std::string& node) = 0;
 
-    virtual bool smartLink(const std::string& src_node, std::size_t src_arg,
-                           const std::string& dst_node,
-                           std::size_t        dst_arg) = 0;
-    virtual bool unlinkNode(const std::string& dst_node,
-                            std::size_t        dst_arg) = 0;
+    virtual LinkNodeError smartLink(const std::string& src_node,
+                                    std::size_t        src_arg,
+                                    const std::string& dst_node,
+                                    std::size_t        dst_arg) = 0;
+    virtual bool          unlinkNode(const std::string& dst_node,
+                                     std::size_t        dst_arg) = 0;
 
     virtual bool supposeInput(const std::vector<std::string>& arg_names) = 0;
     virtual bool supposeOutput(const std::vector<std::string>& arg_names) = 0;

@@ -162,10 +162,11 @@ bool StringToPipeline(const string& p_name, LineIterator& linep,
         }
 
         auto words = split(Next(linep), ' ');
-        if (!pipe_api.smartLink(words.at(2), std::stoul(words.at(3)),
-                                words.at(0), std::stoul(words.at(1)))) {
-            std::cerr << "smartLink failed : line\"" << *linep << "\""
-                      << std::endl;
+        auto err = pipe_api.smartLink(words.at(2), std::stoul(words.at(3)),
+                                      words.at(0), std::stoul(words.at(1)));
+        if (err != LinkNodeError::None) {
+            std::cerr << "smartLink failed : line\"" << *linep << "\" "
+                      << "errorcode: " << int(err) << std::endl;
             return false;
         }
         linep++;

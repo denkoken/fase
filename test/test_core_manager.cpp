@@ -96,16 +96,16 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe1"].newNode("b"));
     REQUIRE(cm["Pipe1"].allocateFunc("add", "a"));
     REQUIRE(cm["Pipe1"].allocateFunc("square", "b"));
-    REQUIRE(cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
-    REQUIRE(cm["Pipe1"].smartLink(kINPUT, 1, "a", 1));
-    REQUIRE(cm["Pipe1"].smartLink("a", 2, "b", 0));
-    REQUIRE(cm["Pipe1"].smartLink("b", 1, kOUTPUT, 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink(kINPUT, 1, "a", 1));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink("a", 2, "b", 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink("b", 1, kOUTPUT, 0));
 
     REQUIRE(cm["Pipe2"].newNode("One"));
     REQUIRE(cm["Pipe2"].newNode("l"));
     REQUIRE(cm["Pipe2"].allocateFunc("Pipe1", "One"));
     REQUIRE(cm["Pipe2"].allocateFunc("lambda", "l"));
-    REQUIRE(cm["Pipe2"].smartLink("One", 2, "l", 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe2"].smartLink("One", 2, "l", 0));
 
     Variable var = std::make_unique<int>(5);
     Variable var_ = std::make_unique<int>(6);
@@ -140,8 +140,8 @@ TEST_CASE("Core Manager test") {
     REQUIRE(cm["Pipe1"].newNode("c"));
     REQUIRE(cm["Pipe1"].allocateFunc("counter", "c"));
     REQUIRE(cm["Pipe1"].supposeInput({"in1"}));
-    REQUIRE(cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
-    REQUIRE(cm["Pipe1"].smartLink("c", 0, "a", 1));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink(kINPUT, 0, "a", 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe1"].smartLink("c", 0, "a", 1));
     REQUIRE(cm["Pipe1"].run());
 
     REQUIRE(*cm["Pipe1"].getNodes().at("c").args[0].getReader<int>() == 0);
@@ -150,7 +150,7 @@ TEST_CASE("Core Manager test") {
     REQUIRE(*cm["Pipe1"].getNodes().at("a").args[0].getReader<int>() == 1);
     REQUIRE(*cm["Pipe1"].getNodes().at("b").args[1].getReader<int>() == 4);
 
-    REQUIRE(cm["Pipe2"].smartLink("One", 1, "l", 0));
+    REQUIRE(LinkNodeError::None == cm["Pipe2"].smartLink("One", 1, "l", 0));
     var = std::make_unique<int>(3);
     REQUIRE(cm["Pipe2"].setArgument("One", 0, var));
     REQUIRE(cm["Pipe2"].run());
@@ -196,8 +196,10 @@ TEST_CASE("Core Manager test") {
     { // exportPipe test, with pipe dependence.
         REQUIRE(cm["Pipe2"].supposeInput({"in1"}));
         REQUIRE(cm["Pipe2"].supposeOutput({"dst"}));
-        REQUIRE(cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
-        REQUIRE(cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
+        REQUIRE(LinkNodeError::None ==
+                cm["Pipe2"].smartLink(kINPUT, 0, "One", 0));
+        REQUIRE(LinkNodeError::None ==
+                cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
         auto exported = cm.exportPipe("Pipe2");
         int result, input = 1;
         std::vector<Variable> vs;

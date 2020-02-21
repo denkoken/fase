@@ -102,9 +102,9 @@ class FaildDummy : public PipelineAPI {
         return false;
     }
 
-    bool smartLink(const std::string&, size_t, const std::string&,
-                   size_t) override {
-        return false;
+    LinkNodeError smartLink(const std::string&, size_t, const std::string&,
+                            size_t) override {
+        return LinkNodeError::Another;
     }
     bool unlinkNode(const std::string&, size_t) override {
         return false;
@@ -257,8 +257,8 @@ public:
         return core.allocateFunc(f_name, n_name);
     }
 
-    bool smartLink(const string& src_node, size_t src_arg,
-                   const string& dst_node, size_t dst_arg) override;
+    LinkNodeError smartLink(const string& src_node, size_t src_arg,
+                            const string& dst_node, size_t dst_arg) override;
     bool unlinkNode(const string& dst_node, size_t dst_arg) override {
         return core.unlinkNode(dst_node, dst_arg);
     }
@@ -330,29 +330,26 @@ public:
 
 // ======================== WrapedCore Member Functions ========================
 
-bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
-                                              size_t src_arg,
-                                              const string& dst_node,
-                                              size_t dst_arg) {
-    // using enum LinkNodeError;
-
+LinkNodeError CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
+                                                       size_t src_arg,
+                                                       const string& dst_node,
+                                                       size_t dst_arg) {
     LinkNodeError err = core.linkNode(src_node, src_arg, dst_node, dst_arg);
-    if (err == LinkNodeError::None) return true;
-    if (err != LinkNodeError::InvalidType) return false;
+    if (err != LinkNodeError::InvalidType) return err;
 
     if (InputNodeName() == src_node) {
         inputs[src_arg] = core.getNodes().at(dst_node).args[dst_arg];
         core.supposeInput(inputs);
         cm_ref.get().updateBindedPipes(myname());
-        return !char(core.linkNode(src_node, src_arg, dst_node, dst_arg));
+        return core.linkNode(src_node, src_arg, dst_node, dst_arg);
 
     } else if (OutputNodeName() == dst_node) {
         outputs[dst_arg] = core.getNodes().at(src_node).args[src_arg];
         core.supposeOutput(outputs);
         cm_ref.get().updateBindedPipes(myname());
-        return !char(core.linkNode(src_node, src_arg, dst_node, dst_arg));
+        return core.linkNode(src_node, src_arg, dst_node, dst_arg);
     }
-    return false;
+    return err;
 }
 
 bool CoreManager::Impl::WrapedCore::call(vector<Variable>& args) {
