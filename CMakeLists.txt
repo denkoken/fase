@@ -14,8 +14,6 @@ endif()
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
 set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
-set(FASE_USE_NFD_AT_EXAMPLE OFF CACHE BOOL
-    "Use Native File Dialog at building example/guieditor")
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
 set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
@@ -24,7 +22,7 @@ set(FASE_EXTERNAL_INCLUDE "" CACHE STRING
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
 message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY},"
-               "use nfd: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW},"
+               "glfw: ${FASE_BUILD_GLFW},"
                "examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
@@ -88,17 +86,11 @@ else()
     message ("CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
-set(define_flags "")
-# Use Native File Dialog
-if (FASE_USE_NFD_AT_EXAMPLE)
-    set(define_flags "-DUSE_NFD")
-endif()
-
 # Utility function to setup a target (include, link, warning, sanitizer)
 function(setup_target target includes libs)
     target_include_directories(${target} PUBLIC ${includes})
     target_link_libraries(${target} ${libs})
-    set(compile_flags "${warning_options} ${define_flags}")
+    set(compile_flags "${warning_options}")
     set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${compile_flags})
     add_sanitizers(${target})
 endfunction(setup_target)
@@ -181,6 +173,56 @@ if (FASE_BUILD_THIRD_PARTY)
     # OpenCV (not necessary)
     find_package(OpenCV)
 
+    # Native File Dialog
+    set(nfd_PLATFORM Undefined)
+    if(WIN32)
+      set(nfd_PLATFORM PLATFORM_WIN32)
+    elseif(APPLE)
+      set(nfd_PLATFORM PLATFORM_MACOS)
+    elseif(UNIX AND NOT APPLE)
+      set(nfd_PLATFORM PLATFORM_LINUX)
+    endif()
+
+    set(NFD_SOURCE_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/include/nfd.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/nfd_common.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/common.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/simple_exec.h
+        )
+
+    if(nfd_PLATFORM STREQUAL PLATFORM_WIN32)
+      list(APPEND NFD_SOURCE_FILES
+          ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/nfd_win.cpp)
+    endif()
+
+    if(nfd_PLATFORM STREQUAL PLATFORM_LINUX)
+      find_package(PkgConfig REQUIRED)
+      pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+      list(APPEND NFD_SOURCE_FILES
+          ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/nfd_gtk.c)
+    endif()
+
+    if(nfd_PLATFORM STREQUAL PLATFORM_MACOS)
+      find_library(APPKIT_LIBRARY AppKit)
+      list(APPEND NFD_SOURCE_FILES
+          ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/nfd_cocoa.m)
+    endif()
+
+    add_library(nfd ${LINK_TYPE} ${NFD_SOURCE_FILES})
+
+    target_include_directories(nfd
+      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nfd/src/include)
+
+    if(nfd_PLATFORM STREQUAL PLATFORM_LINUX)
+      target_include_directories(nfd PRIVATE ${GTK3_INCLUDE_DIRS})
+      target_link_libraries(nfd PRIVATE ${GTK3_LIBRARIES})
+    endif()
+
+    if(nfd_PLATFORM STREQUAL PLATFORM_MACOS)
+      target_link_libraries(nfd PRIVATE ${APPKIT_LIBRARY})
+    endif()
+    list(APPEND FASE_LIBRARY nfd)
+
     # Catch2
     list(APPEND FASE_INCLUDE
                 ${CMAKE_CURRENT_SOURCE_DIR}/third_party/Catch2/single_include)
@@ -238,19 +280,6 @@ if (FASE_BUILD_EXAMPLES)
         list(APPEND FASE_INCLUDE ${OpenCV_INCLUDE_DIRS})  # Append OpenCV
         list(APPEND FASE_LIBRARY ${OpenCV_LIBS})
         list(APPEND EXAMPLES guieditor_opencv)
-    endif()
-
-    # use Native File Dialog
-    if (FASE_USE_NFD_AT_EXAMPLE)
-        list(APPEND FASE_LIBRARY nfd)
-
-        if (WIN32)
-            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -lole32 -luuid")
-        elseif (MSVC)
-            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -lole32 -luuid")
-        elseif (APPLE)
-            SET_TARGET_PROPERTIES(${EXAMPLES} PROPERTIES LINK_FLAGS " -framework Foundation -framework AppKit")
-        endif()
     endif()
 
     foreach(target IN LISTS EXAMPLES)

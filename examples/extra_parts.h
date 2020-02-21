@@ -2,18 +2,12 @@
 #ifndef EXTRA_PARTS_H_20190329
 #define EXTRA_PARTS_H_20190329
 
+#include <fase2/fase.h>
 #include <fase2/imgui_editor/imgui_editor.h>
 
-class NFDParts;
-void AddNFDButtons(fase::ImGuiEditor&, NFDParts&);
-
-#ifdef USE_NFD
+#include <nfd.h>
 
 #include <string>
-
-#include <fase2/fase.h>
-
-#include <nfd.h>
 
 class NFDParts : public fase::PartsBase {
 public:
@@ -97,13 +91,5 @@ void AddNFDButtons(fase::ImGuiEditor& app, NFDParts& same_app) {
             "Save Pipeline", [&] { same_app.savePipelineWithNFD(); },
             "Save a focused pipeline with NativeFileDialog.");
 }
-
-#else // #ifdef USE_NFD
-
-class NFDParts : public fase::PartsBase {};
-
-void AddNFDButtons(fase::ImGuiEditor&, NFDParts&) {}
-
-#endif // #ifdef USE_NFD
 
 #endif // EXTRA_PARTS_H_20190329
