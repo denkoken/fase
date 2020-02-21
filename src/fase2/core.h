@@ -13,6 +13,16 @@
 
 namespace fase {
 
+enum class LinkNodeError : char {
+    None = 0,
+    UndefinedNode0,
+    UndefinedNode1,
+    OutOfLenge0,
+    OutOfLenge1,
+    InvalidType,
+    LoopCreated,
+};
+
 class Core {
 public:
     Core();
@@ -38,9 +48,9 @@ public:
     bool setPriority(const std::string& n_name, int priority);
 
     bool allocateFunc(const std::string& f_name, const std::string& n_name);
-    bool linkNode(const std::string& src_node, std::size_t src_arg,
-                  const std::string& dst_node, std::size_t dst_arg);
-    bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
+    LinkNodeError linkNode(const std::string& src_node, std::size_t src_arg,
+                           const std::string& dst_node, std::size_t dst_arg);
+    bool          unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 
     bool supposeInput(std::vector<Variable>& vars);
     bool supposeOutput(std::vector<Variable>& vars);

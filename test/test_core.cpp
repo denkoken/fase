@@ -56,7 +56,7 @@ TEST_CASE("Core test") {
     REQUIRE(*core.getNodes().at("a").args[2].getReader<int>() == 3);
     REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 16);
 
-    REQUIRE(core.linkNode("a", 2, "b", 0));
+    REQUIRE(LinkNodeError::None == core.linkNode("a", 2, "b", 0));
 
     REQUIRE(core.run());
     REQUIRE(*core.getNodes().at("a").args[2].getReader<int>() == 3);
@@ -73,9 +73,12 @@ TEST_CASE("Core test") {
     outputs[0].create<int>();
     REQUIRE(core.supposeOutput(outputs));
 
-    REQUIRE(core.linkNode(fase::InputNodeName(), 0, "a", 0));
-    REQUIRE(core.linkNode(fase::InputNodeName(), 1, "a", 1));
-    REQUIRE(core.linkNode("b", 1, fase::OutputNodeName(), 0));
+    REQUIRE(LinkNodeError::None ==
+            core.linkNode(fase::InputNodeName(), 0, "a", 0));
+    REQUIRE(LinkNodeError::None ==
+            core.linkNode(fase::InputNodeName(), 1, "a", 1));
+    REQUIRE(LinkNodeError::None ==
+            core.linkNode("b", 1, fase::OutputNodeName(), 0));
 
     REQUIRE(core.run());
 
@@ -104,9 +107,10 @@ TEST_CASE("Core test") {
     REQUIRE(core.newNode("c"));
     REQUIRE(core.allocateFunc("square", "c"));
 
-    REQUIRE_FALSE(core.linkNode("b", 2, "c", 0));
-    REQUIRE(core.linkNode("b", 1, "c", 0));
-    REQUIRE(core.linkNode("c", 1, fase::OutputNodeName(), 0));
+    REQUIRE_FALSE(LinkNodeError::None == core.linkNode("b", 2, "c", 0));
+    REQUIRE(LinkNodeError::None == core.linkNode("b", 1, "c", 0));
+    REQUIRE(LinkNodeError::None ==
+            core.linkNode("c", 1, fase::OutputNodeName(), 0));
 
     REQUIRE(core.run());
     REQUIRE(*outputs[0].getReader<int>() == 64 * 64);

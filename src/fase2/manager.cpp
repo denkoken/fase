@@ -334,23 +334,23 @@ bool CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
                                               size_t src_arg,
                                               const string& dst_node,
                                               size_t dst_arg) {
-    if (!core.getNodes().count(src_node)) return false;
-    if (!core.getNodes().count(dst_node)) return false;
-    if (core.getNodes().at(src_node).args.size() <= src_arg) return false;
-    if (core.getNodes().at(dst_node).args.size() <= dst_arg) return false;
-    if (core.linkNode(src_node, src_arg, dst_node, dst_arg)) return true;
+    // using enum LinkNodeError;
+
+    LinkNodeError err = core.linkNode(src_node, src_arg, dst_node, dst_arg);
+    if (err == LinkNodeError::None) return true;
+    if (err != LinkNodeError::InvalidType) return false;
 
     if (InputNodeName() == src_node) {
         inputs[src_arg] = core.getNodes().at(dst_node).args[dst_arg];
         core.supposeInput(inputs);
         cm_ref.get().updateBindedPipes(myname());
-        return core.linkNode(src_node, src_arg, dst_node, dst_arg);
+        return !char(core.linkNode(src_node, src_arg, dst_node, dst_arg));
 
     } else if (OutputNodeName() == dst_node) {
         outputs[dst_arg] = core.getNodes().at(src_node).args[src_arg];
         core.supposeOutput(outputs);
         cm_ref.get().updateBindedPipes(myname());
-        return core.linkNode(src_node, src_arg, dst_node, dst_arg);
+        return !char(core.linkNode(src_node, src_arg, dst_node, dst_arg));
     }
     return false;
 }

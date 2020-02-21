@@ -114,8 +114,8 @@ public:
     bool setPriority(const std::string& node, int priority);
 
     bool allocateFunc(const string& work, const string& node);
-    bool linkNode(const string& src_node, size_t src_arg,
-                  const string& dst_node, size_t dst_arg);
+    LinkNodeError linkNode(const string& src_node, size_t src_arg,
+                           const string& dst_node, size_t dst_arg);
     bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 
     bool supposeInput(std::vector<Variable>& vars);
@@ -302,23 +302,24 @@ bool Core::Impl::allocateFunc(const string& func, const string& node_name) {
     return false;
 }
 
-bool Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
-                          const string& d_n_name, size_t d_idx) {
-    if (nodes[s_n_name].args.size() <= s_idx ||
-        nodes[d_n_name].args.size() <= d_idx) {
-        return false;
-    }
+LinkNodeError Core::Impl::linkNode(const string& s_n_name, size_t s_idx,
+                                   const string& d_n_name, size_t d_idx) {
+    if (!nodes.count(s_n_name)) return LinkNodeError::UndefinedNode0;
+    if (!nodes.count(d_n_name)) return LinkNodeError::UndefinedNode1;
+    if (nodes[s_n_name].args.size() <= s_idx) return LinkNodeError::OutOfLenge0;
+    if (nodes[d_n_name].args.size() <= d_idx) return LinkNodeError::OutOfLenge1;
+
     if (!defaultArgs(s_n_name)[s_idx].isSameType(
                 defaultArgs(d_n_name)[d_idx])) {
-        return false;
+        return LinkNodeError::InvalidType;
     }
     unlinkNode(d_n_name, d_idx);
     links.emplace_back(Link{s_n_name, s_idx, d_n_name, d_idx});
     if (GetRunOrder(nodes, links).empty()) {
         links.pop_back();
-        return false;
+        return LinkNodeError::LoopCreated;
     }
-    return true;
+    return LinkNodeError::None;
 }
 
 bool Core::Impl::unlinkNode(const std::string& dst_n_name,
@@ -462,8 +463,8 @@ bool Core::allocateFunc(const string& work, const string& node) {
     return pimpl->allocateFunc(work, node);
 }
 
-bool Core::linkNode(const string& src_node, size_t src_arg,
-                    const string& dst_node, size_t dst_arg) {
+LinkNodeError Core::linkNode(const string& src_node, size_t src_arg,
+                             const string& dst_node, size_t dst_arg) {
     return pimpl->linkNode(src_node, src_arg, dst_node, dst_arg);
 }
 
