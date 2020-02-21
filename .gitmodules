@@ -10,3 +10,6 @@
 [submodule "third_party/json11"]
 	path = third_party/json11
 	url = https://github.com/dropbox/json11
+[submodule "third_party/nfd"]
+	path = third_party/nfd
+	url = https://github.com/mlabbe/nativefiledialog.git
