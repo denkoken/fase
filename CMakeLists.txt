@@ -14,14 +14,18 @@ endif()
 # ----------------------------------- Options ----------------------------------
 # ------------------------------------------------------------------------------
 set(FASE_BUILD_THIRD_PARTY ON CACHE BOOL "Build third pary libraries")
-set(FASE_USE_NFD_AT_EXAMPLE OFF CACHE BOOL "Use Native File Dialog at building example/guieditor")
+set(FASE_USE_NFD_AT_EXAMPLE OFF CACHE BOOL
+    "Use Native File Dialog at building example/guieditor")
 set(FASE_BUILD_GLFW ON CACHE BOOL "Build glfw libraries and link")
 set(FASE_BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(FASE_BUILD_TESTS ON CACHE BOOL "Build tests")
-set(FASE_EXTERNAL_INCLUDE "" CACHE STRING "External directories for third party")
+set(FASE_EXTERNAL_INCLUDE "" CACHE STRING
+    "External directories for third party")
 set(FASE_EXTERNAL_LIBRARY "" CACHE STRING "External libraries for third party")
 
-message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY}, use nfd: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW}, examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
+message(STATUS "Build third_party: ${FASE_BUILD_THIRD_PARTY},"
+               "use nfd: ${FASE_USE_NFD_AT_EXAMPLE}, glfw: ${FASE_BUILD_GLFW},"
+               "examples: ${FASE_BUILD_EXAMPLES}, tests: ${FASE_BUILD_TESTS}")
 message(STATUS "External include directories: ${FASE_EXTERNAL_INCLUDE}")
 message(STATUS "External link libraries: ${FASE_EXTERNAL_LIBRARY}")
 
@@ -61,22 +65,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warning_options "-Wall -Wextra -Wconversion")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(warning_options "-Wall -Wextra -Wcast-align -Wcast-qual \
-                         -Wctor-dtor-privacy -Wdisabled-optimization \
-                         -Wformat=2 -Winit-self \
-                         -Wmissing-declarations -Wmissing-include-dirs \
-                         -Woverloaded-virtual -Wredundant-decls -Wshadow \
-                         -Wsign-conversion -Wsign-promo \
-                         -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
+    set(warning_options "-Wall -Wextra -Wcast-align -Wcast-qual"
+                        "-Wctor-dtor-privacy -Wdisabled-optimization"
+                        "-Wformat=2 -Winit-self"
+                        "-Wmissing-declarations -Wmissing-include-dirs"
+                        "-Woverloaded-virtual -Wredundant-decls -Wshadow"
+                        "-Wsign-conversion -Wsign-promo"
+                        "-Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
-                         -Wctor-dtor-privacy -Wdisabled-optimization \
-                         -Wformat=2 -Winit-self -Wlogical-op \
-                         -Wmissing-declarations -Wmissing-include-dirs \
-                         -Wnoexcept -Woverloaded-virtual \
-                         -Wredundant-decls -Wshadow -Wsign-conversion \
-                         -Wsign-promo -Wstrict-null-sentinel -Wno-noexcept\
-                         -Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
+    set(warning_options "--pedantic -Wall -Wextra -Wcast-align -Wcast-qual"
+                        "-Wctor-dtor-privacy -Wdisabled-optimization"
+                        "-Wformat=2 -Winit-self -Wlogical-op"
+                        "-Wmissing-declarations -Wmissing-include-dirs"
+                        "-Wnoexcept -Woverloaded-virtual"
+                        "-Wredundant-decls -Wshadow -Wsign-conversion"
+                        "-Wsign-promo -Wstrict-null-sentinel -Wno-noexcept"
+                        "-Wstrict-overflow=5 -Wundef -Wno-unknown-pragmas")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warning_options "/W4")
 else()
@@ -124,7 +128,8 @@ if (FASE_BUILD_THIRD_PARTY)
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w/GL/gl3w.c
     )
     if (APPLE)
-        SET_TARGET_PROPERTIES(gl3w PROPERTIES LINK_FLAGS "-framework CoreFoundation")
+        SET_TARGET_PROPERTIES(gl3w PROPERTIES LINK_FLAGS
+                              "-framework CoreFoundation")
     endif()
     setup_target_simple(gl3w ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w "${OPENGL_LIBRARY}")
     list(APPEND FASE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/libs/gl3w)
@@ -144,8 +149,9 @@ if (FASE_BUILD_THIRD_PARTY)
         list(APPEND IMGUI_LIBRARY glfw)
     else()
         find_package(GLFW3 REQUIRED)
-        list(APPEND FASE_LIBRARY GLFW)
-        list(APPEND IMGUI_LIBRARY GLFW)
+
+        list(APPEND FASE_LIBRARY glfw)
+        list(APPEND IMGUI_LIBRARY glfw)
     endif()
 
     # ImGui
