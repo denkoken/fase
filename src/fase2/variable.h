@@ -119,7 +119,6 @@ public:
     }
 
     void free() {
-        member->data.reset();
         toEmpty(member->type);
         is_managed_object = true;
     }
@@ -189,9 +188,10 @@ private:
     explicit Variable(std::shared_ptr<Substance>& m) : member(m) {}
 
     void toEmpty(const std::type_index& type) {
+        member->data.reset();
         member->type = type;
         member->cloner = [](Variable& d, const Variable& s) {
-            d.member->type = s.member->type;
+            d.toEmpty(s.member->type);
         };
         member->copyer = [](Variable& d, const Variable& s) {
             if (d.getType() == s.getType()) {
