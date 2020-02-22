@@ -11,7 +11,7 @@ After GUI editing, you can obtain native C++ source code for the deploy.
 
 ## Testing Enviroments
 
-* MacOS 10.13.4 & clang++
+* MacOS 10.15 & clang++
 * Ubuntu 16.04 LTS + clang++ 8 (should be greater than 5)
 * Windows10 MSVC2019
 
@@ -26,9 +26,6 @@ After GUI editing, you can obtain native C++ source code for the deploy.
 
 * `FASE_BUILD_EXAMPLES`
   build examples.
-
-* `FASE_USE_NFD_AT_EXAMPLE`
-  use NativeFileDialog, add optinal button.
 
 * `FASE_BUILD_GLFW`
   build glfw, if you use MacOS and GLFW3 is installed, turn OFF.
