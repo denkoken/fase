@@ -20,13 +20,14 @@ using std_source_location = std::experimental::source_location;
 #define NO_SOURCE_LOCATION
 #endif
 
+#undef FASE_DEBUG_LOC_LOG
+
 #if !defined(NO_SOURCE_LOCATION) &&                                            \
         (defined(__cpp_lib_source_location) ||                                 \
          defined(__cpp_lib_experimental_source_location))
 
 #undef FASE_DEBUG_LOC
 #undef FASE_COMMA_DEBUG_LOC
-#undef FASE_DEBUG_LOC_LOG
 
 #define FASE_DEBUG_LOC(loc)                                                    \
     std_source_location loc = std_source_location::current()
@@ -37,6 +38,10 @@ using std_source_location = std::experimental::source_location;
               << std::endl
 
 #define FASE_IS_DEBUG_SOURCE_LOCATION_ON
+
+#else
+
+#define FASE_DEBUG_LOC_LOG(loc, str) std::cout << str << std::endl
 
 #endif
 

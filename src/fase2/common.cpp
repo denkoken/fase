@@ -17,15 +17,6 @@ namespace fase {
 using std::string, std::vector, std::map, std::type_index;
 using size_t = std::size_t;
 
-constexpr char SUB_PIPELINE_HEADER[] = "SUB_PIPELINE";
-constexpr char MAIN_PIPELINE_HEADER[] = "MAIN_PIPELINE";
-constexpr char INOUT_HEADER[] = "INOUT";
-constexpr char NODE_HEADER[] = "NODE";
-constexpr char LINK_HEADER[] = "LINK";
-constexpr char LINK_FOOTER[] = "END_LINK";
-
-constexpr char SPACE_REPLACED_WORD[] = "@";
-
 constexpr char kPipelineNameKey[] = "pipeline_name";
 constexpr char kPipelineKey[] = "content";
 
@@ -60,26 +51,19 @@ size_t ArgNameToIdx(const string& arg_name, const FunctionUtils& f_utils) {
 
 bool strToVar(const std::string& val, const std::string& type,
               const TSCMap& tsc_map, Variable* v) {
-    for (const auto& [_, converters] : tsc_map) {
-        if (type == replace(converters.name, " ", SPACE_REPLACED_WORD)) {
-            converters.deserializer(*v, val);
+    for (auto& [t, tsc] : tsc_map) {
+        if (tsc.name == type) {
+            if (!val.empty()) {
+                tsc.deserializer(*v, val);
+            } else {
+                v->free();
+                *v = Variable{t};
+            }
             return true;
         }
     }
 
     return false;
-}
-
-const static TypeStringConverters::Deserializer dummy = [](auto&, auto&) {};
-
-const TypeStringConverters::Deserializer&
-getDeserializer(const string& type_name, const TSCMap& tsc_map) {
-    for (auto& [_, tsc] : tsc_map) {
-        if (tsc.name == type_name) {
-            return tsc.deserializer;
-        }
-    }
-    return dummy;
 }
 
 template <class LineIterator>
@@ -88,90 +72,6 @@ std::string Next(LineIterator& linep) {
         linep++;
     }
     return *linep;
-}
-
-template <class LineIterator>
-bool StringToPipeline(const string& p_name, LineIterator& linep,
-                      CoreManager* pcm, const TSCMap& tsc_map) {
-    if (Next(linep) != std::string(INOUT_HEADER)) {
-        std::cerr << "invalid file layout" << std::endl;
-        return false;
-    }
-
-    linep++;
-
-    const auto func_utils = pcm->getFunctionUtils(p_name);
-    auto& pipe_api = (*pcm)[p_name];
-
-    {
-        auto words = split(Next(linep), ' ');
-        erase_all(words, "");
-        if (!pipe_api.supposeInput(words)) {
-            std::cerr << "supposeInput failed : line\"" << *linep << "\""
-                      << std::endl;
-        }
-        linep++;
-    }
-    {
-        auto words = split(Next(linep), ' ');
-        erase_all(words, "");
-        if (!pipe_api.supposeOutput(words)) {
-            std::cerr << "supposeOutput failed : line\"" << *linep << "\""
-                      << std::endl;
-        }
-        linep++;
-    }
-
-    assert(Next(linep) == NODE_HEADER);
-    linep++;
-
-    // Nodes
-    while (true) {
-        if (Next(linep) == std::string(LINK_HEADER)) {
-            linep++;
-            break;
-        }
-        const auto words = split(Next(linep), ' ');
-        if (!pipe_api.newNode(words.at(1))) {
-            std::cerr << "addNode failed" << std::endl;
-            return false;
-        }
-        if (!pipe_api.allocateFunc(words.at(0), words.at(1))) {
-            std::cerr << "allocateFunc failed" << std::endl;
-            return false;
-        }
-
-        if (words.size() > 2) {
-            const size_t& arg_n = pipe_api.getNodes().at(words[1]).args.size();
-            for (size_t i = 0; i < arg_n; i++) {
-                if (words[i * 2 + 3].empty()) {
-                    continue;
-                }
-                Variable v;
-                strToVar(words[i * 2 + 3], words[i * 2 + 2], tsc_map, &v);
-                pipe_api.setArgument(words[1], i, v);
-            }
-        }
-        linep++;
-    }
-
-    // Links
-    while (true) {
-        if (Next(linep) == std::string(LINK_FOOTER)) {
-            break;
-        }
-
-        auto words = split(Next(linep), ' ');
-        auto err = pipe_api.smartLink(words.at(2), std::stoul(words.at(3)),
-                                      words.at(0), std::stoul(words.at(1)));
-        if (err != LinkNodeError::None) {
-            std::cerr << "smartLink failed : line\"" << *linep << "\" "
-                      << "errorcode: " << int(err) << std::endl;
-            return false;
-        }
-        linep++;
-    }
-    return true;
 }
 
 json11::Json getLinksJson(const PipelineAPI& pipe,
@@ -208,10 +108,14 @@ json11::Json getNodeArgsJson(const Node& node,
             if (!utils.count(arg.getType())) {
                 continue;
             }
+            std::string value_str;
+            if (arg) {
+                value_str = utils.at(arg.getType()).serializer(arg);
+            }
             arg_jsons.push_back({
                     {kNodeArgNameKey,
                      f_util_map.at(node.func_name).arg_names[i]},
-                    {kNodeArgValueKey, utils.at(arg.getType()).serializer(arg)},
+                    {kNodeArgValueKey, value_str},
                     {kNodeArgTypeKey, utils.at(arg.getType()).name},
             });
 
@@ -301,10 +205,9 @@ bool LoadNodeFromJson(const string& n_name, const json11::Json& node_json,
             std::string arg_name = arg_json[kNodeArgNameKey].string_value();
 
             size_t idx = ArgNameToIdx(arg_name, f_util_map.at(f_name));
-            string arg_v_str = arg_json[kNodeArgTypeKey].string_value();
-            auto& deserializer = getDeserializer(arg_v_str, tsc_map);
             Variable v;
-            deserializer(v, arg_json[kNodeArgValueKey].string_value());
+            strToVar(arg_json[kNodeArgValueKey].string_value(),
+                     arg_json[kNodeArgTypeKey].string_value(), tsc_map, &v);
             pipe_api.setArgument(n_name, idx, v);
         }
         return true;
@@ -399,46 +302,6 @@ std::string PipelineToString(const string& p_name, const CoreManager& cm,
     return json11::Json(pipe_json_array).dump();
 }
 
-bool LoadPipelineFromString(const string& str, CoreManager* pcm,
-                            const TSCMap& tsc_map) {
-    std::vector<std::string> lines = split(str, '\n');
-    auto& cm = *pcm;
-
-    auto linep = std::begin(lines);
-
-    while (true) {
-        if (Next(linep) == SUB_PIPELINE_HEADER ||
-            Next(linep) == MAIN_PIPELINE_HEADER) {
-            linep++;
-            string p_name = Next(linep);
-            if (exists(p_name, cm.getPipelineNames())) {
-                std::cerr << "LoadPipelineFromString : "
-                             "a same name pipeline allready exists."
-                          << std::endl;
-                return false;
-            }
-            cm[p_name];
-            linep++;
-            if (!StringToPipeline(p_name, linep, pcm, tsc_map)) {
-                return false;
-            }
-        }
-        if (++linep == std::end(lines)) {
-            break;
-        }
-        bool f = false;
-        while (*linep == "") {
-            if (++linep == std::end(lines)) {
-                f = true;
-            }
-        }
-        if (f) {
-            break;
-        }
-    }
-    return true;
-}
-
 bool SavePipeline(const std::string& p_name, const CoreManager& cm,
                   const std::string& filename, const TSCMap& tsc_map) {
     try {
@@ -475,22 +338,19 @@ bool LoadPipelineFromFile(const string& filename, CoreManager* pcm,
         }
 
         if (split(filename, '.').back() == "json") {
-            if (!LoadPipelineFromJson(ss.str(), pcm, tsc_map)) {
-                throw std::exception();
-            }
-        } else if (split(filename, '.').back() == "txt") {
-            if (!LoadPipelineFromString(ss.str(), pcm, tsc_map)) {
-                throw std::exception();
-            }
+            LoadPipelineFromJson(ss.str(), pcm, tsc_map);
         } else {
-            throw std::exception();
+            throw std::runtime_error("invalid file type.");
         }
 
         input.close();
 
         return true;
-    } catch (std::exception&) {
+    } catch (std::exception& e) {
         input.close();
+        std::cerr << "file loading is failed : " << filename << std::endl;
+        std::cerr << e.what() << std::endl;
+
         return false;
     }
 }
