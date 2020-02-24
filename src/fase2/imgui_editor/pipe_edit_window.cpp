@@ -478,6 +478,7 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
         }
     }
 
+    edit_input_output_f |= GetIsKeyPressed('i', true);
     if (auto raii = BeginPopupModal(label("Edit input/output"),
                                     edit_input_output_f)) {
         ImGui::BeginGroup();
@@ -487,10 +488,11 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
             input_arg_name_its.resize(size_t(size));
         }
         int i = 0;
+        bool ok_f = false;
         for (auto& it : input_arg_name_its) {
-            it.draw(label("input" + std::to_string(i++)));
+            ok_f |= it.draw(label("input" + std::to_string(i++)));
         }
-        if (ImGui::Button(label("OK##ine"))) {
+        if (ImGui::Button(label("OK##ine")) || ok_f) {
             vector<string> arg_names;
             for (auto& it : input_arg_name_its) {
                 arg_names.emplace_back(it.text());
@@ -511,10 +513,11 @@ void EditWindow::drawNodeContextMenu(const string& hovered,
             output_arg_name_its.resize(size_t(size));
         }
         i = 0;
+        ok_f = false;
         for (auto& it : output_arg_name_its) {
-            it.draw(label("output" + std::to_string(i++)));
+            ok_f |= it.draw(label("output" + std::to_string(i++)));
         }
-        if (ImGui::Button(label("OK##oute"))) {
+        if (ImGui::Button(label("OK##oute")) || ok_f) {
             vector<string> arg_names;
             for (auto& it : output_arg_name_its) {
                 arg_names.emplace_back(it.text());
