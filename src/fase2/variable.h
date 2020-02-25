@@ -40,7 +40,9 @@ struct CheckerForSFINAE<false> {};
 
 class Variable {
 public:
-    Variable() : member(std::make_shared<Substance>()) {}
+    Variable() : member(std::make_shared<Substance>()) {
+        toEmpty(typeid(void));
+    }
 
     template <typename T>
     Variable(std::unique_ptr<T>&& p) : member(std::make_shared<Substance>()) {
@@ -106,14 +108,13 @@ public:
     template <typename T>
     void assignedAs(T&& v FASE_COMMA_DEBUG_LOC(loc)) {
         using Type = std::decay_t<T>;
-        if (member->data) {
+        if (bool(*this)) {
             *getWriter<Type>() = std::forward<T>(v);
         } else if (member->type == typeid(Type) ||
                    member->type == typeid(void)) {
-            member->data = std::make_shared<Type>(std::forward<T>(v));
-            member->type = typeid(Type);
+            create<Type>(std::forward<T>(v));
         } else {
-            throw(WrongTypeCast(typeid(T), member->type,
+            throw(WrongTypeCast(typeid(Type), member->type,
                                 EXEPTION_STR("WrongTypeCast", loc)));
         }
     }
@@ -181,8 +182,8 @@ private:
     struct Substance {
         std::shared_ptr<void> data;
         std::type_index       type = typeid(void);
-        VFunc                 cloner = [](auto&, auto&) {};
-        VFunc                 copyer = [](auto&, auto&) {};
+        VFunc                 cloner = [](auto&, auto&) { assert(false); };
+        VFunc                 copyer = [](auto&, auto&) { assert(false); };
     };
 
     explicit Variable(std::shared_ptr<Substance>& m) : member(m) {}

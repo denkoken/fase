@@ -143,7 +143,13 @@ TEST_CASE("Variable test") {
         Variable b = a.ref();
         Variable c;
         c.create<TestClass>();
-        c.copyTo(b);
+        try {
+            c.copyTo(b);
+            REQUIRE(false);
+        } catch (WrongTypeCast& e) {
+            REQUIRE(e.cast_type == typeid(void));
+            REQUIRE(e.casted_type == typeid(TestClass));
+        }
         REQUIRE(!a);
         REQUIRE(!b);
     }
