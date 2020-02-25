@@ -16,7 +16,7 @@ TEST_CASE("UnivFuncGenerator (Ret is not void) test") {
     auto worker = fase::UnivFuncGenerator<unsigned(int, long&)>::Gen(
             []() -> std::function<unsigned(int, long&)> { return f; });
 
-    std::vector<fase::Variable> vs(3);
+    std::deque<Variable> vs(3);
 
     vs[0].create<int>(5);
     vs[1].create<long>(10l);
@@ -55,7 +55,7 @@ TEST_CASE("UnivFuncGenerator test") {
                 return buf;
             });
 
-    std::vector<fase::Variable> vs(3);
+    std::deque<fase::Variable> vs(3);
 
     vs[0].create<int>(5);
     vs[1].create<float>(3.5f);

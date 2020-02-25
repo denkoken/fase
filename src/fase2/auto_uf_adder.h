@@ -727,11 +727,9 @@ public:
         f_buf = [fp, func_name,
                  code](CoreManager* pcm, const std::string& arg_types_repr,
                        const std::vector<std::string>& arg_names,
-                       const std::vector<Variable>&    default_args) {
-            constexpr size_t N = sizeof...(Args);
-
-            assert(arg_names.size() == N);
-            assert(default_args.size() == N);
+                       const std::deque<Variable>&     default_args) {
+            assert(arg_names.size() == sizeof...(Args));
+            assert(default_args.size() == sizeof...(Args));
 
             std::vector<std::type_index> types = {
                     typeid(std::decay_t<Args>)...};
@@ -800,7 +798,7 @@ public:
         std::clog << "== debug print end ==" << std::endl;
 #endif
 
-        std::vector<Variable> default_args(N);
+        std::deque<Variable> default_args(N);
 
         std::array<std::string, N> default_v_arg_strs = {
                 {getArgsStr(arg_type_reprs[Seq], default_arg_reprs[Seq])...}};
@@ -875,7 +873,7 @@ private:
 
     std::function<void(CoreManager*, const std::string&,
                        const std::vector<std::string>&,
-                       const std::vector<Variable>&)>
+                       const std::deque<Variable>&)>
             f_buf;
 };
 

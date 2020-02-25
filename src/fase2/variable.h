@@ -2,11 +2,11 @@
 #ifndef VARIABLE_H_20190206
 #define VARIABLE_H_20190206
 
+#include <deque>
 #include <functional>
 #include <memory>
 #include <string>
 #include <typeindex>
-#include <vector>
 
 #include "debug_macros.h"
 #include "exceptions.h"
@@ -213,30 +213,24 @@ private:
 };
 
 template <typename Head, typename... Tail>
-inline void Assign(std::vector<Variable>& c, Head&& h, Tail&&... tail) {
-    c.reserve(c.size() + sizeof...(Tail) + 1);
+inline void Assign(std::deque<Variable>& c, Head&& h, Tail&&... tail) {
     c.emplace_back(h);
     if constexpr (sizeof...(Tail) > 0) {
         Assign(c, tail...);
     }
 }
 
-inline void RefCopy(std::vector<Variable>& src, std::vector<Variable>* dst) {
+inline void RefCopy(std::deque<Variable>::iterator&& begin,
+                    std::deque<Variable>::iterator&& end,
+                    std::deque<Variable>*            dst) {
     dst->clear();
-    dst->resize(src.size());
-    for (size_t i = 0; i < src.size(); i++) {
-        (*dst)[i] = src[i].ref();
-    }
-}
-
-inline void RefCopy(std::vector<Variable>::iterator&& begin,
-                    std::vector<Variable>::iterator&& end,
-                    std::vector<Variable>*            dst) {
-    dst->clear();
-    dst->reserve(std::size_t(end - begin));
     for (auto it = begin; it != end; it++) {
         dst->emplace_back(it->ref());
     }
+}
+
+inline void RefCopy(std::deque<Variable>& src, std::deque<Variable>* dst) {
+    RefCopy(src.begin(), src.end(), dst);
 }
 
 } // namespace fase

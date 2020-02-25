@@ -26,7 +26,7 @@ public:
 
     // ======= unstable API =========
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     std::vector<Variable>&& default_args);
+                     std::deque<Variable>&& default_args);
 
     // ======= stable API =========
     bool newNode(const std::string& n_name);
@@ -42,8 +42,8 @@ public:
                            const std::string& dst_node, std::size_t dst_arg);
     bool          unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 
-    bool supposeInput(std::vector<Variable>& vars);
-    bool supposeOutput(std::vector<Variable>& vars);
+    bool supposeInput(std::deque<Variable>& vars);
+    bool supposeOutput(std::deque<Variable>& vars);
 
     bool run(Report* preport = nullptr);
 

@@ -17,7 +17,7 @@ namespace fase {
 using std::map, std::string, std::vector;
 using size_t = std::size_t;
 
-using Vars = vector<Variable>;
+using Vars = std::deque<Variable>;
 
 namespace {
 
@@ -102,7 +102,7 @@ public:
 
     // ======= unstable API =========
     bool addUnivFunc(const UnivFunc& func, const string& f_name,
-                     std::vector<Variable>&& default_args);
+                     std::deque<Variable>&& default_args);
 
     // ======= stable API =========
     bool newNode(const string& n_name);
@@ -118,8 +118,8 @@ public:
                            const string& dst_node, size_t dst_arg);
     bool unlinkNode(const std::string& dst_node, std::size_t dst_arg);
 
-    bool supposeInput(std::vector<Variable>& vars);
-    bool supposeOutput(std::vector<Variable>& vars);
+    bool supposeInput(std::deque<Variable>& vars);
+    bool supposeOutput(std::deque<Variable>& vars);
 
     bool run(Report* preport);
 
@@ -139,7 +139,7 @@ private:
     Vars inputs;
     Vars outputs;
 
-    vector<Variable>& defaultArgs(const std::string& n_name) {
+    std::deque<Variable>& defaultArgs(const std::string& n_name) {
         return funcs[nodes[n_name].func_name].default_args;
     }
     void unlinkSrc(const string& src_n_name, std::size_t src_arg);
@@ -226,8 +226,8 @@ void Core::Impl::tryDoTaskKeepingLinks(const std::string& n_name, Task&& task) {
 }
 
 bool Core::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
-                             std::vector<Variable>&& default_args) {
-    funcs[f_name] = {func, std::forward<vector<Variable>>(default_args)};
+                             std::deque<Variable>&& default_args) {
+    funcs[f_name] = {func, std::move(default_args)};
 
     for (auto& [node_name, node] : nodes) {
         if (node.func_name == f_name) {
@@ -333,7 +333,7 @@ bool Core::Impl::unlinkNode(const std::string& dst_n_name,
     return false;
 }
 
-bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
+bool Core::Impl::supposeInput(std::deque<Variable>& vars) {
     tryDoTaskKeepingLinks(InputNodeName(), [&]() {
         RefCopy(vars, &inputs);
         nodes[InputNodeName()].args = inputs;
@@ -342,7 +342,7 @@ bool Core::Impl::supposeInput(std::vector<Variable>& vars) {
     return true;
 }
 
-bool Core::Impl::supposeOutput(std::vector<Variable>& vars) {
+bool Core::Impl::supposeOutput(std::deque<Variable>& vars) {
     tryDoTaskKeepingLinks(OutputNodeName(), [&]() {
         RefCopy(vars, &outputs);
         RefCopy(vars, &nodes[OutputNodeName()].args);
@@ -434,9 +434,9 @@ Core::~Core() = default;
 
 // ======= unstable API =========
 bool Core::addUnivFunc(const UnivFunc& func, const string& f_name,
-                       std::vector<Variable>&& default_args) {
-    return pimpl->addUnivFunc(
-            func, f_name, std::forward<std::vector<Variable>>(default_args));
+                       std::deque<Variable>&& default_args) {
+    return pimpl->addUnivFunc(func, f_name,
+                              std::forward<std::deque<Variable>>(default_args));
 }
 
 // ======= stable API =========
@@ -472,10 +472,10 @@ bool Core::unlinkNode(const std::string& dst_node, std::size_t dst_arg) {
     return pimpl->unlinkNode(dst_node, dst_arg);
 }
 
-bool Core::supposeInput(std::vector<Variable>& vars) {
+bool Core::supposeInput(std::deque<Variable>& vars) {
     return pimpl->supposeInput(vars);
 }
-bool Core::supposeOutput(std::vector<Variable>& vars) {
+bool Core::supposeOutput(std::deque<Variable>& vars) {
     return pimpl->supposeOutput(vars);
 }
 

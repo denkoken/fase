@@ -23,7 +23,7 @@ public:
         : core(std::move(core_)), reseter(std::move(reseter_)),
           types(std::move(types_)) {}
 
-    bool operator()(std::vector<Variable>& vs);
+    bool operator()(std::deque<Variable>& vs);
          operator bool() {
         return bool(reseter);
     }
@@ -51,8 +51,8 @@ public:
     ~CoreManager();
 
     bool addUnivFunc(const UnivFunc& func, const std::string& name,
-                     std::vector<Variable>&& default_args,
-                     FunctionUtils&&         utils);
+                     std::deque<Variable>&& default_args,
+                     FunctionUtils&&        utils);
 
     PipelineAPI&       operator[](const std::string& name);
     const PipelineAPI& operator[](const std::string& name) const;

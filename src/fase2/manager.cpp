@@ -11,6 +11,7 @@
 
 namespace fase {
 
+using std::deque;
 using std::map;
 using std::string;
 using std::vector;
@@ -52,7 +53,7 @@ bool CheckGoodVarName(const string& name) {
     return true;
 }
 
-vector<std::type_index> getTypes(const vector<Variable>& vars) {
+vector<std::type_index> getTypes(const deque<Variable>& vars) {
     vector<std::type_index> a;
     for (auto& var : vars) {
         a.emplace_back(var.getType());
@@ -60,14 +61,14 @@ vector<std::type_index> getTypes(const vector<Variable>& vars) {
     return a;
 }
 
-void CallCore(Core* pcore, const string& c_name, vector<Variable>& vs,
+void CallCore(Core* pcore, const string& c_name, deque<Variable>& vs,
               Report* preport) {
     size_t i_size = pcore->getNodes().at(InputNodeName()).args.size();
     size_t o_size = pcore->getNodes().at(OutputNodeName()).args.size();
     if (vs.size() != i_size + o_size) {
         throw std::logic_error("Invalid size of variables at Binded Pipe.");
     }
-    vector<Variable> inputs, outputs;
+    deque<Variable> inputs, outputs;
     RefCopy(vs.begin(), vs.begin() + long(i_size), &inputs);
     RefCopy(vs.begin() + long(i_size), vs.end(), &outputs);
 
@@ -117,7 +118,7 @@ class FaildDummy : public PipelineAPI {
         return false;
     }
 
-    bool call(vector<Variable>&) override {
+    bool call(deque<Variable>&) override {
         return false;
     }
 
@@ -145,7 +146,7 @@ private:
 
 struct Function {
     UnivFunc func;
-    vector<Variable> default_args;
+    deque<Variable> default_args;
     FunctionUtils utils;
 };
 
@@ -159,7 +160,7 @@ public:
     ~Impl() = default;
 
     bool addUnivFunc(const UnivFunc& func, const std::string& name,
-                     std::vector<Variable>&& default_args,
+                     std::deque<Variable>&& default_args,
                      FunctionUtils&& utils);
 
     PipelineAPI& operator[](const string& c_name);
@@ -299,7 +300,7 @@ public:
         return false;
     }
 
-    bool call(vector<Variable>& args) override;
+    bool call(deque<Variable>& args) override;
     bool run(Report* preport = nullptr) override;
 
     const map<string, Node>& getNodes() const noexcept override {
@@ -315,8 +316,8 @@ public:
     Core core;
     std::reference_wrapper<Impl> cm_ref;
 
-    vector<Variable> inputs;
-    vector<Variable> outputs;
+    deque<Variable> inputs;
+    deque<Variable> outputs;
     vector<string> input_var_names;
     vector<string> output_var_names;
 
@@ -352,7 +353,7 @@ LinkNodeError CoreManager::Impl::WrapedCore::smartLink(const string& src_node,
     return err;
 }
 
-bool CoreManager::Impl::WrapedCore::call(vector<Variable>& args) {
+bool CoreManager::Impl::WrapedCore::call(deque<Variable>& args) {
     if (args.size() != inputs.size() + outputs.size()) {
         return false;
     }
@@ -378,14 +379,14 @@ bool CoreManager::Impl::WrapedCore::run(Report* preport) {
 // ========================== Impl Member Functions ============================
 
 bool CoreManager::Impl::addFunction(const string& func, const string& core) {
-    vector<Variable> vs;
+    deque<Variable> vs;
     RefCopy(functions[func].default_args, &vs);
     return wrapeds.at(core).core.addUnivFunc(functions[func].func, func,
                                              std::move(vs));
 }
 
 bool CoreManager::Impl::addUnivFunc(const UnivFunc& func, const string& f_name,
-                                    vector<Variable>&& default_args,
+                                    deque<Variable>&& default_args,
                                     FunctionUtils&& utils) {
     if (wrapeds.count(f_name)) return false;
 
@@ -422,7 +423,7 @@ bool CoreManager::Impl::updateBindedPipes(const string& c_name) {
     auto& core = wrapeds.at(c_name).core;
 
     // Update Function::func (UnivFunc)
-    func.func = [&core, c_name](vector<Variable>& vs, Report* preport) {
+    func.func = [&core, c_name](deque<Variable>& vs, Report* preport) {
         CallCore(&core, c_name, vs, preport);
     };
 
@@ -478,7 +479,7 @@ const PipelineAPI& CoreManager::Impl::operator[](const string& c_name) const {
     return wrapeds.at(c_name);
 }
 
-bool ExportedPipe::operator()(std::vector<Variable>& vs) {
+bool ExportedPipe::operator()(std::deque<Variable>& vs) {
     if (!reseter) {
         return false;
     }
@@ -503,11 +504,11 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
     d_layer.emplace(d_layer.begin(), vector<string>{e_c_name});
 
     map<string, Core> cores;
-    map<string, vector<Variable>> default_args_map;
+    map<string, deque<Variable>> default_args_map;
     for (auto& cs : d_layer) {
         for (auto& c_name : cs) {
             cores.emplace(c_name, wrapeds.at(c_name).core);
-            vector<Variable> default_args = wrapeds.at(c_name).inputs;
+            deque<Variable> default_args = wrapeds.at(c_name).inputs;
             Extend(wrapeds.at(c_name).outputs, &default_args);
             default_args_map.emplace(c_name, std::move(default_args));
         }
@@ -519,13 +520,13 @@ ExportedPipe CoreManager::Impl::exportPipe(const std::string& e_c_name) const {
                 struct {
                     Core core;
                     const string c_name;
-                    void operator()(vector<Variable>& vs, Report*) {
+                    void operator()(deque<Variable>& vs, Report*) {
                         CallCore(&core, c_name, vs, nullptr);
                     }
                 } f = {cores.at(d_c_name), d_c_name};
                 cores.at(c_name).addUnivFunc(
                         std::move(f), d_c_name,
-                        vector<Variable>{default_args_map.at(d_c_name)});
+                        deque<Variable>{default_args_map.at(d_c_name)});
             }
         }
     }
@@ -609,7 +610,7 @@ CoreManager& CoreManager::operator=(CoreManager&&) = default;
 CoreManager::~CoreManager() = default;
 
 bool CoreManager::addUnivFunc(const UnivFunc& func, const string& c_name,
-                              vector<Variable>&& default_args,
+                              deque<Variable>&& default_args,
                               FunctionUtils&& utils) {
     return pimpl->addUnivFunc(func, c_name, move(default_args),
                               std::move(utils));

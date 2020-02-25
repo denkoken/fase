@@ -40,10 +40,10 @@ private:
 
 class CallableParts : public PartsBase {
 public:
-    inline bool call(std::vector<Variable>& args);
+    inline bool call(std::deque<Variable>& args);
 
-    inline bool call(const std::string&     pipeline_name,
-                     std::vector<Variable>& args);
+    inline bool call(const std::string&    pipeline_name,
+                     std::deque<Variable>& args);
 };
 
 template <typename... ReturnTypes>
@@ -102,13 +102,13 @@ inline ExportedPipe ExportableParts ::exportPipe() const {
     return pcm->exportPipe(pcm->getFocusedPipeline());
 }
 
-inline bool CallableParts::call(std::vector<Variable>& args) {
+inline bool CallableParts::call(std::deque<Variable>& args) {
     auto [guard, pcm] = getAPI()->getWriter();
     return (*pcm)[pcm->getFocusedPipeline()].call(args);
 }
 
-inline bool CallableParts::call(const std::string&     pipeline_name,
-                                std::vector<Variable>& args) {
+inline bool CallableParts::call(const std::string&    pipeline_name,
+                                std::deque<Variable>& args) {
     auto [guard, pcm] = getAPI()->getWriter();
     return (*pcm)[pipeline_name].call(args);
 }
@@ -120,9 +120,8 @@ inline auto ToHard<RetTypes...>::Pipe<Args...>::Gen(Exported&& exported) {
     class Dst {
     public:
         std::tuple<RetTypes...> operator()(Args... args) {
-            std::vector<Variable> arg_vs = {
-                    std::make_unique<std::decay_t<Args>>(
-                            std::forward<Args>(args))...};
+            std::deque<Variable> arg_vs = {std::make_unique<std::decay_t<Args>>(
+                    std::forward<Args>(args))...};
             [[maybe_unused]] auto _ = {
                     arg_vs.emplace_back(typeid(RetTypes))...};
             if (!soft(arg_vs)) {
@@ -158,7 +157,7 @@ HardCallableParts<ReturnTypes...>::callHard(Args&&... args) {
                                            operator bool() {
             return true;
         }
-        bool operator()(std::vector<Variable>& vs) {
+        bool operator()(std::deque<Variable>& vs) {
             auto [guard, pcm] = that->getAPI()->getWriter();
             return (*pcm)[pcm->getFocusedPipeline()].call(vs);
         }
@@ -201,7 +200,7 @@ FixedPipelineParts::Intermediate<ReturnTypes...>::fix() {
                sizeof...(Args));
         assert((*pcm)[pipe_name].getNodes().at(OutputNodeName()).args.size() ==
                sizeof...(ReturnTypes));
-        std::vector<Variable> arg_vs;
+        std::deque<Variable>  arg_vs;
         [[maybe_unused]] auto _ = {arg_vs.emplace_back(typeid(Args))...};
         for (size_t i = 0; i < sizeof...(Args); i++) {
             (*pcm)[pipe_name].setArgument(InputNodeName(), i, arg_vs[i]);
@@ -233,7 +232,7 @@ FixedPipelineParts::Exported<ReturnTypes...>::API<Args...>::operator()(
                                       operator bool() {
             return !api.expired();
         }
-        bool operator()(std::vector<Variable>& vs) {
+        bool operator()(std::deque<Variable>& vs) {
             auto [guard, pcm] = api.lock()->getWriter();
             return (*pcm)[pcm->getFocusedPipeline()].call(vs);
         }

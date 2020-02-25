@@ -21,7 +21,7 @@ void exportTest(fase::ExportableParts& exportable_app) {
     // args = [in_1, in_2,..., in_n, out_1, out_2, ... , out_m]
     // Here, pipeline like form float(float, float) is expected,
     // so vs = [in_1, in_2, out]
-    std::vector<fase::Variable> vs(3, std::make_unique<float>());
+    std::deque<fase::Variable> vs(3, std::make_unique<float>());
     *vs[0].getWriter<float>() = 2;
     *vs[1].getWriter<float>() = 6;
 

@@ -25,7 +25,7 @@ TEST_CASE("Core Manager test") {
                         []() -> std::function<void(const int&, const int&,
                                                    int&)> { return Add; });
 
-        std::vector<Variable> default_args(3);
+        std::deque<Variable> default_args(3);
 
         default_args[0].create<int>(1);
         default_args[1].create<int>(2);
@@ -48,7 +48,7 @@ TEST_CASE("Core Manager test") {
                     return Square;
                 });
 
-        std::vector<Variable> default_args(2);
+        std::deque<Variable> default_args(2);
 
         default_args[0].create<int>(4);
         default_args[1].create<int>(0);
@@ -73,8 +73,8 @@ TEST_CASE("Core Manager test") {
                     return lambda;
                 });
 
-        std::vector<Variable> default_args = {std::make_unique<int>(3),
-                                              std::make_unique<int>()};
+        std::deque<Variable> default_args = {std::make_unique<int>(3),
+                                             std::make_unique<int>()};
 
         REQUIRE(cm.addUnivFunc(univ_lambda, "lambda", std::move(default_args),
                                {{"in", "dst"},
@@ -172,7 +172,7 @@ TEST_CASE("Core Manager test") {
     { // exportPipe test.
         auto exported = cm.exportPipe("Pipe1");
         int result, input = 3;
-        std::vector<Variable> vs;
+        std::deque<Variable> vs;
         Assign(vs, &input, &result);
         exported(vs);
         REQUIRE(result == (3 + 3) * (3 + 3));
@@ -202,7 +202,7 @@ TEST_CASE("Core Manager test") {
                 cm["Pipe2"].smartLink("l", 1, kOUTPUT, 0));
         auto exported = cm.exportPipe("Pipe2");
         int result, input = 1;
-        std::vector<Variable> vs;
+        std::deque<Variable> vs;
         Assign(vs, &input, &result);
         exported(vs);
         REQUIRE(result == int(3.5f * (1 + 3) * (1 + 3)));

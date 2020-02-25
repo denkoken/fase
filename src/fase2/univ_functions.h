@@ -51,7 +51,7 @@ private:
 
             virtual ~Dst() = default;
 
-            void operator()(std::vector<Variable>& args) {
+            void operator()(std::deque<Variable>& args) {
                 if constexpr (std::is_same_v<Ret, void>) {
                     f(static_cast<Args>(*Get<Args>(args[Seq]))...);
                 } else {
@@ -70,9 +70,9 @@ private:
     }
 
     template <typename Callable>
-    static auto Wrap(Callable f) {
-        return [f = std::move(f)](std::vector<Variable>& args,
-                                  Report*                preport) mutable {
+    static auto Wrap(Callable&& f) {
+        return [f = std::move(f)](std::deque<Variable>& args,
+                                  Report*               preport) mutable {
             if (args.size() !=
                 sizeof...(Args) + size_t(!std::is_same_v<Ret, void>)) {
                 throw std::logic_error(

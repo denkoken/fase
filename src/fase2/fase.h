@@ -30,8 +30,8 @@ public:
                      FunctionUtils&& utils);
     template <typename Ret, typename... Args>
     bool addUnivFunc(const UnivFunc& func, const std::string& f_name,
-                     FunctionUtils&&         utils,
-                     std::vector<Variable>&& default_args);
+                     FunctionUtils&&        utils,
+                     std::deque<Variable>&& default_args);
 
     /**
      * @brief
@@ -129,7 +129,7 @@ private:
 // =============================================================================
 
 template <typename... Args>
-std::vector<Variable> GetDefaultValueVariables() {
+std::deque<Variable> GetDefaultValueVariables() {
     if constexpr (sizeof...(Args) == 0) {
         return {};
     } else {
@@ -199,10 +199,10 @@ inline Fase<Parts...>::Fase()
 
 template <class... Parts>
 template <typename Ret, typename... Args>
-inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&         func,
-                                        const std::string&      f_name,
-                                        FunctionUtils&&         utils,
-                                        std::vector<Variable>&& default_args) {
+inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&        func,
+                                        const std::string&     f_name,
+                                        FunctionUtils&&        utils,
+                                        std::deque<Variable>&& default_args) {
     utils.arg_types = {typeid(std::decay_t<Args>)...};
     utils.is_input_args = {IsInputType<Args>()...};
     if constexpr (!std::is_same_v<Ret, void>) {
@@ -223,7 +223,7 @@ inline bool Fase<Parts...>::addUnivFunc(const UnivFunc&    func,
                   "Fase::addUnivFunc<Args...> : "
                   "If not all Args have default constructor,"
                   "do not call me WITHOUT default_args!");
-    std::vector<Variable> default_args = GetDefaultValueVariables<Args...>();
+    std::deque<Variable> default_args = GetDefaultValueVariables<Args...>();
     utils.arg_types = {typeid(std::decay_t<Args>)...};
     utils.is_input_args = {IsInputType<Args>()...};
     if constexpr (!std::is_same_v<Ret, void>) {
@@ -353,7 +353,7 @@ struct AddingUnivFuncHelper<Ret(Args...)> {
                             std::index_sequence_for<Args...>()));
     }
     template <size_t... Seq>
-    static std::vector<Variable>
+    static std::deque<Variable>
     toVariables(std::tuple<std::decay_t<Args>...>&& a,
                 std::index_sequence<Seq...>) {
         return {std::make_unique<std::decay_t<Args>>(

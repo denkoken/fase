@@ -22,7 +22,7 @@ TEST_CASE("Core test") {
                         [&]() -> std::function<void(const int&, const int&,
                                                     int&)> { return Add; });
 
-        std::vector<Variable> default_args(3);
+        std::deque<Variable> default_args(3);
 
         default_args[0].create<int>(1);
         default_args[1].create<int>(2);
@@ -37,7 +37,7 @@ TEST_CASE("Core test") {
                     return Square;
                 });
 
-        std::vector<Variable> default_args(2);
+        std::deque<Variable> default_args(2);
 
         default_args[0].create<int>(4);
         default_args[1].create<int>(0);
@@ -65,11 +65,11 @@ TEST_CASE("Core test") {
     REQUIRE(*core.getNodes().at("b").args[1].getReader<int>() == 9);
 
     int input0 = 4, input1 = 5;
-    std::vector<Variable> inputs;
+    std::deque<Variable> inputs;
     Assign(inputs, &input0, &input1);
     REQUIRE(inputs[0].getWriter<int>().get() == &input0);
     REQUIRE(core.supposeInput(inputs));
-    std::vector<Variable> outputs(1);
+    std::deque<Variable> outputs(1);
     outputs[0].create<int>();
     REQUIRE(core.supposeOutput(outputs));
 
@@ -86,11 +86,11 @@ TEST_CASE("Core test") {
 
     // check deep copy
     auto copied = core;
-    std::vector<Variable> copied_inputs(2);
+    std::deque<Variable> copied_inputs(2);
     copied_inputs[0].create<int>(3);
     copied_inputs[1].create<int>(7);
     REQUIRE(copied.supposeInput(copied_inputs));
-    std::vector<Variable> copied_outputs(1);
+    std::deque<Variable> copied_outputs(1);
     copied_outputs[0].create<int>();
     REQUIRE(copied.supposeOutput(copied_outputs));
 

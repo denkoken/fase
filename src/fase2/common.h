@@ -26,13 +26,13 @@ struct Report {
     std::map<std::string, Report> child_reports;
 };
 
-using UnivFunc = std::function<void(std::vector<Variable>&, Report*)>;
+using UnivFunc = std::function<void(std::deque<Variable>&, Report*)>;
 
 struct Node {
-    std::string           func_name = "";
-    UnivFunc              func = [](auto&, auto) {};
-    std::vector<Variable> args;
-    int                   priority = 0;
+    std::string          func_name = "";
+    UnivFunc             func = [](auto&, auto) {};
+    std::deque<Variable> args;
+    int                  priority = 0;
 };
 
 struct Link {
@@ -103,7 +103,7 @@ public:
     virtual bool supposeInput(const std::vector<std::string>& arg_names) = 0;
     virtual bool supposeOutput(const std::vector<std::string>& arg_names) = 0;
 
-    virtual bool call(std::vector<Variable>& args) = 0;
+    virtual bool call(std::deque<Variable>& args) = 0;
 
     virtual bool run(Report* preport = nullptr) = 0;
 

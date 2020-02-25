@@ -214,7 +214,7 @@ int main() {
             [&] {
                 try {
                     auto exported = app.exportPipe();
-                    std::vector<fase::Variable> vs(3, std::make_unique<int>());
+                    std::deque<fase::Variable> vs(3, std::make_unique<int>());
                     *vs[0].getWriter<int>() = 2;
                     *vs[1].getWriter<int>() = 6;
                     if (!exported(vs)) {
