@@ -80,6 +80,16 @@ inline void Extend(const T& a, T* b) {
     b->insert(std::end(*b), std::begin(a), std::end(a));
 }
 
+template <typename T>
+std::vector<T> to1dim(const std::vector<std::vector<T>>& set_array) {
+    std::vector<T> dst;
+
+    for (auto& v : set_array) {
+        Extend(v, &dst);
+    }
+    return dst;
+}
+
 template <typename Key, typename Val>
 inline std::vector<Key> getKeys(const std::map<Key, Val>& map) {
     std::vector<Key> dst;
